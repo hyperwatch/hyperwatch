@@ -8,11 +8,11 @@ Access Watch is a flexible access log processor that helps operators analyze the
 
 Access Watch is built on a real-time stream processor handling logs from inputs of any type:
 
- * CDNs (Cloudfront, Cloudflare, Akamai, ...)
- * Load Balancers (ELB)
- * Reverse Proxies (Nginx, Haproxy, ...)
- * Web Servers (Nginx, Apache, ...)
- * Applications (Node, Ruby, PHP, ...)
+- CDNs (Cloudfront, Cloudflare, Akamai, ...)
+- Load Balancers (ELB)
+- Reverse Proxies (Nginx, Haproxy, ...)
+- Web Servers (Nginx, Apache, ...)
+- Applications (Node, Ruby, PHP, ...)
 
 Access Watch is currently in open beta. For more details, go to: https://access.watch
 
@@ -74,10 +74,9 @@ If you see data flowing, congratulations you made it!
 
 ## Tutorials
 
- - [Monitor web traffic with syslog input from Nginx](https://access.watch/documentation/nginx)
- - [Monitor web traffic with syslog input from Apache](https://access.watch/documentation/apache)
- - [Monitor web traffic with input from Node/Express middleware](https://access.watch/documentation/express)
- - [Monitor web traffic with input from Elasticsearch](https://access.watch/documentation/elasticsearch)
+- [Monitor web traffic with syslog input from Nginx](https://access.watch/documentation/nginx)
+- [Monitor web traffic with syslog input from Apache](https://access.watch/documentation/apache)
+- [Monitor web traffic with input from Node/Express middleware](https://access.watch/documentation/express)
 
 ## License
 

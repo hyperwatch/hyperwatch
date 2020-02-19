@@ -53,11 +53,6 @@ const constants = {
       sliderValues: ['auto', 30, 60, 60 * 6, 60 * 24],
     },
   },
-  elasticsearch: {
-    expiration: 7,
-    logsIndexName: 'access-watch-logs',
-    configuration: {},
-  },
   modules: {
     metrics: {
       active: true,
@@ -74,10 +69,6 @@ const constants = {
     logs: {
       active: true,
       priority: 0,
-    },
-    elasticsearch: {
-      active: false,
-      priority: 100,
     },
     searches: {
       active: true,

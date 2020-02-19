@@ -117,24 +117,6 @@ pipeline.registerInput(httpInput);
 
 // pipeline.registerInput(fileNginxAccessWatchInput)
 
-/* Elasticsearch inputs
------------------------ */
-
-/* Elasticsearch input (polling) accepting a commonly used Logstash format */
-
-// const elasticsearchInput = input.elasticsearch.create({
-//   config: {
-//     host: '__HOST__:__PORT__'
-//   },
-//   query: {
-//     index: '__INDEX__',
-//     type: '__TYPE__'
-//   },
-//   parse: format.logstash.formats['HTTPD_COMBINEDLOG']
-// })
-
-// pipeline.registerInput(elasticsearchInput)
-
 /*
 Pipeline configuration
 ======================
