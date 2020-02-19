@@ -1,7 +1,4 @@
 const uuid = require('uuid/v4');
-const { Map, List } = require('immutable');
-
-const constants = require('../constants');
 
 const pipeline = require('../lib/pipeline');
 
@@ -31,24 +28,5 @@ let augmented = pipeline
 
   // Augment with data from the Access Watch Hub
   .map(log => hub.augment(log));
-
-if (constants.features.anonymousRobots) {
-  augmented = augmented.map(log => {
-    if (log.getIn(['identity', 'type']) === 'robot' && !log.has('robot')) {
-      log = log.set(
-        'robot',
-        Map({
-          id: log.getIn(['identity', 'id']),
-          name: log.getIn(['user_agent', 'agent', 'label'], 'Unknown'),
-          reputation: {
-            status: log.getIn(['reputation', 'status']),
-          },
-          flags: List(),
-        })
-      );
-    }
-    return log;
-  });
-}
 
 module.exports = { stream: augmented };
