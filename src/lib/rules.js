@@ -310,21 +310,6 @@ class Database {
     );
   }
 
-  getSessionWithRule({ type, session }) {
-    const getter = rulesMatchers[type];
-    const rule = this.list()
-      .filter(
-        rule =>
-          rule.getIn(['condition', 'type']) === type &&
-          rule.get('condition').getIn(getter) === session.getIn(getter)
-      )
-      .first();
-    if (rule) {
-      return session.set('rule', rule);
-    }
-    return session;
-  }
-
   groupByConditionType(type) {
     return this.list(type).reduce(
       (grouped, rule) =>

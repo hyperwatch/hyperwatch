@@ -30,9 +30,7 @@ You can find below the list of all configurable constants:
 | port          | integer               | The port the app is running on |
 | pipeline      | [pipeline](#pipeline) | Pipeline properties            |
 | metrics       | [metrics](#metrics)   | Metrics properties             |
-| session       | [session](#session)   | Session properties             |
 | rules         | [rules](#rules)       | Rules properties               |
-| hub           | [hub](#hub)           | Hub properties                 |
 | ui            | [ui](#ui)             | User Interface properties      |
 
 ## Pipeline
@@ -66,14 +64,6 @@ You can find below the list of all configurable constants:
 | ------------- | ------- | --------------------------------------------------------------------------------------- |
 | expiration    | integer | Duration (in seconds) without activity after which an element will be garbage collected |
 | interval      | integer | Interval ( in ms ) at each the garbage collection will be called                        |
-
-## Hub
-
-| Constant name | Type                  | Description                                              |
-| ------------- | --------------------- | -------------------------------------------------------- |
-| cache         | [cache](#cache)       | The cache property, see [cache](#cache)                  |
-| identity      | [identity](#identity) | The identity property, see [identity](#identity)         |
-| timeout       | integer               | Timeout of the request made towards the access.watch hub |
 
 ### Cache
 

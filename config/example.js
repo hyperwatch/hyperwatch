@@ -122,7 +122,7 @@ Pipeline configuration
 ======================
 */
 
-const { proxy, hub } = plugins;
+const { proxy } = plugins;
 
 let stream = pipeline
 
@@ -141,10 +141,6 @@ let stream = pipeline
       )
     )
   )
-
-  /* Augment with data from the Access Watch Hub */
-
-  .map(log => hub.augment(log))
 
   /* Output to the console as JS object */
 

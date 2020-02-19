@@ -25,29 +25,6 @@ const constants = {
       interval: 60 * 1000,
     },
   },
-  session: {
-    gc: {
-      indexSize: 1000,
-      expiration: 3600,
-      interval: 60 * 1000,
-    },
-    timerange: false,
-  },
-  hub: {
-    cache: {
-      max: 10000,
-      maxAge: 3600 * 1000,
-    },
-    identity: {
-      batchInterval: 333,
-      maxConcurrentRequests: 3,
-    },
-    activity: {
-      batchInterval: 333,
-      maxConcurrentRequests: 3,
-    },
-    timeout: 2000,
-  },
   ui: {
     time: {
       sliderValues: ['auto', 30, 60, 60 * 6, 60 * 24],
@@ -55,10 +32,6 @@ const constants = {
   },
   modules: {
     metrics: {
-      active: true,
-      priority: 0,
-    },
-    session: {
       active: true,
       priority: 0,
     },
