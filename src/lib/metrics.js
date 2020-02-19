@@ -12,7 +12,6 @@
 const { fromJS, Set, Map, isKeyed } = require('immutable');
 const database = require('./database');
 const config = require('../constants');
-const instruments = require('./instruments');
 
 // A time series is identified by a name and a set of named tags.
 function seriesFor(metric) {
@@ -164,8 +163,6 @@ function gc(data, deleteAfter) {
     const cutoff = now - deleteAfter;
     timeSeries.map(points => gcPoints(points, cutoff));
   }
-
-  instruments.hrtime('metrics.gc.expired.time', gcStart);
 }
 
 class Database {

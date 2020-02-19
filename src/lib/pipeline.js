@@ -13,7 +13,6 @@ const Ajv = require('ajv');
 const { Map, List } = require('immutable');
 const { now, complement, iso } = require('./util');
 const monitoring = require('./monitoring');
-const instruments = require('./instruments');
 
 const config = require('../constants');
 
@@ -140,7 +139,6 @@ function window({
       // Drop late events
       const t = event.get('time');
       const watermark = now() - watermarkDelay;
-      instruments.gauge('pipeline.window.delta', t - now());
       if (t < watermark - allowedLateness) {
         console.log('WARNING', 'Dropping late event.');
         console.log(
@@ -285,7 +283,6 @@ class Pipeline extends Builder {
       const monitor = pipeline.monitors[idx];
       input.start({
         success: log => {
-          instruments.increment('pipeline.success');
           const valid = validate(log.toJS());
           if (valid) {
             const event = Map({
@@ -294,11 +291,9 @@ class Pipeline extends Builder {
               ),
               data: log,
             });
-            instruments.increment('pipeline.valid');
             monitor.hit('accepted', event.get('time'));
             pipeline.handleEvent(event);
           } else {
-            instruments.increment('pipeline.invalid');
             monitor.hit('rejected');
             errorLog(
               `Invalid message: ${validator.errorsText(validate.errors)}`,
@@ -307,7 +302,6 @@ class Pipeline extends Builder {
           }
         },
         reject: reason => {
-          instruments.increment('pipeline.reject');
           monitor.hit('rejected');
           errorLog(reason, 'warn');
         },
@@ -330,7 +324,6 @@ class Pipeline extends Builder {
   }
 
   handleEvent(event) {
-    instruments.gauge('pipeline.event.delta', event.get('time') - now());
     forward(this.stream, event);
   }
 }

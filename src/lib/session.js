@@ -7,7 +7,6 @@ const { now } = require('./util');
 const { Speed } = require('./speed');
 const database = require('./database');
 const config = require('../constants');
-const instruments = require('./instruments');
 
 function withSpeed(session) {
   return session
@@ -36,20 +35,15 @@ class Database {
   }
 
   gc() {
-    const gcStart = process.hrtime();
-
     // Filtering old Sessions
     const cutoff = now() - config.session.gc.expiration;
-    this.sessions = this.sessions.map((sessions, type) => {
-      const gcExpiredStart = process.hrtime();
+    this.sessions = this.sessions.map(sessions => {
       sessions = sessions.filter(s => s.get('end') >= cutoff);
-      instruments.hrtime(`session.${type}.gc.expired.time`, gcExpiredStart);
       return sessions;
     });
 
     // Update and Slice Indexes
     this.indexes = this.indexes.map((indexes, type) => {
-      const gcIndexesStart = process.hrtime();
       indexes = indexes.map((index, key) => {
         if (key === '24h') {
           index = index.map((count, id) => {
@@ -72,16 +66,7 @@ class Database {
           .reverse()
           .slice(0, config.session.gc.indexSize);
       });
-      instruments.hrtime(`session.${type}.gc.indexes.time`, gcIndexesStart);
       return indexes;
-    });
-
-    instruments.hrtime('session.gc.time', gcStart);
-  }
-
-  instrument() {
-    this.sessions.entrySeq().forEach(([key, value]) => {
-      instruments.gauge(`sessions.${key}.size`, value.size);
     });
   }
 

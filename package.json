@@ -29,8 +29,6 @@
   "dependencies": {
     "access-watch-sdk": "^0.1.9",
     "ajv": "^6.5.5",
-    "appmetrics": "^4.0.0",
-    "appmetrics-statsd": "^2.0.0",
     "axios": "^0.18.0",
     "date-format-lite": "^17.7.0",
     "ejs": "^2.6.1",

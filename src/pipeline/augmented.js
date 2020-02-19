@@ -3,9 +3,7 @@ const { Map, List } = require('immutable');
 
 const constants = require('../constants');
 
-const { now } = require('../lib/util');
 const pipeline = require('../lib/pipeline');
-const instruments = require('../lib/instruments');
 
 const hub = require('../plugins/hub');
 const proxy = require('../plugins/proxy');
@@ -32,18 +30,7 @@ let augmented = pipeline
   )
 
   // Augment with data from the Access Watch Hub
-  .map(log => hub.augment(log))
-
-  // Instruments (out)
-  .map(log => {
-    instruments.increment('pipeline.augmented.out');
-    instruments.gauge(
-      'pipeline.augmented.delta',
-      Math.floor(new Date(log.getIn(['request', 'time'])).getTime() / 1000) -
-        now()
-    );
-    return log;
-  });
+  .map(log => hub.augment(log));
 
 if (constants.features.anonymousRobots) {
   augmented = augmented.map(log => {
