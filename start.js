@@ -23,7 +23,6 @@ expressWs(app, httpServer);
 
 app.use(
   accessWatch.apps.api,
-  accessWatch.apps.dashboard,
   accessWatch.apps.websocket
 );
 
