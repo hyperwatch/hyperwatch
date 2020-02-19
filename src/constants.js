@@ -33,10 +33,6 @@ const constants = {
       active: true,
       priority: 0,
     },
-    searches: {
-      active: true,
-      priority: 0,
-    },
   },
   logs: {
     memory: {
