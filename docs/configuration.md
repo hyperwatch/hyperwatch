@@ -30,7 +30,6 @@ You can find below the list of all configurable constants:
 | port          | integer               | The port the app is running on |
 | pipeline      | [pipeline](#pipeline) | Pipeline properties            |
 | metrics       | [metrics](#metrics)   | Metrics properties             |
-| rules         | [rules](#rules)       | Rules properties               |
 | ui            | [ui](#ui)             | User Interface properties      |
 
 ## Pipeline
@@ -41,18 +40,6 @@ You can find below the list of all configurable constants:
 | watermarkDelay  | integer | Delay removed from the current time when comparing to the event time                                 |
 
 ## Metrics
-
-| Constant name | Type      | Description                                |
-| ------------- | --------- | ------------------------------------------ |
-| gc            | [GC](#GC) | Garbage collection property, see [GC](#GC) |
-
-## Rules
-
-| Constant name | Type      | Description                                |
-| ------------- | --------- | ------------------------------------------ |
-| gc            | [GC](#GC) | Garbage collection property, see [GC](#GC) |
-
-## Session
 
 | Constant name | Type      | Description                                |
 | ------------- | --------- | ------------------------------------------ |

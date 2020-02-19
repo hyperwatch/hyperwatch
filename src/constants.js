@@ -19,12 +19,6 @@ const constants = {
       interval: 60 * 1000,
     },
   },
-  rules: {
-    gc: {
-      expiration: 24 * 3600,
-      interval: 60 * 1000,
-    },
-  },
   ui: {
     time: {
       sliderValues: ['auto', 30, 60, 60 * 6, 60 * 24],
@@ -32,10 +26,6 @@ const constants = {
   },
   modules: {
     metrics: {
-      active: true,
-      priority: 0,
-    },
-    rules: {
       active: true,
       priority: 0,
     },
@@ -52,7 +42,7 @@ const constants = {
     memory: {
       retention: 1000,
     },
-  }
+  },
 };
 
 module.exports = rc('access-watch', constants);
