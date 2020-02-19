@@ -110,7 +110,7 @@ class FileConnection extends Connection {
  *  'file'      Filesystem store (`data` directory)
  */
 function connect({ name, protocol, Klass, gcInterval }) {
-  if (connections.hasOwnProperty(name)) {
+  if (Object.prototype.hasOwnProperty.call(connections, name)) {
     return connections[name];
   }
   let conn;

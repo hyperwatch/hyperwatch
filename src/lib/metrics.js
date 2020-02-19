@@ -151,8 +151,6 @@ function gcPoints(points, cutoff) {
 
 // Garbage collect old points
 function gc(data, deleteAfter) {
-  const gcStart = process.hrtime();
-
   // time horizon is biggest timestamp in database
   const timeSeries = Object.values(data);
   if (timeSeries.length > 0) {

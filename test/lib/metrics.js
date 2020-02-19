@@ -44,7 +44,14 @@ describe('Metrics', function() {
   it('index by name and tags', function() {
     assert.deepStrictEqual(
       db.query(fromJS({ name: 'request', tags: { status: 'nice' } })),
-      [[11, 2], [12, 3], [13, 0], [14, 0], [15, 0], [16, 2]]
+      [
+        [11, 2],
+        [12, 3],
+        [13, 0],
+        [14, 0],
+        [15, 0],
+        [16, 2],
+      ]
     );
   });
 
@@ -119,7 +126,10 @@ describe('Metrics', function() {
   it('Fix #51', function() {
     assert.deepStrictEqual(
       db.query(fromJS({ name: 'request', start: 12, end: 18, step: 5 })),
-      [[10, 5], [15, 2]]
+      [
+        [10, 5],
+        [15, 2],
+      ]
     );
   });
 });

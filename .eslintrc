@@ -3,10 +3,11 @@
     "node": true,
     "es6": true
   },
-  "plugins": ["node", "prettier"],
-  "extends": ["plugin:node/recommended", "plugin:prettier/recommended", "eslint:recommended"],
+  "plugins": ["node"],
+  "extends": ["eslint:recommended", "plugin:node/recommended"],
   "rules": {
-    "no-console": "off"
+    "no-console": "off",
+    "no-process-exit": "off"
   },
   "parserOptions": {
     "ecmaVersion": 6

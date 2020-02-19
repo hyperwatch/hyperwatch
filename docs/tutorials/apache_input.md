@@ -42,11 +42,11 @@ const { pipeline, input, format } = accessWatch;
 const syslogApacheAccessWatchCombinedInput = input.syslog.create({
   port: 1518,
   parse: format.apache.parser({
-    format: format.apache.formats.accessWatchCombined
-  })
-})
+    format: format.apache.formats.accessWatchCombined,
+  }),
+});
 
-pipeline.registerInput(syslogApacheAccessWatchCombinedInput)
+pipeline.registerInput(syslogApacheAccessWatchCombinedInput);
 ```
 
 ### Configure Apache
@@ -65,14 +65,14 @@ Second, you need to instruct Apache where to send the access logs. If it's not t
 CustomLog "|/usr/bin/logger -n localhost -P 1518 --rfc3164" access_watch_combined
 ```
 
-Note: This is known to be working on *Ubuntu 16.04* with *logger 2.27.1*, let us know if you're in trouble and using something else.
+Note: This is known to be working on _Ubuntu 16.04_ with _logger 2.27.1_, let us know if you're in trouble and using something else.
 
 In this example, there are 3 important things:
 
 1. If Access Watch is running on the same server, we can use `localhost` as IP address.
-If it's on a different server, replace `localhost` by the proper private or public IP address.
+   If it's on a different server, replace `localhost` by the proper private or public IP address.
 2. We configured Access Watch to listen for syslog messages in the `access_watch_combined` format on port `1518`.
-We're properly passing that port in the configuration
+   We're properly passing that port in the configuration
 3. Finally, we're asking Apache to use the `access_watch_combined` log format we previously configured.
 
 Don't forget to reload Aapche with the updated configuration. On Ubuntu, it would be:

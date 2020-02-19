@@ -21,10 +21,7 @@ const app = express();
 const httpServer = http.createServer(app);
 expressWs(app, httpServer);
 
-app.use(
-  accessWatch.apps.api,
-  accessWatch.apps.websocket
-);
+app.use(accessWatch.apps.api, accessWatch.apps.websocket);
 
 Object.keys(accessWatch.constants.app).forEach(key => {
   app.set(key, accessWatch.constants.app[key]);

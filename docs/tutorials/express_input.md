@@ -40,10 +40,10 @@ const { pipeline, input } = accessWatch;
 const webSocketServerInput = input.websocket.create({
   name: 'WebSocket server (JSON standard format)',
   type: 'server',
-  path: '/input/log'
-})
+  path: '/input/log',
+});
 
-pipeline.registerInput(webSocketServerInput)
+pipeline.registerInput(webSocketServerInput);
 ```
 
 ### Configure Node/Express
@@ -57,19 +57,18 @@ npm install --save access-watch-express-logger
 Then simply configure it like any other middlewares:
 
 ```javascript
-const express = require('express')
-const accessWatchExpressLogger = require('access-watch-express-logger')
+const express = require('express');
+const accessWatchExpressLogger = require('access-watch-express-logger');
 
-const app = express()
+const app = express();
 
-app.use(accessWatchExpressLogger('websocket', 'ws://localhost:3000/input/log'))
-
+app.use(accessWatchExpressLogger('websocket', 'ws://localhost:3000/input/log'));
 ```
 
 In this example, there are 3 important things:
 
 1. If Access Watch is running on the same server, we can use `localhost` as IP address.
-If it's on a different server, replace `localhost` by the proper private or public IP address.
+   If it's on a different server, replace `localhost` by the proper private or public IP address.
 2. Replace the port (here `3000`) by the relevant one, it should be the main port where Access Watch is running.
 3. Finally, the path `/input/log` should match the one configured on Access Watch side, If you're following this tutorial from start to begin, nothing to change!
 

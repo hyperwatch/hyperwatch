@@ -21,6 +21,9 @@
     "start": "node start",
     "lint": "eslint '**/*.js'",
     "lint:fix": "eslint '**/*.js' --fix",
+    "prettier": "prettier \"**/*.@(js|json|md)\"",
+    "prettier:write": "npm run prettier -- --write",
+    "prettier:check": "npm run prettier -- --list-different",
     "test": "npm run lint && mocha --recursive"
   },
   "bin": {
@@ -45,9 +48,7 @@
   },
   "devDependencies": {
     "eslint": "^6.8.0",
-    "eslint-config-prettier": "^6.10.0",
     "eslint-plugin-node": "^11.0.0",
-    "eslint-plugin-prettier": "^3.1.2",
     "mocha": "^7.0.1",
     "prettier": "^1.19.1"
   },
