@@ -13,7 +13,7 @@ if (process.argv[2]) {
 
 // Load Core
 
-const hyperWatch = require('./hyper-watch')();
+const hyperWatch = require('./hyperwatch')();
 
 // Load Express
 

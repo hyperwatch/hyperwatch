@@ -1,4 +1,4 @@
-const hyperWatch = require('../hyper-watch')();
+const hyperWatch = require('../hyperwatch')();
 
 const { pipeline, input, format, plugins } = hyperWatch;
 

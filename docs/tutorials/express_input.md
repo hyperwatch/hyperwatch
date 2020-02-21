@@ -19,8 +19,8 @@ nvm install node
 During the beta phase, let's use Git and clone the public repository:
 
 ```bash
-git clone https://github.com/znarf/hyper-watch.git
-cd hyper-watch
+git clone https://github.com/znarf/hyperwatch.git
+cd hyperwatch
 npm install
 ```
 
@@ -33,7 +33,7 @@ All communications between your Node/Express application and Hyper Watch will be
 Now, you can create your own configuration in `./config/config.js`:
 
 ```javascript
-const hyperWatch = require('../hyper-watch')();
+const hyperWatch = require('../hyperwatch')();
 
 const { pipeline, input } = hyperWatch;
 

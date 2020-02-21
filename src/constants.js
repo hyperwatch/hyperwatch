@@ -30,4 +30,4 @@ const constants = {
   },
 };
 
-module.exports = rc('hyper-watch', constants);
+module.exports = rc('hyperwatch', constants);

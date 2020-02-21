@@ -19,8 +19,8 @@ nvm install node
 During the beta phase, let's use Git and clone the public repository:
 
 ```bash
-git clone https://github.com/znarf/hyper-watch.git
-cd hyper-watch
+git clone https://github.com/znarf/hyperwatch.git
+cd hyperwatch
 npm install
 ```
 
@@ -35,7 +35,7 @@ To get more familiar, you can inspect default and example configurations in `./c
 Now, you can create your own configuration in `./config/apache.js`:
 
 ```javascript
-const hyperWatch = require('../hyper-watch')();
+const hyperWatch = require('../hyperwatch')();
 
 const { pipeline, input, format } = hyperWatch;
 

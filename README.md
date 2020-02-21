@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/znarf/hyper-watch.svg?branch=master)](https://travis-ci.org/znarf/hyper-watch)
+[![Build Status](https://travis-ci.org/znarf/hyperwatch.svg?branch=master)](https://travis-ci.org/znarf/hyperwatch)
 
 Hyper Watch is a flexible access log processor that helps operators analyze HTTP traffic reaching their infrastructure.
 
@@ -15,8 +15,8 @@ Hyper Watch is built on a real-time stream processor handling logs from inputs o
 Make sure you have Node.js version >= 7. We recommend using [nvm](https://github.com/creationix/nvm).
 
 ```bash
-git clone https://github.com/znarf/hyper-watch.git
-cd hyper-watch
+git clone https://github.com/znarf/hyperwatch.git
+cd hyperwatch
 npm install
 ```
 
