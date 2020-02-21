@@ -2,7 +2,7 @@
 
 The constants configuration is done with the help of the [rc](https://www.npmjs.com/package/rc) node module.
 
-Our recommended way to configure the constants is to add a `.access-watchrc` at the root of your project folder.
+Our recommended way to configure the constants is to add a `.hyper-watchrc` at the root of your project folder.
 
 This file can be in either `JSON` (recommended) or `ini` format.
 
@@ -30,9 +30,6 @@ You can find below the list of all configurable constants:
 | port          | integer               | The port the app is running on |
 | pipeline      | [pipeline](#pipeline) | Pipeline properties            |
 | metrics       | [metrics](#metrics)   | Metrics properties             |
-| session       | [session](#session)   | Session properties             |
-| rules         | [rules](#rules)       | Rules properties               |
-| hub           | [hub](#hub)           | Hub properties                 |
 | ui            | [ui](#ui)             | User Interface properties      |
 
 ## Pipeline
@@ -48,32 +45,12 @@ You can find below the list of all configurable constants:
 | ------------- | --------- | ------------------------------------------ |
 | gc            | [GC](#GC) | Garbage collection property, see [GC](#GC) |
 
-## Rules
-
-| Constant name | Type      | Description                                |
-| ------------- | --------- | ------------------------------------------ |
-| gc            | [GC](#GC) | Garbage collection property, see [GC](#GC) |
-
-## Session
-
-| Constant name | Type      | Description                                |
-| ------------- | --------- | ------------------------------------------ |
-| gc            | [GC](#GC) | Garbage collection property, see [GC](#GC) |
-
 ### GC
 
 | Constant name | Type    | Description                                                                             |
 | ------------- | ------- | --------------------------------------------------------------------------------------- |
 | expiration    | integer | Duration (in seconds) without activity after which an element will be garbage collected |
 | interval      | integer | Interval ( in ms ) at each the garbage collection will be called                        |
-
-## Hub
-
-| Constant name | Type                  | Description                                              |
-| ------------- | --------------------- | -------------------------------------------------------- |
-| cache         | [cache](#cache)       | The cache property, see [cache](#cache)                  |
-| identity      | [identity](#identity) | The identity property, see [identity](#identity)         |
-| timeout       | integer               | Timeout of the request made towards the access.watch hub |
 
 ### Cache
 

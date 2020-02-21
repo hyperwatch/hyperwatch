@@ -17,18 +17,10 @@ class Connection {
         this.db.gc();
       }, gcInterval);
     }
-    if (this.db.instrument) {
-      this.instrument = setInterval(() => {
-        this.db.instrument();
-      }, 1000);
-    }
   }
   close() {
     if (this.gc) {
       clearInterval(this.gc);
-    }
-    if (this.instrument) {
-      clearInterval(this.instrument);
     }
     return Promise.resolve();
   }
@@ -118,7 +110,7 @@ class FileConnection extends Connection {
  *  'file'      Filesystem store (`data` directory)
  */
 function connect({ name, protocol, Klass, gcInterval }) {
-  if (connections.hasOwnProperty(name)) {
+  if (Object.prototype.hasOwnProperty.call(connections, name)) {
     return connections[name];
   }
   let conn;

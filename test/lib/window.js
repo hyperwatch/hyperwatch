@@ -37,7 +37,10 @@ describe('FixedWindow', function() {
 describe('SlidingWindow', function() {
   it('assign events to sliding windows.', function() {
     assertWindows(
-      [{ start: 0, end: 10 }, { start: 5, end: 15 }],
+      [
+        { start: 0, end: 10 },
+        { start: 5, end: 15 },
+      ],
       new SlidingWindow(10, 5).assign(Map({ time: 7 }))
     );
     assertWindows(
@@ -45,7 +48,10 @@ describe('SlidingWindow', function() {
       new SlidingWindow(10, 10).assign(Map({ time: 7 }))
     );
     assertWindows(
-      [{ start: 10, end: 20 }, { start: 15, end: 25 }],
+      [
+        { start: 10, end: 20 },
+        { start: 15, end: 25 },
+      ],
       new SlidingWindow(10, 5).assign(Map({ time: 18 }))
     );
   });

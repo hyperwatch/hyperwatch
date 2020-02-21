@@ -13,7 +13,7 @@ if (process.argv[2]) {
 
 // Load Core
 
-const accessWatch = require('./access-watch')();
+const hyperWatch = require('./hyper-watch')();
 
 // Load Express
 
@@ -21,17 +21,13 @@ const app = express();
 const httpServer = http.createServer(app);
 expressWs(app, httpServer);
 
-app.use(
-  accessWatch.apps.api,
-  accessWatch.apps.dashboard,
-  accessWatch.apps.websocket
-);
+app.use(hyperWatch.apps.api, hyperWatch.apps.websocket);
 
-Object.keys(accessWatch.constants.app).forEach(key => {
-  app.set(key, accessWatch.constants.app[key]);
+Object.keys(hyperWatch.constants.app).forEach(key => {
+  app.set(key, hyperWatch.constants.app[key]);
 });
 
-const port = process.env.PORT || accessWatch.constants.port;
+const port = process.env.PORT || hyperWatch.constants.port;
 
 httpServer.listen(port, () => {
   console.log(`HTTP and Websocket Server listening on port ${port}`);
@@ -39,7 +35,7 @@ httpServer.listen(port, () => {
 
 // Start Pipeline
 
-accessWatch.pipeline.start();
+hyperWatch.pipeline.start();
 
 // Handle Shutdown
 
@@ -50,8 +46,8 @@ function shutdown() {
     shutdownInProgress = true;
     Promise.all([
       httpServer.close(),
-      accessWatch.pipeline.stop(),
-      accessWatch.database.close(),
+      hyperWatch.pipeline.stop(),
+      hyperWatch.database.close(),
     ])
       .then(() => {
         process.exit();
@@ -69,12 +65,3 @@ process.on('SIGINT', () => {
   console.log('SIGINT');
   shutdown();
 });
-
-// Instrumentation
-
-setInterval(() => {
-  const memoryUsage = process.memoryUsage();
-  Object.keys(memoryUsage).forEach(key => {
-    accessWatch.instruments.gauge(`process.memory.${key}`, memoryUsage[key]);
-  });
-}, 1000);
