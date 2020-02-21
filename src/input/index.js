@@ -4,4 +4,5 @@ module.exports = {
   socket: require('./socket'),
   file: require('./file'),
   websocket: require('./websocket'),
+  express: require('./express'),
 };
