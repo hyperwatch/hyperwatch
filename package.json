@@ -1,5 +1,5 @@
 {
-  "name": "hyper-watch",
+  "name": "@hyperwatch/hyperwatch",
   "version": "3.0.0",
   "description": "Open Source HTTP Traffic Manager",
   "repository": {
