@@ -1,5 +1,4 @@
 const rc = require('rc');
-const path = require('path');
 
 const constants = {
   port: 3000,
@@ -9,8 +8,7 @@ const constants = {
     watermarkDelay: 5,
   },
   data: {
-    protocol: 'file',
-    directory: path.resolve(__dirname, '../data'),
+    protocol: 'memory',
     saveInterval: 60 * 60 * 1000,
   },
   metrics: {
