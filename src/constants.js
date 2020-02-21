@@ -25,10 +25,6 @@ const constants = {
     },
   },
   modules: {
-    metrics: {
-      active: true,
-      priority: 0,
-    },
     logs: {
       active: true,
       priority: 0,
