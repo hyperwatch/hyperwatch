@@ -41,4 +41,4 @@ const constants = {
   },
 };
 
-module.exports = rc('access-watch', constants);
+module.exports = rc('hyper-watch', constants);

@@ -2,7 +2,7 @@
 
 The constants configuration is done with the help of the [rc](https://www.npmjs.com/package/rc) node module.
 
-Our recommended way to configure the constants is to add a `.access-watchrc` at the root of your project folder.
+Our recommended way to configure the constants is to add a `.hyper-watchrc` at the root of your project folder.
 
 This file can be in either `JSON` (recommended) or `ini` format.
 

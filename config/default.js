@@ -1,6 +1,6 @@
-const accessWatch = require('../access-watch')();
+const hyperWatch = require('../hyper-watch')();
 
-const { pipeline, input, format } = accessWatch;
+const { pipeline, input, format } = hyperWatch;
 
 /* Input configuration
 ====================== */
@@ -28,7 +28,7 @@ const syslogNginxAccessWatchInput = input.syslog.create({
 
 pipeline.registerInput(syslogNginxAccessWatchInput);
 
-/* Syslog input in Access Watch JSON format */
+/* Syslog input in Hyper Watch JSON format */
 
 const syslogInput = input.syslog.create({
   name: 'Syslog (JSON standard format)',
@@ -40,7 +40,7 @@ pipeline.registerInput(syslogInput);
 /* HTTP inputs
 -------------- */
 
-/* HTTP input in Access Watch JSON format */
+/* HTTP input in Hyper Watch JSON format */
 
 const httpInput = input.http.create({
   name: 'HTTP server (JSON standard format)',
@@ -49,5 +49,13 @@ const httpInput = input.http.create({
 
 pipeline.registerInput(httpInput);
 
+const webSocketServerInput = input.websocket.create({
+  name: 'WebSocket server (JSON standard format)',
+  type: 'server',
+  path: '/input/log',
+});
+
+pipeline.registerInput(webSocketServerInput);
+
 // Output to the console as JS object
-// pipeline.map(log => console.log(log.toJS()))
+pipeline.map(log => console.log(log.toJS()));

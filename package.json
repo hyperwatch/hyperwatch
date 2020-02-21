@@ -1,12 +1,12 @@
 {
-  "name": "access-watch",
-  "version": "2.3.5",
-  "description": "Open Source Web Traffic Manager",
+  "name": "hyper-watch",
+  "version": "3.0.0",
+  "description": "Open Source HTTP Traffic Manager",
   "repository": {
     "type": "git",
-    "url": "https://github.com/access-watch/access-watch.git"
+    "url": "https://github.com/znarf/hyper-watch.git"
   },
-  "main": "access-watch.js",
+  "main": "hyper-watch.js",
   "license": "Apache-2.0",
   "author": {
     "name": "Access Watch Technologies GmbH",
@@ -27,7 +27,7 @@
     "test": "npm run lint && mocha --recursive"
   },
   "bin": {
-    "access-watch": "./bin/access-watch"
+    "hyper-watch": "./bin/hyper-watch"
   },
   "dependencies": {
     "ajv": "^6.11.0",

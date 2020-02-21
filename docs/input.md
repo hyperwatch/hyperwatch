@@ -10,7 +10,7 @@ You can configure and register as many inputs as you need. The web interface wil
 
 ## Input Types
 
-- All inputs support by default single logs in the [Access Watch JSON format](#json-format).
+- All inputs support by default single logs in the [Hyper Watch JSON format](#json-format).
 - All inputs support an optional `parse` parameter for other formats.
 
 ### Syslog
@@ -49,7 +49,7 @@ The input accepts the following options.
 | path      | string | yes       | The path of the file.                                                          |
 | parse     | Parser | no        | A function to parse a line from the file (See [Formats](#other-formats) below) |
 
-**Note**: The file input does not read the whole file but starts tailing for logs as soon as Access Watch starts.
+**Note**: The file input does not read the whole file but starts tailing for logs as soon as Hyper Watch starts.
 
 ### HTTP
 
@@ -62,7 +62,7 @@ The input accepts the following options.
 | path      | string | yes       | The path where to listen for logs.                                           |
 | parse     | Parser | no        | A function to parse the request's body (See [Formats](#other-formats) below) |
 
-**Note**: The input mounts the configured endpoint to the same web server as Access Watch.
+**Note**: The input mounts the configured endpoint to the same web server as Hyper Watch.
 
 ### WebSocket
 
@@ -136,7 +136,7 @@ The JSON log parser parses access log in JSON that match the following schema.
 
 The Nginx log format parser allows you to specify a log format using a [Nginx log format specification](http://nginx.org/en/docs/http/ngx_http_log_module.html#log_format).
 
-If you are using Nginx, you can simply copy-and-paste the format specification from the Nginx configuration file to the Access Watch input configuration file.
+If you are using Nginx, you can simply copy-and-paste the format specification from the Nginx configuration file to the Hyper Watch input configuration file.
 
 ```javascript
 {
@@ -147,7 +147,7 @@ If you are using Nginx, you can simply copy-and-paste the format specification f
 }
 ```
 
-Access Watch is distributed with two Nginx formats.
+Hyper Watch is distributed with two Nginx formats.
 
 - The default `combined` format:
   `'$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent"'`
@@ -155,13 +155,13 @@ Access Watch is distributed with two Nginx formats.
 - the `access_watch_combined` format that extracts important HTTP headers from the request:
   `'$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$http_accept" "$http_accept_charset" "$http_accept_encoding" "$http_accept_language" "$http_connection" "$http_dnt" "$http_from" "$http_host"'`.
 
-If possible, we recommend you to use the `access_watch_combined` format to take full advantage of the Access Watch data augmentation in the pipeline.
+If possible, we recommend you to use the `access_watch_combined` format to take full advantage of the Hyper Watch data augmentation in the pipeline.
 
 ### Apache
 
 The Apache log format parser allows you to specify a log format using [Apache log configuration](http://httpd.apache.org/docs/current/mod/mod_log_config.html).
 
-If you are using Apache, you can simply copy-and-paste the format specification from the Apache configuration file to the Access Watch input configuration file.
+If you are using Apache, you can simply copy-and-paste the format specification from the Apache configuration file to the Hyper Watch input configuration file.
 
 ```javascript
 {
@@ -171,7 +171,7 @@ If you are using Apache, you can simply copy-and-paste the format specification 
 }
 ```
 
-Access Watch is distributed with two Apache formats.
+Hyper Watch is distributed with two Apache formats.
 
 - The default `combined` format:
   `'%h %l %u %t "%r" %>s %b "%{Referer}i" "%{User-agent}i"'`
@@ -179,13 +179,13 @@ Access Watch is distributed with two Apache formats.
 - the `access_watch_combined` format that extracts important HTTP headers from the request:
   `'%h %l %u %t "%r" %>s %b "%{Referer}i" "%{User-agent}i" "%{Accept}i" "%{Accept-Charset}i" "%{Accept-Encoding}i" "%{Accept-Language}i" "%{Connection}i" "%{Dnt}i" "%{From}i" "%{Host}i"'`.
 
-If possible, we recommend you to use the `access_watch_combined` format to take full advantage of the Access Watch data augmentation in the pipeline.
+If possible, we recommend you to use the `access_watch_combined` format to take full advantage of the Hyper Watch data augmentation in the pipeline.
 
 ### Custom
 
-If Access Watch does not support your access log format you can implement your own log format parser.
+If Hyper Watch does not support your access log format you can implement your own log format parser.
 
-In order to work with Access Watch, your format JavaScript module must follow a few simple rules.
+In order to work with Hyper Watch, your format JavaScript module must follow a few simple rules.
 
 1. The module must export a `parser` function
 2. The parser function accepts an object containing the options of your format.
@@ -193,7 +193,7 @@ In order to work with Access Watch, your format JavaScript module must follow a 
 
 A **parser** is a function that takes a message as a JavaScript string and return a log that conforms to the [specification](./log.md).
 
-If you're using a standard log format, do not hesitate to create a ticket in the Access Watch github project to request support for it.
+If you're using a standard log format, do not hesitate to create a ticket in the Hyper Watch github project to request support for it.
 
 ## Examples
 
@@ -214,7 +214,7 @@ const nginxInput = input.file.create({
 pipeline.registerInput(nginxInput);
 ```
 
-When placed in `config/custom.js` it can be used by Access Watch with:
+When placed in `config/custom.js` it can be used by Hyper Watch with:
 
 ```
 npm start config/custom
@@ -222,14 +222,14 @@ npm start config/custom
 
 ### Detailed
 
-For more detailed log processing, it is recommended to use the _Access Watch combined_ log format:
+For more detailed log processing, it is recommended to use the _Hyper Watch combined_ log format:
 
 ```
 log_format access_watch_combined '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$http_accept" "$http_accept_charset" "$http_accept_encoding" "$http_accept_language" "$http_connection" "$http_dnt" "$http_from" "$http_host" "$http_x_forwarded_for"'
 access_log /logs/access.log access_watch_combined;
 ```
 
-With the following configuration for Access Watch:
+With the following configuration for Hyper Watch:
 
 ```
 const defaultInput = input.file.create({
@@ -240,14 +240,14 @@ const defaultInput = input.file.create({
 
 ### Behind a proxy
 
-If behind a proxy, you might want to also report the `HTTP_X_FORWARDED_FOR` header to allow Access Watch to properly detect the client IP address.
+If behind a proxy, you might want to also report the `HTTP_X_FORWARDED_FOR` header to allow Hyper Watch to properly detect the client IP address.
 
 ```
 log_format access_watch_combined_with_x_forwarded_for '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$http_accept" "$http_accept_charset" "$http_accept_encoding" "$http_accept_language" "$http_connection" "$http_dnt" "$http_from" "$http_host" "$http_x_forwarded_for"'
 access_log /logs/access.log access_watch_combined_with_x_forwarded_for;
 ```
 
-With the following configuration for Access Watch:
+With the following configuration for Hyper Watch:
 
 ```
 const defaultInput = input.file.create({
