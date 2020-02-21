@@ -19,11 +19,6 @@ const constants = {
       interval: 60 * 1000,
     },
   },
-  ui: {
-    time: {
-      sliderValues: ['auto', 30, 60, 60 * 6, 60 * 24],
-    },
-  },
   modules: {
     logs: {
       active: true,
