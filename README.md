@@ -1,5 +1,4 @@
 [![Build Status](https://travis-ci.org/znarf/hyper-watch.svg?branch=master)](https://travis-ci.org/znarf/hyper-watch)
-[![Greenkeeper badge](https://badges.greenkeeper.io/znarf/hyper-watch.svg)](https://greenkeeper.io/)
 
 Hyper Watch is a flexible access log processor that helps operators analyze HTTP traffic reaching their infrastructure.
 
