@@ -1,6 +1,6 @@
 {
   "name": "@hyperwatch/hyperwatch",
-  "version": "3.0.0",
+  "version": "3.0.2",
   "description": "Open Source HTTP Traffic Manager",
   "repository": {
     "type": "git",
@@ -54,6 +54,6 @@
     "prettier": "^1.19.1"
   },
   "engines": {
-    "node": ">=8.0.0"
+    "node": ">=12.0.0"
   }
 }
