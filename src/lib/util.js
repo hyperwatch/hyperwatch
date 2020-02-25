@@ -17,13 +17,6 @@ exports.complement = f => {
 };
 
 /**
- * An immutable map with a subset of the keys.
- */
-exports.selectKeys = (m, keys) => {
-  return m.filter((v, k) => keys.includes(k));
-};
-
-/**
  * Convert a timestamp into an ISO date string.
  */
 exports.iso = time => new Date(time * 1000).format('iso');
