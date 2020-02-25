@@ -67,5 +67,3 @@ const mapIncludesObject = (map, obj) =>
   }, true);
 
 exports.mapIncludesObject = mapIncludesObject;
-
-exports.logIsAugmented = log => log.hasIn(['identity', 'id']);
