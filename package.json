@@ -58,6 +58,11 @@
   "engines": {
     "node": ">=11.14.0"
   },
+  "depcheck": {
+    "ignore": [
+      "prettier-package-json"
+    ]
+  },
   "husky": {
     "hooks": {
       "pre-commit": "lint-staged"
