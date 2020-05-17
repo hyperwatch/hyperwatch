@@ -1,6 +1,6 @@
 const express = require('express');
 const expressWs = require('express-ws');
-const uuid = require('uuid/v4');
+const uuid = require('uuid');
 const monitoring = require('../lib/monitoring');
 
 const app = express();
@@ -31,7 +31,7 @@ app.streamToWebsocket = (
   updateMonitoringStatus();
 
   app.ws(endpoint, client => {
-    const clientId = uuid();
+    const clientId = uuid.v4();
     clients[clientId] = client;
     updateMonitoringStatus();
     client.on('close', () => {
