@@ -34,7 +34,7 @@
     "date-format-lite": "^17.7.0",
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
-    "fs-extra": "^8.1.0",
+    "fs-extra": "^9.0.0",
     "geoip-lite": "^1.4.0",
     "immutable": "^4.0.0-rc.12",
     "lodash.merge": "^4.6.2",
