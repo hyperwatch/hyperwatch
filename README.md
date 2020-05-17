@@ -1,4 +1,4 @@
-[![Build Status](https://github.com/znarf/hyperwatch/workflows/CI/badge.svg)](https://github.com/znarf/hyperwatch/actions?query=workflow%3ACI) [![Dependency Status](https://david-dm.org/znarf/hyperwatch.svg)](https://david-dm.org/znarf/hyperwatch)
+[![NPM version](https://img.shields.io/npm/v/@hyperwatch/hyperwatch)](https://www.npmjs.com/package/@hyperwatch/hyperwatch) [![Build Status](https://github.com/znarf/hyperwatch/workflows/CI/badge.svg)](https://github.com/znarf/hyperwatch/actions?query=workflow%3ACI) [![Dependency Status](https://david-dm.org/znarf/hyperwatch.svg)](https://david-dm.org/znarf/hyperwatch)
 
 Hyper Watch is a flexible access log processor that helps operators analyze HTTP traffic reaching their infrastructure.
 
