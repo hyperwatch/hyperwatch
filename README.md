@@ -12,7 +12,7 @@ Hyper Watch is built on a real-time stream processor handling logs from inputs o
 
 ## Install
 
-Make sure you have Node.js version >= 7. We recommend using [nvm](https://github.com/creationix/nvm).
+Make sure you have Node.js version >= 10. We recommend using [nvm](https://github.com/creationix/nvm): `nvm install && nvm use`.
 
 ```bash
 git clone https://github.com/znarf/hyperwatch.git
