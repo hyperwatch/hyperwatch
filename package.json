@@ -59,7 +59,7 @@
     "node": ">=11.14.0"
   },
   "depcheck": {
-    "ignore": [
+    "ignores": [
       "prettier-package-json"
     ]
   },
