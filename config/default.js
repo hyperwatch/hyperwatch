@@ -58,4 +58,4 @@ const webSocketServerInput = input.websocket.create({
 pipeline.registerInput(webSocketServerInput);
 
 // Output to the console as JS object
-pipeline.map(log => console.log(log.toJS()));
+pipeline.map((log) => console.log(log.toJS()));

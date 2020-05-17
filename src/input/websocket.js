@@ -3,7 +3,7 @@ const { fromJS } = require('immutable');
 
 const app = require('../apps/websocket');
 
-const defaultParse = s => fromJS(JSON.parse(s));
+const defaultParse = (s) => fromJS(JSON.parse(s));
 
 function create({
   name = 'WebSocket',
@@ -23,7 +23,7 @@ function create({
     client.on('open', () => {
       status(null, 'Listening to ' + address);
     });
-    client.on('message', message => {
+    client.on('message', (message) => {
       if (sample !== 1 && Math.random() > sample) {
         return;
       }
@@ -33,7 +33,7 @@ function create({
         reject(err);
       }
     });
-    client.on('error', err => {
+    client.on('error', (err) => {
       status(err, 'Websocket error');
     });
     client.on('close', () => {
@@ -46,8 +46,8 @@ function create({
   };
 
   const setupWebSocketServer = ({ status, success, reject }) => {
-    app.ws(path, ws => {
-      ws.on('message', message => {
+    app.ws(path, (ws) => {
+      ws.on('message', (message) => {
         if (sample !== 1 && Math.random() > sample) {
           return;
         }

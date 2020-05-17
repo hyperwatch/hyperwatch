@@ -1,7 +1,7 @@
 const Tail = require('tail').Tail;
 const { fromJS } = require('immutable');
 
-const defaultParse = s => fromJS(JSON.parse(s));
+const defaultParse = (s) => fromJS(JSON.parse(s));
 
 function create({ name = 'File', path, parse = defaultParse }) {
   return {
@@ -12,20 +12,20 @@ function create({ name = 'File', path, parse = defaultParse }) {
         tail = new Tail(path, {
           logger: {
             info: () => {},
-            error: err => status(err, err.message),
+            error: (err) => status(err, err.message),
           },
         });
       } catch (err) {
         return status(err, err.message);
       }
-      tail.on('line', data => {
+      tail.on('line', (data) => {
         try {
           success(parse(data));
         } catch (err) {
           reject(err);
         }
       });
-      tail.on('error', err => {
+      tail.on('error', (err) => {
         log(err, 'error');
       });
       tail.watch();

@@ -58,11 +58,11 @@ function writeJSONFile(path, data) {
   return fs
     .writeJson(path + '.new', data, { spaces: '  ' })
     .then(() => fs.pathExists(path))
-    .then(exists => exists && fs.rename(path, path + '.previous'))
+    .then((exists) => exists && fs.rename(path, path + '.previous'))
     .then(() => fs.pathExists(path + '.new'))
-    .then(exists => exists && fs.rename(path + '.new', path))
+    .then((exists) => exists && fs.rename(path + '.new', path))
     .then(() => fs.pathExists(path + '.previous'))
-    .then(exists => exists && fs.unlink(path + '.previous'));
+    .then((exists) => exists && fs.unlink(path + '.previous'));
 }
 
 /**

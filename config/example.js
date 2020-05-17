@@ -132,7 +132,7 @@ let stream = pipeline
 
   /* Detect the public IP address if it's behind a proxy */
 
-  .map(log =>
+  .map((log) =>
     log.set(
       'address',
       proxy.detectAddress(
@@ -144,7 +144,7 @@ let stream = pipeline
 
   /* Output to the console as JS object */
 
-  .map(log => console.log(log.toJS()));
+  .map((log) => console.log(log.toJS()));
 
 module.exports = {
   stream,

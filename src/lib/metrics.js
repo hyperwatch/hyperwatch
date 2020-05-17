@@ -18,7 +18,7 @@ function seriesFor(metric) {
   return metric
     .get('tags', Map())
     .set('__name', metric.get('name'))
-    .filter(v => v !== undefined);
+    .filter((v) => v !== undefined);
 }
 
 // Encode series as string
@@ -26,7 +26,7 @@ function encode(series) {
   return series
     .entrySeq()
     .sort()
-    .map(p => p.join(':'))
+    .map((p) => p.join(':'))
     .join(',');
 }
 
@@ -156,10 +156,10 @@ function gc(data, deleteAfter) {
   if (timeSeries.length > 0) {
     const now = Math.max.apply(
       null,
-      timeSeries.map(a => (a.length ? a[a.length - 1][0] : 0))
+      timeSeries.map((a) => (a.length ? a[a.length - 1][0] : 0))
     );
     const cutoff = now - deleteAfter;
-    timeSeries.map(points => gcPoints(points, cutoff));
+    timeSeries.map((points) => gcPoints(points, cutoff));
   }
 }
 
@@ -184,7 +184,7 @@ class Database {
     const db = new Database();
     if (data) {
       db.series = data.series;
-      db.indices = fromJS(data.indices, function(key, value) {
+      db.indices = fromJS(data.indices, function (key, value) {
         return isKeyed(value) ? value.toMap() : value.toSet();
       });
     }
@@ -202,7 +202,7 @@ class Database {
       this.series[s] = [];
       // and index it
       this.indices = series.entrySeq().reduce((indices, e) => {
-        return indices.updateIn(e, Set(), seriesSet => seriesSet.add(s));
+        return indices.updateIn(e, Set(), (seriesSet) => seriesSet.add(s));
       }, this.indices);
     }
     insertOrReplacePoint(
@@ -239,7 +239,7 @@ class Database {
     let seriesSet = Set.intersect(
       seriesFor(query)
         .entrySeq()
-        .map(e => Set(this.indices.getIn(e, [])))
+        .map((e) => Set(this.indices.getIn(e, [])))
     );
     let points = [];
     if (query.has('by')) {
@@ -247,7 +247,7 @@ class Database {
       points = this.indices
         .get(query.get('by'), Map())
         .map(
-          function(s) {
+          function (s) {
             return this.querySeriesSet(query, Set.intersect([s, seriesSet]));
           }.bind(this)
         )
@@ -275,7 +275,7 @@ class Database {
   querySeriesSet(query, seriesSet) {
     return seriesSet
       .valueSeq()
-      .map(s =>
+      .map((s) =>
         filterAndAggregate(
           this.series[s],
           query.get('start'),
