@@ -7,7 +7,7 @@ module.exports = (config = {}) => {
 
   // Load modules
   Object.keys(constants.modules)
-    .map(key => Object.assign({ key }, constants.modules[key]))
+    .map((key) => Object.assign({ key }, constants.modules[key]))
     .sort((a, b) => b.priority - a.priority)
     .forEach(({ key }) => {
       // Here we need to access from the object as module with higer

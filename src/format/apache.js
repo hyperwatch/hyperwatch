@@ -32,7 +32,7 @@ function compileLineParser(format) {
     return matchString(tail, text.substring(len)).set(head, value);
   };
 
-  return line => matchString(parts, line);
+  return (line) => matchString(parts, line);
 }
 
 /**
@@ -60,11 +60,11 @@ const transformers = {
   '%t': (log, value) => log.setIn(['request', 'time'], parseTime(value)),
   '%>s': (log, value) => log.setIn(['response', 'status'], parseInt(value, 10)),
   '%r': (log, value) =>
-    log.update('request', request => parseRequest(value).merge(request)),
+    log.update('request', (request) => parseRequest(value).merge(request)),
 };
 
 function addHeader(log, name, value) {
-  log = log.updateIn(['request', 'captured_headers'], List(), list =>
+  log = log.updateIn(['request', 'captured_headers'], List(), (list) =>
     list.push(name)
   );
   if (value !== '-') {
@@ -89,7 +89,7 @@ function reducer(log, value, key) {
 function parser({ format }) {
   const baseLog = fromJS({ request: { headers: {} } });
   const lineParser = compileLineParser(format);
-  return line => lineParser(line).reduce(reducer, baseLog);
+  return (line) => lineParser(line).reduce(reducer, baseLog);
 }
 
 const formats = {

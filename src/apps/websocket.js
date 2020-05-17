@@ -30,7 +30,7 @@ app.streamToWebsocket = (
   };
   updateMonitoringStatus();
 
-  app.ws(endpoint, client => {
+  app.ws(endpoint, (client) => {
     const clientId = uuid.v4();
     clients[clientId] = client;
     updateMonitoringStatus();
@@ -40,8 +40,8 @@ app.streamToWebsocket = (
     });
   });
 
-  stream.map(log => {
-    Object.values(clients).forEach(client => {
+  stream.map((log) => {
+    Object.values(clients).forEach((client) => {
       if (client.readyState === 1 /* === WebSocket.OPEN */) {
         if (monitor) {
           monitor.hit();

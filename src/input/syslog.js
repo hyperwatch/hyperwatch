@@ -4,7 +4,7 @@ const { fromJS } = require('immutable');
 
 const socket = require('./socket');
 
-const defaultParse = s => fromJS(JSON.parse(s));
+const defaultParse = (s) => fromJS(JSON.parse(s));
 
 function create({
   name = 'Syslog',
@@ -16,7 +16,7 @@ function create({
   return {
     name: name,
     start: ({ success, reject, status }) => {
-      const handler = message => {
+      const handler = (message) => {
         if (sample !== 1 && Math.random() > sample) {
           return;
         }

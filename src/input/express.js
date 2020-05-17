@@ -5,7 +5,7 @@ const { createLog } = require('../lib/util');
 function create({ name = 'Express Middleware', app } = {}) {
   return {
     name: name,
-    start: function({ success, reject, status }) {
+    start: function ({ success, reject, status }) {
       this.success = success;
       this.reject = reject;
       this.status = status;
@@ -14,7 +14,7 @@ function create({ name = 'Express Middleware', app } = {}) {
         app.use(this.middleware);
       }
     },
-    middleware: function(req, res, next) {
+    middleware: function (req, res, next) {
       req.startAt = new Date();
       onFinished('res', () => {
         const { success, reject } = this;

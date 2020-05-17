@@ -23,7 +23,7 @@ expressWs(app, httpServer);
 
 app.use(hyperWatch.apps.api, hyperWatch.apps.websocket);
 
-Object.keys(hyperWatch.constants.app).forEach(key => {
+Object.keys(hyperWatch.constants.app).forEach((key) => {
   app.set(key, hyperWatch.constants.app[key]);
 });
 

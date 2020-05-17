@@ -11,7 +11,7 @@ function create({ name = 'HTTP server', path, parse = fromJS }) {
         res.send('Ok');
         // Processing the message(s)
         let messages = Array.isArray(req.body) ? req.body : [req.body];
-        messages.forEach(message => {
+        messages.forEach((message) => {
           try {
             success(parse(message));
           } catch (err) {

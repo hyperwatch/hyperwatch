@@ -42,7 +42,7 @@ function forward(stream, event) {
  * Identity stream transformer.
  */
 function identity() {
-  return stream => stream;
+  return (stream) => stream;
 }
 
 /**
@@ -51,13 +51,13 @@ function identity() {
  * `f` can return an event or a Promise of an event.
  */
 function map(f) {
-  return stream => {
-    return event => {
+  return (stream) => {
+    return (event) => {
       const res = f(event.get('data'));
       if (res && res.then) {
         res
-          .then(value => forward(stream, event.set('data', value)))
-          .catch(reason => errorLog(reason, 'warn'));
+          .then((value) => forward(stream, event.set('data', value)))
+          .catch((reason) => errorLog(reason, 'warn'));
       } else {
         forward(stream, event.set('data', res));
       }
@@ -69,8 +69,8 @@ function map(f) {
  * Forward events if `pred(event)` returns true.
  */
 function filter(pred) {
-  return stream => {
-    return event => {
+  return (stream) => {
+    return (event) => {
       if (pred(event.get('data'))) {
         forward(stream, event);
       }
@@ -83,7 +83,7 @@ function filter(pred) {
  */
 function comp(xfes) {
   const xfes_ = xfes.slice().reverse();
-  return stream => {
+  return (stream) => {
     return xfes_.reduce((stream, xf) => xf(stream), stream);
   };
 }
@@ -92,10 +92,10 @@ function comp(xfes) {
  * Compose stream transformers in parallel.
  */
 function multiplex(xfes) {
-  return stream => {
-    const streams = xfes.map(xf => xf(stream));
-    return event => {
-      streams.map(stream => forward(stream, event));
+  return (stream) => {
+    const streams = xfes.map((xf) => xf(stream));
+    return (event) => {
+      streams.map((stream) => forward(stream, event));
     };
   };
 }
@@ -106,8 +106,8 @@ function multiplex(xfes) {
  * Ignore `undefined` values.
  */
 function by(f) {
-  return stream => {
-    return event => {
+  return (stream) => {
+    return (event) => {
       const value = f(event.get('data'));
       if (value !== undefined) {
         forward(stream, event.set('key', value));
@@ -134,8 +134,8 @@ function window({
   watermarkDelay,
 }) {
   const id = nextId();
-  return stream => {
-    return event => {
+  return (stream) => {
+    return (event) => {
       // Drop late events
       const t = event.get('time');
       const watermark = now() - watermarkDelay;
@@ -151,7 +151,7 @@ function window({
         );
         return;
       }
-      windows = windows.updateIn([id, event.get('key')], Map(), windows => {
+      windows = windows.updateIn([id, event.get('key')], Map(), (windows) => {
         // assign event to windows
         let eventWindows = strategy.assign(event);
         // update windows
@@ -159,15 +159,15 @@ function window({
           return windows.update(
             window.get('start') + ':' + window.get('end'),
             window.set('acc', reducer.init()),
-            w => {
+            (w) => {
               return w
-                .update('acc', acc => reducer.step(acc, event.get('data')))
+                .update('acc', (acc) => reducer.step(acc, event.get('data')))
                 .set('triggered', false);
             }
           );
         }, windows);
         // trigger windows (FIXME: Move this logic out of this function)
-        windows = windows.map(window => {
+        windows = windows.map((window) => {
           if (
             fireEvery &&
             watermark < window.get('end') &&
@@ -199,7 +199,7 @@ function window({
         });
         // Garbage collect windows
         return windows.filter(
-          window => window.get('end') >= watermark - allowedLateness
+          (window) => window.get('end') >= watermark - allowedLateness
         );
       });
     };
@@ -253,7 +253,7 @@ class Builder {
     if (this.children.length === 0) {
       return this.xf;
     }
-    return comp([this.xf, multiplex(this.children.map(b => b.create()))]);
+    return comp([this.xf, multiplex(this.children.map((b) => b.create()))]);
   }
 }
 
@@ -282,7 +282,7 @@ class Pipeline extends Builder {
     this.inputs.map((input, idx) => {
       const monitor = pipeline.monitors[idx];
       input.start({
-        success: log => {
+        success: (log) => {
           const valid = validate(log.toJS());
           if (valid) {
             const event = Map({
@@ -301,7 +301,7 @@ class Pipeline extends Builder {
             );
           }
         },
-        reject: reason => {
+        reject: (reason) => {
           monitor.hit('rejected');
           errorLog(reason, 'warn');
         },
@@ -319,7 +319,7 @@ class Pipeline extends Builder {
 
   stop() {
     return Promise.all(
-      this.inputs.filter(input => input.stop).map(input => input.stop())
+      this.inputs.filter((input) => input.stop).map((input) => input.stop())
     );
   }
 

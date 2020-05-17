@@ -28,16 +28,16 @@ const createMonitoringItem = ({
   name,
   type,
   hit(speedName = speeds[0], value = now()) {
-    Object.values(this.speeds[speedName]).forEach(speed => {
+    Object.values(this.speeds[speedName]).forEach((speed) => {
       speed.hit(value);
     });
   },
   status,
   getComputed() {
     let computed = Map(this);
-    Object.keys(this.speeds).forEach(speedName => {
-      Object.keys(this.speeds[speedName]).forEach(speedId => {
-        computed = computed.updateIn(['speeds', speedName, speedId], s =>
+    Object.keys(this.speeds).forEach((speedName) => {
+      Object.keys(this.speeds[speedName]).forEach((speedId) => {
+        computed = computed.updateIn(['speeds', speedName, speedId], (s) =>
           s.compute()
         );
       });
@@ -76,12 +76,12 @@ class Monitoring {
 
   getAll(type) {
     return Object.values(this.items).filter(
-      item => !type || item.type === type
+      (item) => !type || item.type === type
     );
   }
 
   getAllComputed() {
-    return Object.values(this.items).map(item => item.getComputed());
+    return Object.values(this.items).map((item) => item.getComputed());
   }
 }
 

@@ -10,8 +10,8 @@ exports.now = () => Math.floor(new Date().getTime() / 1000);
  *
  * If pred(x) returns trues, complement(pred)(x) return false.
  */
-exports.complement = f => {
-  return function() {
+exports.complement = (f) => {
+  return function () {
     return !f.apply(null, Array.prototype.slice.call(arguments));
   };
 };
@@ -19,7 +19,7 @@ exports.complement = f => {
 /**
  * Convert a timestamp into an ISO date string.
  */
-exports.iso = time => new Date(time * 1000).format('iso');
+exports.iso = (time) => new Date(time * 1000).format('iso');
 
 /**
  * Create a log from Express req/res
