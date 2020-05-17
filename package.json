@@ -21,10 +21,10 @@
     "start": "node start",
     "lint": "eslint '**/*.js'",
     "lint:fix": "eslint '**/*.js' --fix",
-    "prettier": "prettier \"**/*.@(js|json|md)\"",
+    "prettier": "prettier \"**/*.@(js|json|md|yml)\"",
     "prettier:write": "npm run prettier -- --write",
     "prettier:check": "npm run prettier -- --list-different",
-    "test": "npm run lint && mocha --recursive"
+    "test": "mocha --recursive"
   },
   "bin": {
     "hyperwatch": "./bin/hyperwatch"
