@@ -1,34 +1,31 @@
 {
   "name": "@hyperwatch/hyperwatch",
-  "version": "3.0.2",
   "description": "Open Source HTTP Traffic Manager",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/znarf/hyperwatch.git"
-  },
-  "main": "hyperwatch.js",
   "license": "Apache-2.0",
-  "author": {
-    "name": "Access Watch Technologies GmbH",
-    "email": "team@access.watch"
-  },
+  "author": "Access Watch Technologies GmbH <team@access.watch>",
   "contributors": [
     "Benoît Fleury <benoit@access.watch>",
     "François Hodierne <francois@access.watch>",
     "Jean Duthon <jean@access.watch>"
   ],
-  "scripts": {
-    "start": "node start",
-    "lint": "eslint '**/*.js'",
-    "lint:fix": "eslint '**/*.js' --fix",
-    "prettier": "prettier \"**/*.@(js|json|md|yml)\"",
-    "prettier:write": "npm run prettier -- --write",
-    "prettier:check": "npm run prettier -- --list-different",
-    "test": "mocha --recursive",
-    "depcheck": "depcheck"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/znarf/hyperwatch.git"
   },
+  "version": "3.0.2",
+  "main": "hyperwatch.js",
   "bin": {
     "hyperwatch": "./bin/hyperwatch"
+  },
+  "scripts": {
+    "depcheck": "depcheck",
+    "lint": "eslint '**/*.js'",
+    "lint:fix": "eslint '**/*.js' --fix",
+    "start": "node start",
+    "test": "mocha --recursive",
+    "prettier": "prettier \"**/*.@(js|json|md|yml)\"",
+    "prettier:check": "npm run prettier -- --list-different",
+    "prettier:write": "npm run prettier -- --write"
   },
   "dependencies": {
     "ajv": "^6.11.0",
@@ -55,7 +52,8 @@
     "husky": "^4.2.5",
     "lint-staged": "^10.2.2",
     "mocha": "^7.0.1",
-    "prettier": "^2.0.5"
+    "prettier": "^2.0.5",
+    "prettier-package-json": "^2.1.3"
   },
   "engines": {
     "node": ">=11.14.0"
@@ -68,6 +66,9 @@
   "lint-staged": {
     "*.{js,json,md,yml}": [
       "prettier --write"
+    ],
+    "package.json": [
+      "prettier-package-json --write"
     ]
   }
 }
