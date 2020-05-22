@@ -42,23 +42,6 @@ class Speed {
       })
       .filter((v) => v !== undefined);
   }
-
-  serialize() {
-    return {
-      windowSize: this.windowSize,
-      size: this.size,
-      counters: this.counters.toJS(),
-      started: this.started,
-    };
-  }
-
-  static deserialize({ windowSize, size, counters, started }) {
-    const speed = new Speed(windowSize, size);
-    speed.counters = Map(counters);
-    speed.started = started;
-    speed.gc();
-    return speed;
-  }
 }
 
 module.exports = {

@@ -44,11 +44,7 @@ let shutdownInProgress;
 function shutdown() {
   if (!shutdownInProgress) {
     shutdownInProgress = true;
-    Promise.all([
-      httpServer.close(),
-      hyperWatch.pipeline.stop(),
-      hyperWatch.database.close(),
-    ])
+    Promise.all([httpServer.close(), hyperWatch.pipeline.stop()])
       .then(() => {
         process.exit();
       })

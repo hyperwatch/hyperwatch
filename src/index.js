@@ -20,7 +20,6 @@ module.exports = (config = {}) => {
   const lib = require('./lib');
 
   const apps = require('./apps');
-  const databases = require('./databases');
   const plugins = require('./plugins');
   const format = require('./format');
   const input = require('./input');
@@ -29,7 +28,6 @@ module.exports = (config = {}) => {
     {
       constants,
       apps,
-      databases,
       plugins,
       format,
       input,
