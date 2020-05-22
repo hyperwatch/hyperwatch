@@ -10,8 +10,8 @@
  * This modules provides functions to build a pipeline, a tree of stream processors.
  */
 const Ajv = require('ajv');
-const { Map, List } = require('immutable');
-const { now, complement, iso } = require('./util');
+const { Map } = require('immutable');
+const { complement } = require('./util');
 const monitoring = require('./monitoring');
 
 const config = require('../constants');
@@ -116,96 +116,6 @@ function by(f) {
   };
 }
 
-// Holds the state of the windows
-let windows = List();
-let id = 0;
-const nextId = () => id++;
-
-/**
- * Group events according to a window strategy and apply a reducer to each window.
- *
- * If the stream is split (`by` was called), maintain a different window for each key.
- */
-function window({
-  strategy,
-  reducer,
-  allowedLateness,
-  fireEvery,
-  watermarkDelay,
-}) {
-  const id = nextId();
-  return (stream) => {
-    return (event) => {
-      // Drop late events
-      const t = event.get('time');
-      const watermark = now() - watermarkDelay;
-      if (t < watermark - allowedLateness) {
-        console.log('WARNING', 'Dropping late event.');
-        console.log(
-          'Watermark:',
-          iso(watermark),
-          'Event time:',
-          iso(t),
-          'Delta:',
-          t - watermark
-        );
-        return;
-      }
-      windows = windows.updateIn([id, event.get('key')], Map(), (windows) => {
-        // assign event to windows
-        let eventWindows = strategy.assign(event);
-        // update windows
-        windows = eventWindows.reduce((windows, window) => {
-          return windows.update(
-            window.get('start') + ':' + window.get('end'),
-            window.set('acc', reducer.init()),
-            (w) => {
-              return w
-                .update('acc', (acc) => reducer.step(acc, event.get('data')))
-                .set('triggered', false);
-            }
-          );
-        }, windows);
-        // trigger windows (FIXME: Move this logic out of this function)
-        windows = windows.map((window) => {
-          if (
-            fireEvery &&
-            watermark < window.get('end') &&
-            watermark - window.get('lastFired', window.get('start')) >=
-              fireEvery
-          ) {
-            forward(
-              stream,
-              Map({
-                time: window.get('start'),
-                data: reducer.result(window.get('acc')),
-                key: event.get('key'),
-              })
-            );
-            return window.set('lastFired', watermark);
-          }
-          if (window.get('end') <= watermark && !window.get('triggered')) {
-            forward(
-              stream,
-              Map({
-                time: window.get('start'),
-                data: reducer.result(window.get('acc')),
-                key: event.get('key'),
-              })
-            );
-            return window.set('triggered', true);
-          }
-          return window;
-        });
-        // Garbage collect windows
-        return windows.filter(
-          (window) => window.get('end') >= watermark - allowedLateness
-        );
-      });
-    };
-  };
-}
-
 /**
  * Pipeline builder
  */
@@ -237,16 +147,6 @@ class Builder {
 
   by(f) {
     return this.add(by(f));
-  }
-
-  window(opts) {
-    if (!opts.watermarkDelay) {
-      opts.watermarkDelay = this.watermarkDelay;
-    }
-    if (!opts.allowedLateness) {
-      opts.allowedLateness = this.allowedLateness;
-    }
-    return this.add(window(opts));
   }
 
   create() {
