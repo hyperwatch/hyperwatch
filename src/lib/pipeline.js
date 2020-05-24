@@ -14,8 +14,6 @@ const { Map } = require('immutable');
 const { complement } = require('./util');
 const monitoring = require('./monitoring');
 
-const config = require('../constants');
-
 const schema = require('../format/log-schema.json');
 const validator = new Ajv();
 const validate = validator.compile(schema);
@@ -123,8 +121,6 @@ class Builder {
   constructor(xf) {
     this.xf = xf;
     this.children = [];
-    this.watermarkDelay = config.pipeline.watermarkDelay;
-    this.allowedLateness = config.pipeline.allowedLateness;
   }
 
   add(xf) {
