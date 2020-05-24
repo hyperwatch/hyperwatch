@@ -13,7 +13,20 @@ if (process.argv[2]) {
 
 // Load Core
 
-const hyperWatch = require('./hyperwatch')();
+const { constants, pipeline, apps } = require('./hyperwatch')();
+
+// Load Modules
+
+Object.keys(constants.modules)
+  .map((key) => Object.assign({ key }, constants.modules[key]))
+  .sort((a, b) => b.priority - a.priority)
+  .forEach(({ key }) => {
+    // Here we need to access from the object as module with higer
+    // priority can deactivate modules with lower
+    if (constants.modules[key].active) {
+      require(`./src/modules/${key}`);
+    }
+  });
 
 // Load Express
 
@@ -21,13 +34,13 @@ const app = express();
 const httpServer = http.createServer(app);
 expressWs(app, httpServer);
 
-app.use(hyperWatch.apps.api, hyperWatch.apps.websocket);
+app.use(apps.api, apps.websocket);
 
-Object.keys(hyperWatch.constants.app).forEach((key) => {
-  app.set(key, hyperWatch.constants.app[key]);
+Object.keys(constants.app).forEach((key) => {
+  app.set(key, constants.app[key]);
 });
 
-const port = process.env.PORT || hyperWatch.constants.port;
+const port = process.env.PORT || constants.port;
 
 httpServer.listen(port, () => {
   console.log(`HTTP and Websocket Server listening on port ${port}`);
@@ -35,7 +48,7 @@ httpServer.listen(port, () => {
 
 // Start Pipeline
 
-hyperWatch.pipeline.start();
+pipeline.start();
 
 // Handle Shutdown
 
@@ -44,7 +57,7 @@ let shutdownInProgress;
 function shutdown() {
   if (!shutdownInProgress) {
     shutdownInProgress = true;
-    Promise.all([httpServer.close(), hyperWatch.pipeline.stop()])
+    Promise.all([httpServer.close(), pipeline.stop()])
       .then(() => {
         process.exit();
       })
