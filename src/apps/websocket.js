@@ -14,7 +14,11 @@ app.streamToWebsocket = (
   const clients = {};
   let monitor;
   if (monitoringEnabled) {
-    monitor = monitoring.registerOutput({ name });
+    monitor = monitoring.register({
+      name,
+      speeds: ['processed'],
+      type: 'output',
+    });
   }
   const updateMonitoringStatus = () => {
     if (monitor) {
