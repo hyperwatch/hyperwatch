@@ -11,10 +11,12 @@
  */
 const Ajv = require('ajv');
 const { Map } = require('immutable');
-const { complement } = require('./util');
-const monitoring = require('./monitoring');
 
 const schema = require('../format/log-schema.json');
+
+const monitoring = require('./monitoring');
+const { complement } = require('./util');
+
 const validator = new Ajv();
 const validate = validator.compile(schema);
 
@@ -236,7 +238,7 @@ class Pipeline extends Builder {
           if (err) {
             console.error(err);
           }
-          console.log(input.name + ': ' + msg);
+          console.log(`${input.name}: ${msg}`);
           monitor.status = msg;
         },
         log: errorLog,

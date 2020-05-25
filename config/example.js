@@ -124,7 +124,7 @@ Pipeline configuration
 
 const { proxy } = plugins;
 
-let stream = pipeline
+const stream = pipeline
 
   /* Filter requests */
 

@@ -1,4 +1,5 @@
 const { Map } = require('immutable');
+
 const { Speed } = require('./speed');
 const { now } = require('./util');
 
