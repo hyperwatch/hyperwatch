@@ -18,7 +18,7 @@ class Speed {
     this.counters = this.counters.filter((c, t) => parseInt(t) > cutoff);
   }
 
-  hit(time) {
+  hit(time = now()) {
     this.started = !this.started ? time : Math.min(this.started, time);
     const idx = time - (time % this.windowSize);
     this.counters = this.counters.update('' + idx, 0, (n) => n + 1);

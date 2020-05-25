@@ -14,8 +14,6 @@ const { Map } = require('immutable');
 const { complement } = require('./util');
 const monitoring = require('./monitoring');
 
-const config = require('../constants');
-
 const schema = require('../format/log-schema.json');
 const validator = new Ajv();
 const validate = validator.compile(schema);
@@ -120,15 +118,15 @@ function by(f) {
  * Pipeline builder
  */
 class Builder {
-  constructor(xf) {
+  constructor(xf, pipeline = null) {
     this.xf = xf;
     this.children = [];
-    this.watermarkDelay = config.pipeline.watermarkDelay;
-    this.allowedLateness = config.pipeline.allowedLateness;
+    this.name = null;
+    this.pipeline = pipeline;
   }
 
   add(xf) {
-    const child = new Builder(xf);
+    const child = new Builder(xf, this.pipeline);
     this.children.push(child);
     return child;
   }
@@ -155,6 +153,29 @@ class Builder {
     }
     return comp([this.xf, multiplex(this.children.map((b) => b.create()))]);
   }
+
+  // Helpers
+
+  registerNode(name, { monitor = true } = {}) {
+    this.pipeline.registerNode(name, this);
+    this.name = name;
+    if (monitor) {
+      this.monitorNode();
+    }
+    return this;
+  }
+
+  monitorNode() {
+    const monitor = monitoring.register({
+      name: `Pipeline node (${this.name})`,
+      status: 'Processing',
+      speeds: ['processed'],
+      type: 'node',
+    });
+    this.pipeline.monitors.push(monitor);
+    this.map(() => monitor.hit());
+    return this;
+  }
 }
 
 class Pipeline extends Builder {
@@ -163,24 +184,30 @@ class Pipeline extends Builder {
     this.inputs = [];
     this.monitors = [];
     this.stream = null;
+    this.nodes = {
+      root: this,
+      main: this,
+    };
+    this.pipeline = this;
   }
 
   registerInput(input) {
     this.inputs.push(input);
-    this.monitors.push(
-      monitoring.register({
-        speeds: ['accepted', 'rejected'],
-        name: input.name,
-        type: 'input',
-      })
-    );
+    const monitor = monitoring.register({
+      name: input.name,
+      speeds: ['accepted', 'rejected'],
+      type: 'input',
+    });
+    this.monitors.push(monitor);
   }
 
   start() {
-    this.stream = super.create()(() => {});
-    var pipeline = this;
-    this.inputs.map((input, idx) => {
-      const monitor = pipeline.monitors[idx];
+    const stream = super.create()(() => {});
+
+    this.inputs.map((input) => {
+      const monitor = this.monitors.find(
+        (monitor) => monitor.type === 'input' && monitor.name === input.name
+      );
       input.start({
         success: (log) => {
           const valid = validate(log.toJS());
@@ -191,8 +218,8 @@ class Pipeline extends Builder {
               ),
               data: log,
             });
-            monitor.hit('accepted', event.get('time'));
-            pipeline.handleEvent(event);
+            monitor.hit('accepted');
+            forward(stream, event);
           } else {
             monitor.hit('rejected');
             errorLog(
@@ -223,8 +250,12 @@ class Pipeline extends Builder {
     );
   }
 
-  handleEvent(event) {
-    forward(this.stream, event);
+  registerNode(name, node) {
+    this.nodes[name] = node;
+  }
+
+  getNode(name) {
+    return this.nodes[name];
   }
 }
 

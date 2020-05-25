@@ -3,10 +3,6 @@ const rc = require('rc');
 const constants = {
   port: 3000,
   app: {},
-  pipeline: {
-    allowedLateness: 60,
-    watermarkDelay: 5,
-  },
   modules: {
     logs: {
       active: true,
