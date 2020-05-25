@@ -1,26 +1,67 @@
 const dns = require('dns').promises;
 
-async function lookup(log) {
-  const ip = log.getIn(['address', 'value']);
-  try {
-    const reverses = await dns.reverse(ip);
-    if (reverses) {
-      const reverse = reverses[0];
-      log = log.setIn(['hostname', 'value'], reverse);
-      log = log.setIn(['address', 'hostname'], reverse);
-      const reverseIps = await dns.resolve(reverse);
-      const reverseIp = reverseIps[0];
-      if (reverseIp === ip) {
-        log = log.setIn(['hostname', 'verified'], true);
+const lruCache = require('lru-cache');
+
+const cache = new lruCache({ max: 1000 });
+
+function ignoreError() {
+  return null;
+}
+
+function isValid(hostname) {
+  return (
+    hostname &&
+    !hostname.endsWith('.ip6.arpa') &&
+    !hostname.endsWith('.in-addr.arpa')
+  );
+}
+
+async function lookup(ip) {
+  if (cache.has(ip)) {
+    return cache.get(ip);
+  }
+
+  const entry = { hostname: null };
+
+  const reverses = await dns.reverse(ip).catch(ignoreError);
+  if (reverses) {
+    const reverse = reverses[0];
+    if (isValid(reverse)) {
+      entry.value = reverse;
+      const reverseIps = await dns.resolve(reverse).catch(ignoreError);
+      if (reverseIps) {
+        const reverseIp = reverseIps[0];
+        if (reverseIp === ip) {
+          entry.verified = true;
+        }
       }
     }
-  } catch (error) {
-    // Ignore error
-    // console.log(error);
   }
+
+  cache.set(ip, entry);
+
+  return entry;
+}
+
+async function augment(log) {
+  const ip =
+    log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
+
+  const entry = await lookup(ip);
+
+  if (entry.value) {
+    log = log.setIn(['hostname', 'value'], entry.value);
+    log = log.setIn(['address', 'hostname'], entry.value);
+  }
+
+  if (entry.verified !== undefined) {
+    log = log.setIn(['hostname', 'verified'], entry.verified);
+  }
+
   return log;
 }
 
 module.exports = {
-  lookup: lookup,
+  lookup,
+  augment,
 };

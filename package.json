@@ -30,11 +30,13 @@
   "dependencies": {
     "ajv": "^6.11.0",
     "date-format-lite": "^17.7.0",
+    "dnsbl": "^3.2.0",
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
     "geoip-lite": "^1.4.0",
     "immutable": "^4.0.0-rc.12",
     "lodash.merge": "^4.6.2",
+    "lru-cache": "^5.1.1",
     "micro-strptime": "^0.2.3",
     "on-finished": "^2.3.0",
     "proxy-addr": "^2.0.5",
