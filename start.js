@@ -1,8 +1,4 @@
-const http = require('http');
 const path = require('path');
-
-const express = require('express');
-const expressWs = require('express-ws');
 
 // Load configuration
 
@@ -14,7 +10,7 @@ if (process.argv[2]) {
 
 // Load Core
 
-const { constants, pipeline, apps } = require('./hyperwatch')();
+const { constants, pipeline, app } = require('./hyperwatch')();
 
 // Load Modules
 
@@ -29,23 +25,9 @@ Object.keys(constants.modules)
     }
   });
 
-// Load Express
+// Start App
 
-const app = express();
-const httpServer = http.createServer(app);
-expressWs(app, httpServer);
-
-app.use(apps.api, apps.websocket);
-
-Object.keys(constants.app).forEach((key) => {
-  app.set(key, constants.app[key]);
-});
-
-const port = process.env.PORT || constants.port;
-
-httpServer.listen(port, () => {
-  console.log(`HTTP and Websocket Server listening on port ${port}`);
-});
+app.start();
 
 // Start Pipeline
 
@@ -58,7 +40,7 @@ let shutdownInProgress;
 function shutdown() {
   if (!shutdownInProgress) {
     shutdownInProgress = true;
-    Promise.all([httpServer.close(), pipeline.stop()])
+    Promise.all([app.stop(), pipeline.stop()])
       .then(() => {
         process.exit();
       })

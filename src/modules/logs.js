@@ -1,4 +1,4 @@
-const app = require('../apps/websocket');
+const app = require('../app/websocket');
 const pipeline = require('../lib/pipeline');
 
 // Expose raw logs

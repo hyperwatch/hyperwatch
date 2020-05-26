@@ -7,7 +7,7 @@ module.exports = (config = {}) => {
 
   const lib = require('./lib');
 
-  const apps = require('./apps');
+  const app = require('./app');
   const plugins = require('./plugins');
   const format = require('./format');
   const input = require('./input');
@@ -15,7 +15,7 @@ module.exports = (config = {}) => {
   return Object.assign(
     {
       constants,
-      apps,
+      app,
       plugins,
       format,
       input,
