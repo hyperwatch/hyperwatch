@@ -1,5 +1,5 @@
-const Tail = require('tail').Tail;
 const { fromJS } = require('immutable');
+const { Tail } = require('tail');
 
 const defaultParse = (s) => fromJS(JSON.parse(s));
 
@@ -29,7 +29,7 @@ function create({ name = 'File', path, parse = defaultParse }) {
         log(err, 'error');
       });
       tail.watch();
-      status(null, 'Watching ' + path);
+      status(null, `Watching ${path}`);
     },
   };
 }

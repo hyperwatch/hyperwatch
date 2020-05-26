@@ -24,7 +24,7 @@ function createTcpServer({ status, log, port, handler }) {
     })
     .listen(port, (err) => {
       if (err) {
-        status(err, 'Cannot start: ' + err.message);
+        status(err, `Cannot start: ${err.message}`);
       } else {
         status(null, `Listening on TCP port ${port}.`);
       }
@@ -45,7 +45,7 @@ function createUdpServer({ status, port, handler }) {
         });
     })
     .on('error', (err) => {
-      status(err, 'Cannot start: ' + err.message);
+      status(err, `Cannot start: ${err.message}`);
     })
     .on('listening', () => {
       status(null, `Listening on UDP port ${port}.`);

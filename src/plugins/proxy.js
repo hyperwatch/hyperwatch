@@ -1,5 +1,5 @@
-const proxyaddr = require('proxy-addr');
 const { Map } = require('immutable');
+const proxyaddr = require('proxy-addr');
 
 const ipRanges = {
   cloudflare: [

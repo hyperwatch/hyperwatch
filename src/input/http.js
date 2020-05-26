@@ -10,7 +10,7 @@ function create({ name = 'HTTP server', path, parse = fromJS }) {
         // No validation before sending the response to the client
         res.send('Ok');
         // Processing the message(s)
-        let messages = Array.isArray(req.body) ? req.body : [req.body];
+        const messages = Array.isArray(req.body) ? req.body : [req.body];
         messages.forEach((message) => {
           try {
             success(parse(message));

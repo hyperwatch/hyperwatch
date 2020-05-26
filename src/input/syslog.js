@@ -1,6 +1,5 @@
-const syslogParse = require('syslog-parse');
-
 const { fromJS } = require('immutable');
+const syslogParse = require('syslog-parse');
 
 const socket = require('./socket');
 

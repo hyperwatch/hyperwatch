@@ -1,5 +1,5 @@
-const WebSocket = require('ws');
 const { fromJS } = require('immutable');
+const WebSocket = require('ws');
 
 const app = require('../apps/websocket');
 
@@ -19,9 +19,9 @@ function create({
 
   const setupWebSocketClient = ({ status, success, reject }) => {
     client = new WebSocket(address, [], options);
-    status(null, 'Waiting for connection to ' + address);
+    status(null, `Waiting for connection to ${address}`);
     client.on('open', () => {
-      status(null, 'Listening to ' + address);
+      status(null, `Listening to ${address}`);
     });
     client.on('message', (message) => {
       if (sample !== 1 && Math.random() > sample) {

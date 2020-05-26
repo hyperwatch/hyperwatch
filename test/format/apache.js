@@ -76,9 +76,9 @@ const cases = [
   },
 ];
 
-describe('Apache format', function () {
+describe('Apache format', () => {
   cases.map(({ name, options, msg, expected }) => {
-    it(name, function () {
+    it(name, () => {
       const parse = apache.parser(options);
       assert.deepStrictEqual(parse(msg).toJS(), expected);
     });

@@ -1,8 +1,9 @@
 /**
  * Keep track of an entity's speed per fixed time windows.
  */
-const { now } = require('./util');
 const { Map, List, Range } = require('immutable');
+
+const { now } = require('./util');
 
 class Speed {
   constructor(windowSize, size) {
@@ -21,7 +22,7 @@ class Speed {
   hit(time = now()) {
     this.started = !this.started ? time : Math.min(this.started, time);
     const idx = time - (time % this.windowSize);
-    this.counters = this.counters.update('' + idx, 0, (n) => n + 1);
+    this.counters = this.counters.update(`${idx}`, 0, (n) => n + 1);
     this.gc();
     return this;
   }
@@ -37,7 +38,7 @@ class Speed {
         let t = time - n * this.windowSize;
         t = t - (t % this.windowSize);
         if (t >= this.started - (this.started % this.windowSize)) {
-          return this.counters.get('' + t, 0);
+          return this.counters.get(`${t}`, 0);
         }
       })
       .filter((v) => v !== undefined);
