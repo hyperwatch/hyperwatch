@@ -2,17 +2,16 @@
   "name": "@hyperwatch/hyperwatch",
   "description": "Open Source HTTP Traffic Manager",
   "license": "Apache-2.0",
-  "author": "Access Watch Technologies GmbH <team@access.watch>",
+  "author": "François Hodierne <francois@hodierne.net>",
   "contributors": [
-    "Benoît Fleury <benoit@access.watch>",
-    "François Hodierne <francois@access.watch>",
-    "Jean Duthon <jean@access.watch>"
+    "Benoît Fleury",
+    "Jean Duthon"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/znarf/hyperwatch.git"
   },
-  "version": "3.0.2",
+  "version": "3.1.0",
   "main": "hyperwatch.js",
   "bin": {
     "hyperwatch": "./bin/hyperwatch"
