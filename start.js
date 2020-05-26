@@ -36,7 +36,8 @@ let shutdownInProgress;
 function shutdown() {
   if (!shutdownInProgress) {
     shutdownInProgress = true;
-    hyperwatch.stop()
+    hyperwatch
+      .stop()
       .then(() => {
         process.exit();
       })

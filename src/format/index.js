@@ -1,4 +1,7 @@
+const apache = require('./apache');
+const nginx = require('./nginx');
+
 module.exports = {
-  nginx: require('./nginx'),
-  apache: require('./apache'),
+  apache,
+  nginx,
 };

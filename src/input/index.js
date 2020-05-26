@@ -1,8 +1,15 @@
+const express = require('./express');
+const file = require('./file');
+const http = require('./http');
+const socket = require('./socket');
+const syslog = require('./syslog');
+const websocket = require('./websocket');
+
 module.exports = {
-  http: require('./http'),
-  syslog: require('./syslog'),
-  socket: require('./socket'),
-  file: require('./file'),
-  websocket: require('./websocket'),
-  express: require('./express'),
+  express,
+  file,
+  http,
+  socket,
+  syslog,
+  websocket,
 };

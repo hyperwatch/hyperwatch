@@ -1,6 +1,7 @@
-const lib = {
-  pipeline: require('./pipeline'),
-  util: require('./util'),
-};
+const pipeline = require('./pipeline');
+const util = require('./util');
 
-module.exports = lib;
+module.exports = {
+  pipeline,
+  util,
+};
