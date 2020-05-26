@@ -1,5 +1,7 @@
 const path = require('path');
 
+const hyperwatch = require('./hyperwatch');
+
 // Load configuration
 
 if (process.argv[2]) {
@@ -8,30 +10,24 @@ if (process.argv[2]) {
   require(path.resolve(__dirname, './config/default'));
 }
 
-// Load Core
-
-const { constants, pipeline, app } = require('./hyperwatch');
-
 // Load Modules
 
-Object.keys(constants.modules)
-  .map((key) => Object.assign({ key }, constants.modules[key]))
+const config = hyperwatch.constants;
+
+Object.keys(config.modules)
+  .map((key) => Object.assign({ key }, config.modules[key]))
   .sort((a, b) => b.priority - a.priority)
   .forEach(({ key }) => {
     // Here we need to access from the object as module with higer
     // priority can deactivate modules with lower
-    if (constants.modules[key].active) {
+    if (config.modules[key].active) {
       require(`./src/modules/${key}`);
     }
   });
 
-// Start App
+// Start
 
-app.start();
-
-// Start Pipeline
-
-pipeline.start();
+hyperwatch.start();
 
 // Handle Shutdown
 
@@ -40,7 +36,7 @@ let shutdownInProgress;
 function shutdown() {
   if (!shutdownInProgress) {
     shutdownInProgress = true;
-    Promise.all([app.stop(), pipeline.stop()])
+    hyperwatch.stop()
       .then(() => {
         process.exit();
       })
