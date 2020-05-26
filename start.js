@@ -10,7 +10,7 @@ if (process.argv[2]) {
 
 // Load Core
 
-const { constants, pipeline, app } = require('./hyperwatch')();
+const { constants, pipeline, app } = require('./hyperwatch');
 
 // Load Modules
 

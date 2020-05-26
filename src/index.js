@@ -1,25 +1,18 @@
-const merge = require('lodash.merge');
-
+const app = require('./app');
 const constants = require('./constants');
+const format = require('./format');
+const input = require('./input');
+const lib = require('./lib');
+const plugins = require('./plugins');
 
-module.exports = (config = {}) => {
-  merge(constants, config);
+const { pipeline, util } = lib;
 
-  const lib = require('./lib');
-
-  const app = require('./app');
-  const plugins = require('./plugins');
-  const format = require('./format');
-  const input = require('./input');
-
-  return Object.assign(
-    {
-      constants,
-      app,
-      plugins,
-      format,
-      input,
-    },
-    lib
-  );
+module.exports = {
+  app,
+  constants,
+  format,
+  input,
+  pipeline,
+  plugins,
+  util,
 };

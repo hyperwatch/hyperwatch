@@ -34,7 +34,6 @@
     "express-ws": "^4.0.0",
     "geoip-lite": "^1.4.0",
     "immutable": "^4.0.0-rc.12",
-    "lodash.merge": "^4.6.2",
     "lru-cache": "^5.1.1",
     "micro-strptime": "^0.2.3",
     "on-finished": "^2.3.0",

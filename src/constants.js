@@ -9,11 +9,6 @@ const constants = {
       priority: 0,
     },
   },
-  logs: {
-    memory: {
-      retention: 1000,
-    },
-  },
 };
 
 module.exports = rc('hyperwatch', constants);
