@@ -1,0 +1,13 @@
+.github
+config/*
+!config/default.js
+!config/example.js
+test
+
+.gitignore
+.eslintrc.json
+.prettierrc
+.nvmrc
+.env
+.hyperwatchrc
+.editorconfig
