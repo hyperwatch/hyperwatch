@@ -2,8 +2,11 @@ const rc = require('rc');
 
 const constants = {
   port: 3000,
-  app: {},
   modules: {
+    addresses: {
+      active: false,
+      priority: 0,
+    },
     logs: {
       active: true,
       priority: 0,

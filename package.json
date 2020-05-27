@@ -29,6 +29,7 @@
   "dependencies": {
     "ajv": "^6.11.0",
     "dnsbl": "^3.2.0",
+    "easy-table": "^1.1.1",
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
     "geoip-lite": "^1.4.0",
