@@ -28,7 +28,6 @@
   },
   "dependencies": {
     "ajv": "^6.11.0",
-    "date-format-lite": "^17.7.0",
     "dnsbl": "^3.2.0",
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
