@@ -1,0 +1,324 @@
+{
+  ".com": {
+    ".amazonaws.com": [{ "owner": "AWS", "type": "cloud" }],
+    ".googleusercontent.com": [{ "owner": "Google Cloud", "type": "cloud" }],
+    ".btcentralplus.com": [
+      { "owner": "BT", "type": "broadband", "country-code": "GB" }
+    ],
+    ".spectrum.com": [{ "owner": "Spectrum", "type": "broadband" }],
+    ".sky.com": [{ "owner": "Sky", "type": "broadband", "country-code": "GB" }],
+    ".skybroadband.com": [
+      { "owner": "Sky", "type": "broadband", "country-code": "GB" }
+    ],
+    ".rr.com": [
+      { "owner": "Time Warner", "type": "broadband", "country-code": "US" }
+    ],
+    ".myvzw.com": [
+      { "owner": "Verizon", "type": "mobile", "country-code": "US" }
+    ],
+    ".vultr.com": [{ "owner": "Vultr", "type": "cloud" }],
+    ".linode.com": [{ "owner": "Linode", "type": "cloud" }],
+    ".crawl.baidu.com": [{ "owner": "Baidu", "type": "crawler" }],
+    ".as9105.com": [
+      { "owner": "TalkTalk", "type": "broadband", "country-code": "GB" }
+    ],
+
+    ".directcom.com": [
+      {
+        "owner": "Direct Communications",
+        "type": "broadband",
+        "country-code": "US"
+      }
+    ],
+    ".netvigator.com": [
+      { "owner": "Netvigator", "type": "broadband", "country-code": "HK" }
+    ],
+    ".ono.com": [
+      { "owner": "Vodafone", "type": "broadband", "country-code": "ES" }
+    ],
+    ".rogers.com": [
+      { "owner": "Vodafone", "type": "broadband", "country-code": "CA" }
+    ],
+    ".sanbrunocable.com": [
+      { "owner": "San Bruno", "type": "broadband", "country-code": "US" }
+    ],
+    ".teksavvy.com": [
+      { "owner": "TekSavvy", "type": "broadband", "country-code": "CA" }
+    ],
+    ".telia.com": [
+      { "owner": "Telia", "type": "broadband", "country-code": "SE" }
+    ],
+    ".ahrefs.com": [{ "owner": "Ahrefs", "type": "crawler" }],
+    ".virginmedia.com": [
+      { "owner": "Virgin", "type": "broadband", "country-code": "GB" }
+    ],
+    ".wideopenwest.com": [
+      { "owner": "WOW!", "type": "broadband", "country-code": "US" }
+    ]
+  },
+  ".net": {
+    ".a1.net": [{ "owner": "A1", "type": "broadband", "country-code": "AT" }],
+    ".axtel.net": [
+      { "owner": "Axtel", "type": "broadband", "country-code": "MX" }
+    ],
+    ".mobile.att.net": [
+      { "owner": "AT&T", "type": "mobile", "country-code": "US" }
+    ],
+    ".virginm.net": [{ "owner": "Virgin", "type": "broadband" }],
+    ".comcast.net": [{ "owner": "Comcast", "type": "broadband" }],
+    ".comcastbusiness.net": [{ "owner": "Comcast", "type": "business" }],
+    ".verizon.net": [{ "owner": "Verizon", "type": "broadband" }],
+    ".proxad.net": [
+      { "owner": "Free", "type": "broadband", "country-code": "FR" }
+    ],
+    ".freedome-vpn.net": [{ "owner": "F-Secure" }, { "type": "vpn" }],
+    ".frontiernet.net": [
+      { "owner": "Frontier", "type": "broadband", "country-code": "US" }
+    ],
+    ".sfr.net": [{ "owner": "SFR", "type": "broadband", "country-code": "FR" }],
+    ".cox.net": [{ "owner": "Cox", "type": "broadband", "country-code": "US" }],
+    ".tds.net": [{ "owner": "TDS", "type": "broadband", "country-code": "US" }],
+    ".shawcable.net": [
+      { "owner": "Shaw", "type": "broadband", "country-code": "CA" }
+    ],
+    ".qwest.net": [
+      { "owner": "CenturyLink", "type": "broadband", "country-code": "US" }
+    ],
+    ".optonline.net": [
+      { "owner": "Optimum", "type": "broadband", "country-code": "US" }
+    ],
+    ".sonic.net": [
+      { "owner": "Sonic", "type": "broadband", "country-code": "US" }
+    ],
+    ".sbcglobal.net": [
+      { "owner": "AT&T", "type": "broadband", "country-code": "US" }
+    ],
+    ".suddenlink.net": [
+      { "owner": "Suddenlink", "type": "broadband", "country-code": "US" }
+    ],
+    ".as13285.net": [
+      { "owner": "TalkTalk", "type": "broadband", "country-code": "GB" }
+    ],
+    ".as9105.net": [
+      { "owner": "TalkTalk", "type": "broadband", "country-code": "GB" }
+    ],
+    ".as47377.net": [
+      { "owner": "Orange", "type": "broadband", "country-code": "BE" }
+    ],
+    ".airtel.net": [
+      { "owner": "Vodafone", "type": "mobile", "country-code": "ES" }
+    ],
+    ".bezeqint.net": [
+      { "owner": "Bezeq", "type": "broadband", "country-code": "IL" }
+    ],
+    ".rima-tde.net": [
+      { "owner": "Telefónica", "type": "broadband", "country-code": "ES" }
+    ],
+    ".btireland.net": [
+      { "owner": "BT", "type": "broadband", "country-code": "IE" }
+    ],
+    ".cosmote.net": [
+      { "owner": "cosmote", "type": "broadband", "country-code": "GR" }
+    ],
+    ".plus.net": [
+      { "owner": "Plusnet", "type": "broadband", "country-code": "UK" }
+    ],
+    ".init7.net": [
+      { "owner": "Init7", "type": "broadband", "country-code": "CH" }
+    ],
+    ".idnet.net": [
+      { "owner": "IDnet", "type": "broadband", "country-code": "GB" }
+    ],
+    ".hinet.net": [
+      { "owner": "IDnet", "type": "broadband", "country-code": "TW" }
+    ],
+    ".syseleven.net": [
+      { "owner": "SysEleven", "type": "business", "country-code": "DE" }
+    ],
+    ".exede.net": [
+      { "owner": "Exede", "type": "satellite", "country-code": "US" }
+    ],
+    ".dk.customer.tdc.net": [
+      { "owner": "TDC NET", "type": "broadband", "country-code": "DK" }
+    ],
+    ".as20676.net": [
+      { "owner": "Plusnet", "type": "business", "country-code": "DE" }
+    ],
+    ".ovh.net": [{ "owner": "OVH", "type": "server" }],
+    ".udm.net": [
+      { "owner": "Rostelecom", "type": "broadband", "country-code": "RU" }
+    ],
+    ".comunitel.net": [
+      { "owner": "Vodafone", "type": "broadband", "country-code": "ES" }
+    ],
+    ".bellmts.net": [
+      { "owner": "Bell", "type": "broadband", "country-code": "CA" }
+    ],
+    ".superonline.net": [
+      {
+        "owner": "Turkcell",
+        "type": "broadband",
+        "country-code": "TR"
+      }
+    ],
+    ".t-2.net": [{ "owner": "T-2", "type": "broadband", "country-code": "SI" }]
+  },
+  ".at": {
+    ".surfer.at": [{ "owner": "UPC", "type": "broadband" }],
+    ".liwest.at": [{ "owner": "Liwest", "type": "broadband" }]
+  },
+  ".au": {
+    ".tpgi.com.au": [{ "owner": "TPG", "type": "broadband" }],
+    ".belong.com.au": [{ "owner": "Belong", "type": "broadband" }],
+    ".superloop.com": [{ "owner": "Belong", "type": "broadband" }]
+  },
+  ".be": {
+    ".belgacom.be": [{ "owner": "Proximus", "type": "broadband" }],
+    ".scarlet.be": [{ "owner": "Scarlet", "type": "broadband" }],
+    ".telenet.be": [{ "owner": "Telenet", "type": "broadband" }],
+    ".voo.be": [{ "owner": "VOO", "type": "broadband" }]
+  },
+  ".br": {
+    ".gvt.net.br": [
+      { "owner": "Telefônica", "type": "broadband", "country-code": "BR" }
+    ],
+    ".timbrasil.com.br": [
+      { "owner": "TIM", "type": "broadband", "country-code": "BR" }
+    ]
+  },
+  ".ca": {
+    ".bell.ca": [{ "owner": "Bell", "type": "broadband" }],
+    ".pppoe.ca": [{ "owner": "TekSavvy", "type": "broadband" }],
+    ".start.ca": [{ "owner": "Start.ca", "type": "broadband" }],
+    ".videotron.ca": [{ "owner": "Videotron", "type": "broadband" }]
+  },
+  ".ch": {
+    ".hispeed.ch": [{ "owner": "UPC", "type": "broadband" }],
+    ".pluz.ch": [{ "owner": "arcade", "type": "broadband" }],
+    ".cust.swisscom.ch": [{ "owner": "Swisscom", "type": "broadband" }]
+  },
+  ".cz": {
+    ".iol.cz": [{ "owner": "O2", "type": "broadband" }]
+  },
+  ".de": {
+    ".nc.de": [{ "owner": "NetCologne", "type": "broadband" }],
+    ".netcologne.de": [{ "owner": "NetCologne", "type": "broadband" }],
+    ".t-ipconnect.de": [{ "owner": "Telekom", "type": "broadband" }],
+    ".kabel-deutschland.de": [{ "owner": "Vodafone", "type": "broadband" }],
+    ".telefonica.de": [{ "owner": "O2", "type": "broadband" }],
+    ".versanet.de": [{ "owner": "1&1 Versatel", "type": "broadband" }],
+    ".vodafone-ip.de": [{ "owner": "Vodafone", "type": "broadband" }],
+    ".versatel-1u1.de": [{ "owner": "1&1 Versatel", "type": "broadband" }],
+    ".vsenet.de": [{ "owner": "VSE NET", "type": "broadband" }],
+    ".your-server.de": [{ "owner": "Hetzner", "type": "server" }]
+  },
+  ".dk": {
+    ".bnaa.dk": [{ "owner": "Bolignet-Aarhus", "type": "broadband" }],
+    ".fibianet.dk": [{ "owner": "Fibia", "type": "broadband" }],
+    ".fastspeed.dk": [{ "owner": "Fastspeed", "type": "broadband" }]
+  },
+  ".do": {
+    ".claro.net.do": [{ "owner": "Claro", "type": "broadband" }]
+  },
+  ".ee": {
+    ".estpak.ee": [{ "owner": "Telia", "type": "broadband" }]
+  },
+  ".eg": {
+    ".tedata.net": [
+      { "owner": "Telekom Egypt", "type": "broadband", "country-code": "EG" }
+    ]
+  },
+  ".es": {
+    ".jazztel.es": [{ "owner": "Jazztel", "type": "broadband" }],
+    ".dynamic.orange.es": [{ "owner": "Orange", "type": "broadband" }]
+  },
+  ".eu": {
+    ".poneytelecom.eu": [
+      { "owner": "Scaleway", "type": "server", "country-code": "FR" }
+    ],
+    ".ip-51-68-36.eu": [
+      { "owner": "OVH", "type": "server", "country-code": "FR" }
+    ]
+  },
+  ".fi": {
+    ".elisa-mobile.fi": [{ "owner": "Elisa", "type": "mobile" }],
+    ".elisa-laajakaista.fi": [{ "owner": "Elisa", "type": "broadband" }]
+  },
+  ".fr": {
+    ".wanadoo.fr": [{ "owner": "Orange", "type": "broadband" }],
+    ".bbox.fr": [{ "owner": "Bouygues", "type": "broadband" }],
+    ".numericable.fr": [{ "owner": "SFR", "type": "broadband" }]
+  },
+  ".hu": {
+    ".digikabel.hu": [{ "owner": "Digi", "type": "broadband" }]
+  },
+  ".it": {
+    ".fastwebnet.it": [{ "owner": "Fastweb", "type": "broadband" }],
+    ".telecomitalia.it": [{ "owner": "TIM", "type": "broadband" }],
+    ".vodafonedsl.it": [{ "owner": "Vodafone", "type": "broadband" }]
+  },
+  ".in": {
+    ".vodafone.in": [{ "owner": "Vodafone", "type": "broadband" }],
+    ".alliancebroadband.in": [
+      { "owner": "Alliance Broadband", "type": "broadband" }
+    ]
+  },
+  ".jp": {
+    ".dion.ne.jp": [{ "owner": "au", "type": "broadband" }],
+    ".asahi-net.or.jp": [{ "owner": "Asahi Net", "type": "broadband" }]
+  },
+  ".lu": {
+    ".tango.lu": [{ "owner": "Tango", "type": "broadband" }]
+  },
+  ".pl": {
+    ".chello.pl": [{ "owner": "UPC", "type": "broadband" }],
+    ".orange.pl": [{ "owner": "Orange", "type": "broadband" }],
+    ".tpnet.pl": [{ "owner": "Orange", "type": "broadband" }],
+    ".umts.dynamic.t-mobile.pl": [{ "owner": "T Mobile", "type": "mobile" }],
+    ".vectranet.pl": [{ "owner": "Vectra", "type": "broadband" }]
+  },
+  ".mx": {
+    ".32-clientes-zap-izzi.mx": [{ "owner": "Izzi", "type": "broadband" }]
+  },
+  ".nl": {
+    ".versatel.nl": [{ "owner": "Tele2", "type": "broadband" }],
+    ".online.nl": [{ "owner": "Online.nl", "type": "broadband" }],
+    ".ziggo.nl": [{ "owner": "Ziggo", "type": "broadband" }],
+    ".chello.nl": [{ "owner": "UPC", "type": "broadband" }],
+    ".direct-adsl.nl": [{ "owner": "KPN", "type": "broadband" }]
+  },
+  ".no": {
+    ".online.no": [{ "owner": "Telenor", "type": "broadband" }]
+  },
+  ".ro": {
+    ".rdsnet.ro": [{ "owner": "Digi", "type": "broadband" }]
+  },
+  ".rs": {
+    ".telekom.rs": [{ "owner": "mts", "type": "broadband" }]
+  },
+  ".ru": {
+    ".rt.ru": [{ "owner": "Rostelecom", "type": "broadband" }]
+  },
+  ".se": {
+    ".bahnhof.se": [{ "owner": "Bahnhof", "type": "broadband" }],
+    ".comhem.se": [{ "owner": "Com Hem", "type": "broadband" }],
+    ".mobile.tre.se": [{ "owner": "3 Sweden", "type": "mobile" }],
+    ".ipredator.se": [{ "owner": "IPredator", "type": "vpn" }]
+  },
+  ".sg": {
+    ".myrepublic.com.sg ": [{ "owner": "MyRepublic", "type": "broadband" }]
+  },
+  ".th": {
+    ".3bb.in.th": [{ "owner": "3BB", "type": "broadband" }]
+  },
+  ".tr": {
+    ".ttnet.com.tr": [{ "owner": "Türk Telekom", "type": "broadband" }]
+  },
+  ".uk": {
+    ".threembb.co.uk": [
+      { "owner": "Three", "type": "mobile", "country-code": "GB" }
+    ],
+    ".ac.uk": [{ "type": "academic", "country-code": "GB" }],
+    ".zen.co.uk": [{ "type": "broadband", "country-code": "GB" }]
+  }
+}

@@ -2,6 +2,8 @@ const dns = require('dns').promises;
 
 const lruCache = require('lru-cache');
 
+const hostnameMeta = require('../data/hostname-meta.json');
+
 const cache = new lruCache({ max: 1000 });
 
 function ignoreError() {
@@ -61,7 +63,34 @@ async function augment(log) {
   return log;
 }
 
+async function meta(log) {
+  if (!log.getIn(['hostname', 'value'])) {
+    return log;
+  }
+
+  const hostname = log.getIn(['hostname', 'value']);
+
+  for (const ext of Object.keys(hostnameMeta)) {
+    if (hostname.endsWith(ext)) {
+      for (const domain of Object.keys(hostnameMeta[ext])) {
+        if (hostname.endsWith(domain)) {
+          for (const props of hostnameMeta[ext][domain]) {
+            for (const [key, value] of Object.entries(props)) {
+              log = log.setIn(['address', key], value);
+            }
+          }
+          break;
+        }
+      }
+      break;
+    }
+  }
+
+  return log;
+}
+
 module.exports = {
   lookup,
   augment,
+  meta,
 };
