@@ -1,5 +1,3 @@
-require('date-format-lite');
-
 const { fromJS } = require('immutable');
 
 // Number of seconds since Unix epoch
@@ -15,11 +13,6 @@ exports.complement = (f) => {
     return !f.apply(null, Array.prototype.slice.call(arguments));
   };
 };
-
-/**
- * Convert a timestamp into an ISO date string.
- */
-exports.iso = (time) => new Date(time * 1000).format('iso');
 
 /**
  * Create a log from Express req/res
