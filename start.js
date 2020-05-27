@@ -12,18 +12,7 @@ if (process.argv[2]) {
 
 // Load Modules
 
-const config = hyperwatch.constants;
-
-Object.keys(config.modules)
-  .map((key) => Object.assign({ key }, config.modules[key]))
-  .sort((a, b) => b.priority - a.priority)
-  .forEach(({ key }) => {
-    // Here we need to access from the object as module with higer
-    // priority can deactivate modules with lower
-    if (config.modules[key].active) {
-      require(`./src/modules/${key}`);
-    }
-  });
+hyperwatch.modules.load();
 
 // Start
 

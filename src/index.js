@@ -3,6 +3,7 @@ const constants = require('./constants');
 const format = require('./format');
 const input = require('./input');
 const lib = require('./lib');
+const modules = require('./modules');
 const plugins = require('./plugins');
 
 const { pipeline, util } = lib;
@@ -20,6 +21,7 @@ module.exports = {
   constants,
   format,
   input,
+  modules,
   pipeline,
   plugins,
   start,
