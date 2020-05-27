@@ -28,7 +28,7 @@ const syslogNginxAccessWatchInput = input.syslog.create({
 
 pipeline.registerInput(syslogNginxAccessWatchInput);
 
-/* Syslog input in Hyper Watch JSON format */
+/* Syslog input in Hyperwatch JSON format */
 
 const syslogInput = input.syslog.create({
   name: 'Syslog (JSON standard format)',
@@ -40,7 +40,7 @@ pipeline.registerInput(syslogInput);
 /* HTTP inputs
 -------------- */
 
-/* HTTP input in Hyper Watch JSON format */
+/* HTTP input in Hyperwatch JSON format */
 
 const httpInput = input.http.create({
   name: 'HTTP server (JSON standard format)',

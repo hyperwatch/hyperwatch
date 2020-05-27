@@ -1,8 +1,8 @@
 [![NPM version](https://img.shields.io/npm/v/@hyperwatch/hyperwatch)](https://www.npmjs.com/package/@hyperwatch/hyperwatch) [![Build Status](https://github.com/znarf/hyperwatch/workflows/CI/badge.svg)](https://github.com/znarf/hyperwatch/actions?query=workflow%3ACI) [![Dependency Status](https://david-dm.org/znarf/hyperwatch.svg)](https://david-dm.org/znarf/hyperwatch)
 
-Hyper Watch is a flexible access log processor that helps operators analyze HTTP traffic reaching their infrastructure.
+Hyperwatch is a flexible access log processor that helps operators analyze HTTP traffic reaching their infrastructure.
 
-Hyper Watch is built on a real-time stream processor handling logs from inputs of any type:
+Hyperwatch is built on a real-time stream processor handling logs from inputs of any type:
 
 - CDNs (Cloudfront, Cloudflare, Akamai, ...)
 - Load Balancers (ELB)
@@ -34,7 +34,7 @@ npm start config/default
 
 ## Configure
 
-The first thing you might want is configuring inputs to connect Hyper Watch to your traffic sources and convert it in the proper format.
+The first thing you might want is configuring inputs to connect Hyperwatch to your traffic sources and convert it in the proper format.
 
 In order to do this, you need to create a new configuration file such as `config/custom.js`.
 
@@ -48,7 +48,7 @@ There are also a couple of constants you might configure with a simple config fi
 npm start config/custom
 ```
 
-The Hyper Watch API and interface will be served from port `3000` by default.
+The Hyperwatch API and Websocket will be served from port `3000` by default.
 
 You can change that using an environment variable:
 
