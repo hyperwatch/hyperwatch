@@ -11,3 +11,4 @@ test
 .env
 .hyperwatchrc
 .editorconfig
+package-lock.json

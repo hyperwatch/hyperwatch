@@ -4,4 +4,3 @@ config
 !config/default.js
 !config/example.js
 node_modules
-package-lock.json
