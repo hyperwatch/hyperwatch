@@ -18,11 +18,16 @@ function create({
   let client;
 
   const setupWebSocketClient = ({ status, success, reject }) => {
+    let isAlive;
+
     client = new WebSocket(address, [], options);
     status(null, `Waiting for connection to ${address}`);
+
     client.on('open', () => {
+      isAlive = true;
       status(null, `Listening to ${address}`);
     });
+
     client.on('message', (message) => {
       if (sample !== 1 && Math.random() > sample) {
         return;
@@ -33,15 +38,32 @@ function create({
         reject(err);
       }
     });
+
     client.on('error', (err) => {
       status(err, 'Websocket error');
     });
+
+    const keepAlive = setInterval(() => {
+      if (isAlive === false) {
+        client.terminate();
+        clearInterval(keepAlive);
+      } else {
+        client.ping();
+        isAlive = false;
+      }
+    }, 60 * 1000);
+
+    client.on('pong', () => {
+      isAlive = true;
+    });
+
     client.on('close', () => {
       status(null, 'Websocket connection has been closed');
       if (reconnectOnClose) {
         status(null, 'Reconnecting Websocket');
         setupWebSocketClient({ status, success, reject });
       }
+      clearInterval(keepAlive);
     });
   };
 
