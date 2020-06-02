@@ -443,7 +443,11 @@ exports.parse = function parse(userAgent) {
       parser = parsers[i];
 
       if (parser[1]) {
-        res[1] = parser[1].replace('$1', res[1]);
+        res[1] = parser[1]
+          .replace('$1', res[1])
+          .replace('$2', res[2])
+          .replace('$3', res[3])
+          .replace('$4', res[4]);
       }
       return new Agent(
         res[1],
