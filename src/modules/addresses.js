@@ -1,5 +1,5 @@
 const Table = require('easy-table');
-const { Map } = require('immutable');
+const { Map, Set } = require('immutable');
 
 const api = require('../app/api');
 const pipeline = require('../lib/pipeline');
@@ -34,6 +34,12 @@ function setEnricher(fn) {
   enricher = fn;
 }
 
+const sorters = {
+  '15m': (address) => aggregateSpeed(address, 'per_minute'),
+  '24h': (address) => aggregateSpeed(address, 'per_hour'),
+  latest: (address) => address.getIn(['speed', 'per_minute']).latest,
+};
+
 function load() {
   pipeline.getNode('main').map((log) => {
     const address =
@@ -55,23 +61,53 @@ function load() {
   });
 
   api.get('/addresses(.:format(txt|json))?', (req, res) => {
-    const counts = addresses
-      .map((address) => aggregateSpeed(address, 'per_minute'))
+    let sortKey = req.query.sort;
+    if (!sortKey || !sorters[sortKey]) {
+      sortKey = '15m';
+    }
+
+    const rawData = addresses
+      .map(sorters[sortKey])
       .sort()
       .reverse()
-      .slice(0, 100);
+      .slice(0, req.query.limit || 100)
+      .keySeq()
+      .map((address) => addresses.get(address));
 
-    const data = Object.keys(counts.toJS()).map((address) =>
-      mapper(addresses.get(address), req.params.format)
-    );
+    const data = req.query.raw
+      ? rawData
+      : rawData.map((address) => mapper(address, req.params.format));
 
     if (req.params.format === 'txt') {
       res.setHeader('Content-Type', 'text/plain');
-      res.send(Table.print(data));
+      res.send(Table.print(data.toJS()));
     } else {
       res.send(data);
     }
   });
 }
+
+const gcSize = 1000;
+
+const gc = () => {
+  if (addresses.size < gcSize) {
+    return;
+  }
+
+  let keepList = new Set();
+  for (const sorter of Object.values(sorters)) {
+    const keepKeys = addresses
+      .map(sorter)
+      .sort()
+      .reverse()
+      .slice(0, gcSize)
+      .keySeq();
+    keepList = keepList.union(keepKeys);
+  }
+
+  addresses = addresses.filter((value, key) => keepList.has(key));
+};
+
+setInterval(gc, 60 * 1000);
 
 module.exports = { load, setMapper, setEnricher };

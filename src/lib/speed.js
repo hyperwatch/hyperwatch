@@ -11,6 +11,7 @@ class Speed {
     this.size = size;
     this.counters = Map();
     this.started = null;
+    this.latest = null;
   }
 
   // delete counters that are too old
@@ -21,6 +22,7 @@ class Speed {
 
   hit(time = now()) {
     this.started = !this.started ? time : Math.min(this.started, time);
+    this.latest = !this.latest ? time : Math.max(this.latest, time);
     const idx = time - (time % this.windowSize);
     this.counters = this.counters.update(`${idx}`, 0, (n) => n + 1);
     this.gc();
