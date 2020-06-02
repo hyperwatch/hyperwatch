@@ -1,6 +1,7 @@
 const { fromJS } = require('immutable');
 const lruCache = require('lru-cache');
-const useragent = require('useragent');
+
+const useragent = require('../lib/useragent');
 
 const cache = new lruCache({ max: 1000 });
 
