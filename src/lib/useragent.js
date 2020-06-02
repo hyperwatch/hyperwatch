@@ -29,11 +29,12 @@ const deviceparsers = regexes.device,
  * @param {String} source The actual user agent string
  * @api public
  */
-function Agent(family, major, minor, patch, source) {
+function Agent(family, major, minor, patch, patch_minor, source) {
   this.family = family || 'Other';
   this.major = major || '0';
   this.minor = minor || '0';
   this.patch = patch || '0';
+  this.patch_minor = patch_minor || '0';
   this.source = source || '';
 }
 
@@ -71,7 +72,8 @@ Object.defineProperty(Agent.prototype, 'os', {
               res[1],
               parser[2] || res[2],
               parser[3] || res[3],
-              parser[4] || res[4]
+              parser[4] || res[4],
+              parser[5] || res[5]
             ),
     }).os;
   },
@@ -210,6 +212,7 @@ Agent.prototype.toJSON = function toJSON() {
     major: this.major,
     minor: this.minor,
     patch: this.patch,
+    patch_minor: this.patch_minor,
     device: this.device,
     os: this.os,
   };
@@ -225,11 +228,12 @@ Agent.prototype.toJSON = function toJSON() {
  * @param {String} patch Patch version of the os
  * @api public
  */
-function OperatingSystem(family, major, minor, patch) {
+function OperatingSystem(family, major, minor, patch, patch_minor) {
   this.family = family || 'Other';
   this.major = major || '0';
   this.minor = minor || '0';
   this.patch = patch || '0';
+  this.patch_minor = patch_minor || '0';
 }
 
 /**
@@ -287,6 +291,7 @@ OperatingSystem.prototype.toJSON = function toJSON() {
     major: this.major || undefined,
     minor: this.minor || undefined,
     patch: this.patch || undefined,
+    patch_minor: this.patch_minor || undefined,
   };
 };
 
@@ -445,6 +450,7 @@ exports.parse = function parse(userAgent) {
         parser[2] || res[2],
         parser[3] || res[3],
         parser[4] || res[4],
+        parser[5] || res[5],
         userAgent
       );
     }
@@ -453,7 +459,7 @@ exports.parse = function parse(userAgent) {
   // Return early if we didn't find an match, but might still be able to parse
   // the os and device, so make sure we supply it with the source
   if (!parser || !res) {
-    return new Agent('', '', '', '', userAgent);
+    return new Agent('', '', '', '', '', userAgent);
   }
 };
 
@@ -472,7 +478,8 @@ exports.fromJSON = function fromJSON(details) {
       details.family,
       details.major,
       details.minor,
-      details.patch
+      details.patch,
+      details.patch_minor
     ),
     os = details.os;
 
@@ -490,7 +497,13 @@ exports.fromJSON = function fromJSON(details) {
     if (typeof os === 'string') {
       agent.os = new OperatingSystem(os);
     } else {
-      agent.os = new OperatingSystem(os.family, os.major, os.minor, os.patch);
+      agent.os = new OperatingSystem(
+        os.family,
+        os.major,
+        os.minor,
+        os.patch,
+        os.patch_minor
+      );
     }
   }
 
