@@ -213,8 +213,8 @@ Agent.prototype.toJSON = function toJSON() {
     minor: this.minor,
     patch: this.patch,
     patch_minor: this.patch_minor,
-    device: this.device,
-    os: this.os,
+    device: this.device.toJSON(),
+    os: this.os.toJSON(),
   };
 };
 
