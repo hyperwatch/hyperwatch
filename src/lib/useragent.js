@@ -1,22 +1,12 @@
-/**
- * This is where all the magic comes from, specially crafted for `useragent`.
- */
 const regexes = require('../data/regexes');
 
-/**
- * Reduce references by storing the lookups.
- */
-// OperatingSystem parsers:
-const osparsers = regexes.os,
-  osparserslength = osparsers.length;
-
-// UserAgent parsers:
-const agentparsers = regexes.browser,
-  agentparserslength = agentparsers.length;
-
-// Device parsers:
-const deviceparsers = regexes.device,
-  deviceparserslength = deviceparsers.length;
+function replaceMatches(string, res) {
+  return string
+    .replace('$1', res[1])
+    .replace('$2', res[2])
+    .replace('$3', res[3])
+    .replace('$4', res[4]);
+}
 
 /**
  * The representation of a parsed user agent.
@@ -30,11 +20,11 @@ const deviceparsers = regexes.device,
  * @api public
  */
 function Agent(family, major, minor, patch, patch_minor, source) {
-  this.family = family || 'Other';
-  this.major = major || '0';
-  this.minor = minor || '0';
-  this.patch = patch || '0';
-  this.patch_minor = patch_minor || '0';
+  this.family = family || undefined;
+  this.major = major || undefined;
+  this.minor = minor || undefined;
+  this.patch = patch || undefined;
+  this.patch_minor = patch_minor || undefined;
   this.source = source || '';
 }
 
@@ -46,35 +36,37 @@ function Agent(family, major, minor, patch, patch_minor, source) {
  */
 Object.defineProperty(Agent.prototype, 'os', {
   get: function lazyparse() {
-    const userAgent = this.source,
-      length = osparserslength,
-      parsers = osparsers;
-    let i = 0,
-      parser,
-      res;
+    const userAgent = this.source;
 
-    for (; i < length; i++) {
-      if ((res = parsers[i][0].exec(userAgent))) {
-        parser = parsers[i];
-
-        if (parser[1]) {
-          res[1] = parser[1].replace('$1', res[1]);
-        }
-        break;
+    for (const osRegex of regexes.os) {
+      const res = osRegex.regex.exec(userAgent);
+      if (res) {
+        const {
+          os_replacement,
+          os_v1_replacement,
+          os_v2_replacement,
+          os_v3_replacement,
+          os_v4_replacement,
+        } = osRegex;
+        return Object.defineProperty(this, 'os', {
+          value: new OperatingSystem(
+            // family
+            os_replacement ? replaceMatches(os_replacement, res) : res[1],
+            // major
+            os_v1_replacement ? replaceMatches(os_v1_replacement, res) : res[2],
+            // minor
+            os_v2_replacement ? replaceMatches(os_v2_replacement, res) : res[3],
+            // patch
+            os_v3_replacement ? replaceMatches(os_v3_replacement, res) : res[4],
+            // patch_minor
+            os_v4_replacement ? replaceMatches(os_v4_replacement, res) : res[5]
+          ),
+        }).os;
       }
     }
 
     return Object.defineProperty(this, 'os', {
-      value:
-        !parser || !res
-          ? new OperatingSystem()
-          : new OperatingSystem(
-              res[1],
-              parser[2] || res[2],
-              parser[3] || res[3],
-              parser[4] || res[4],
-              parser[5] || res[5]
-            ),
+      value: null,
     }).os;
   },
 
@@ -101,34 +93,33 @@ Object.defineProperty(Agent.prototype, 'os', {
  */
 Object.defineProperty(Agent.prototype, 'device', {
   get: function lazyparse() {
-    const userAgent = this.source,
-      length = deviceparserslength,
-      parsers = deviceparsers;
-    let i = 0,
-      parser,
-      res;
+    const userAgent = this.source;
 
-    for (; i < length; i++) {
-      if ((res = parsers[i][0].exec(userAgent))) {
-        parser = parsers[i];
-
-        if (parser[1]) {
-          res[1] = parser[1].replace('$1', res[1]);
-        }
-        break;
+    for (const deviceRegex of regexes.device) {
+      const res = deviceRegex.regex.exec(userAgent);
+      if (res) {
+        const {
+          device_replacement,
+          brand_replacement,
+          model_replacement,
+        } = deviceRegex;
+        return Object.defineProperty(this, 'device', {
+          value: new Device(
+            // family
+            device_replacement
+              ? replaceMatches(device_replacement, res)
+              : res[1],
+            // brand
+            brand_replacement ? replaceMatches(brand_replacement, res) : res[2],
+            // model
+            model_replacement ? replaceMatches(model_replacement, res) : res[3]
+          ),
+        }).device;
       }
     }
 
     return Object.defineProperty(this, 'device', {
-      value:
-        !parser || !res
-          ? new Device()
-          : new Device(
-              res[1],
-              parser[2] || res[2],
-              parser[3] || res[3],
-              parser[4] || res[4]
-            ),
+      value: null,
     }).device;
   },
 
@@ -168,10 +159,9 @@ Agent.prototype.toAgent = function toAgent() {
  * @api public
  */
 Agent.prototype.toString = function toString() {
-  const agent = this.toAgent(),
-    os = this.os !== 'Other' ? this.os : false;
+  const agent = this.toAgent();
 
-  return agent + (os ? ` / ${os}` : '');
+  return agent + (this.os ? ` / ${this.os}` : '');
 };
 
 /**
@@ -193,6 +183,10 @@ Agent.prototype.toVersion = function toVersion() {
       // to check if it's a string or not.
       if (this.patch) {
         version += (isNaN(+this.patch) ? ' ' : '.') + this.patch;
+
+        if (this.patch_minor) {
+          version += `.${this.patch_minor}`;
+        }
       }
     }
   }
@@ -207,15 +201,20 @@ Agent.prototype.toVersion = function toVersion() {
  * @api public
  */
 Agent.prototype.toJSON = function toJSON() {
-  return {
+  const object = {
     family: this.family,
     major: this.major,
     minor: this.minor,
     patch: this.patch,
     patch_minor: this.patch_minor,
-    device: this.device.toJSON(),
-    os: this.os.toJSON(),
   };
+  if (this.os) {
+    object.os = this.os.toJSON();
+  }
+  if (this.device) {
+    object.device = this.device.toJSON();
+  }
+  return object;
 };
 
 /**
@@ -229,11 +228,11 @@ Agent.prototype.toJSON = function toJSON() {
  * @api public
  */
 function OperatingSystem(family, major, minor, patch, patch_minor) {
-  this.family = family || 'Other';
-  this.major = major || '0';
-  this.minor = minor || '0';
-  this.patch = patch || '0';
-  this.patch_minor = patch_minor || '0';
+  this.family = family || null;
+  this.major = major || null;
+  this.minor = minor || null;
+  this.patch = patch || null;
+  this.patch_minor = patch_minor || null;
 }
 
 /**
@@ -280,7 +279,7 @@ OperatingSystem.prototype.toVersion = function toVersion() {
 
 /**
  * Outputs a JSON string of the OS, values are defaulted to undefined so they
- * are not outputed in the stringify.
+ * are not outputted in the stringify.
  *
  * @returns {String}
  * @api public
@@ -305,11 +304,10 @@ OperatingSystem.prototype.toJSON = function toJSON() {
  * @param {String} patch Patch version of the device
  * @api public
  */
-function Device(family, major, minor, patch) {
-  this.family = family || 'Other';
-  this.major = major || '0';
-  this.minor = minor || '0';
-  this.patch = patch || '0';
+function Device(family, brand, model) {
+  this.family = family || null;
+  this.brand = brand || null;
+  this.model = model || null;
 }
 
 /**
@@ -356,7 +354,7 @@ Device.prototype.toVersion = function toVersion() {
 
 /**
  * Outputs a JSON string of the Device, values are defaulted to undefined so they
- * are not outputed in the stringify.
+ * are not outputted in the stringify.
  *
  * @returns {String}
  * @api public
@@ -364,9 +362,8 @@ Device.prototype.toVersion = function toVersion() {
 Device.prototype.toJSON = function toJSON() {
   return {
     family: this.family,
-    major: this.major || undefined,
-    minor: this.minor || undefined,
-    patch: this.patch || undefined,
+    brand: this.brand || undefined,
+    model: this.model || undefined,
   };
 };
 
@@ -431,40 +428,37 @@ exports.parse = function parse(userAgent) {
     return new Agent();
   }
 
-  const length = agentparserslength,
-    parsers = agentparsers;
-
-  let i = 0,
-    parser,
-    res;
-
-  for (; i < length; i++) {
-    if ((res = parsers[i][0].exec(userAgent))) {
-      parser = parsers[i];
-
-      if (parser[1]) {
-        res[1] = parser[1]
-          .replace('$1', res[1])
-          .replace('$2', res[2])
-          .replace('$3', res[3])
-          .replace('$4', res[4]);
-      }
+  for (const agentRegex of regexes.agent) {
+    const res = agentRegex.regex.exec(userAgent);
+    if (res) {
+      const {
+        family_replacement,
+        v1_replacement,
+        v2_replacement,
+        v3_replacement,
+        v4_replacement,
+      } = agentRegex;
+      // Optimization: no need to replaceMatches in replacements
       return new Agent(
-        res[1],
-        parser[2] || res[2],
-        parser[3] || res[3],
-        parser[4] || res[4],
-        parser[5] || res[5],
+        // family
+        family_replacement ? replaceMatches(family_replacement, res) : res[1],
+        // major
+        v1_replacement || res[2] || null,
+        // minor
+        v2_replacement || res[3] || null,
+        // patch
+        v3_replacement || res[4] || null,
+        // minor_patch
+        v4_replacement || res[5] || null,
+        // source
         userAgent
       );
     }
   }
 
-  // Return early if we didn't find an match, but might still be able to parse
-  // the os and device, so make sure we supply it with the source
-  if (!parser || !res) {
-    return new Agent('', '', '', '', '', userAgent);
-  }
+  // We might still be able to parse the os and device,
+  // so make sure we supply it with the source
+  return new Agent(null, null, null, null, null, userAgent);
 };
 
 /**
@@ -479,36 +473,31 @@ exports.fromJSON = function fromJSON(details) {
   }
 
   const agent = new Agent(
-      details.family,
-      details.major,
-      details.minor,
-      details.patch,
-      details.patch_minor
-    ),
-    os = details.os;
+    details.family,
+    details.major,
+    details.minor,
+    details.patch,
+    details.patch_minor
+  );
 
-  // The device family was added in v2.0
-  if ('device' in details) {
-    agent.device = new Device(details.device.family);
-  } else {
-    agent.device = new Device();
+  if (details.os) {
+    agent.os = new OperatingSystem(
+      details.os.family,
+      details.os.major,
+      details.os.minor,
+      details.os.patch,
+      details.os.patch_minor
+    );
   }
 
-  if ('os' in details && os) {
-    // In v1.1.0 we only parsed out the Operating System name, not the full
-    // version which we added in v2.0. To provide backwards compatible we should
-    // we should set the details.os as family
-    if (typeof os === 'string') {
-      agent.os = new OperatingSystem(os);
-    } else {
-      agent.os = new OperatingSystem(
-        os.family,
-        os.major,
-        os.minor,
-        os.patch,
-        os.patch_minor
-      );
-    }
+  if (details.device) {
+    agent.device = new Device(
+      details.device.family,
+      details.device.brand,
+      details.device.model,
+      details.device.patch,
+      details.device.patch_minor
+    );
   }
 
   return agent;

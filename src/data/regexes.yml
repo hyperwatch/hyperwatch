@@ -395,7 +395,7 @@ user_agent_parsers:
   - regex: '(SznProhlizec)/(\d+)\.(\d+)(?:\.(\d+)|)'
     family_replacement: 'Seznam prohlížeč'
 
-  # Coc Coc browser, based on Chrome (used in Vietnam)
+  # Coc Coc browser, based on Chrome (used in Vietnam)
   - regex: '(coc_coc_browser)/(\d+)\.(\d+)(?:\.(\d+)|)'
     family_replacement: 'Coc Coc'
 
@@ -512,7 +512,6 @@ user_agent_parsers:
   #### END SPECIAL CASES TOP ####
 
   #### MAIN CASES - this catches > 50% of all browsers ####
-
 
   # Slack desktop client (needs to be before Apple Mail, Electron, and Chrome as it gets wrongly detected on Mac OS otherwise)
   - regex: '(Slack_SSB)/(\d+)\.(\d+)\.(\d+)'
@@ -956,7 +955,6 @@ os_parsers:
   # Opera/9.80 (Linux mips; U;  HbbTV/1.1.1 (; Sony; KDL40HX751; PKG1.902EUA; 2012;);; en) Presto/2.10.250 Version/11.60
   # Opera/9.80 (Linux mips; U;  HbbTV/1.1.1 (; Sony; KDL22EX320; PKG4.017EUA; 2011;);; en) Presto/2.7.61 Version/11.00
   #- regex: 'HbbTV/\d+\.\d+\.\d+ \(; (Sony);.*;.*; ([0-9]{4});\)'
-
 
   # LG is consistent too, but we need to add manually the year model
   #Mozilla/5.0 (Unknown; Linux armv7l) AppleWebKit/537.1+ (KHTML, like Gecko) Safari/537.1+ HbbTV/1.1.1 ( ;LGE ;NetCast 4.0 ;03.20.30 ;1.0M ;)
@@ -1553,7 +1551,6 @@ os_parsers:
   - regex: '\((?:Mobile|Tablet);.+Firefox/\d+\.\d+'
     os_replacement: 'Firefox OS'
 
-
   ##########
   # BREW
   # yes, Brew is lower-cased for Brew MP
@@ -1619,7 +1616,6 @@ os_parsers:
   - regex: '^(Roku)/DVP-(\d+)\.(\d+)'
 
 device_parsers:
-
   #########
   # Mobile Spiders
   # Catch the mobile crawler before checking for iPhones / Androids.
@@ -5139,7 +5135,6 @@ device_parsers:
     device_replacement: 'Asus $1'
     brand_replacement: 'Asus'
     model_replacement: '$1'
-
 
   ##########
   # Bird

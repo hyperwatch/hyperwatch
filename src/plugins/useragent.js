@@ -13,14 +13,6 @@ function lookup(ua) {
   let result = useragent.parse(ua);
 
   result = result.toJSON();
-  if (result.os.toJSON) {
-    result.os = result.os.toJSON();
-  }
-  if (result.device.toJSON) {
-    result.device = result.device.toJSON();
-  }
-
-  console.log(ua, result);
 
   cache.set(ua, result);
 

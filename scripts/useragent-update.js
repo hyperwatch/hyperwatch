@@ -1,21 +1,33 @@
+const fs = require('fs');
 const path = require('path');
 
-const update = require('useragent/lib/update');
+const fetch = require('node-fetch'); // eslint-disable-line node/no-unpublished-require
+const yaml = require('yamlparser'); // eslint-disable-line node/no-unpublished-require
 
-update.remote =
-  'https://raw.githubusercontent.com/ua-parser/uap-core/master/regexes.yaml';
+fetch(
+  'https://raw.githubusercontent.com/ua-parser/uap-core/master/regexes.yaml'
+)
+  .then((response) => response.text())
+  .then((regexesYaml) => {
+    fs.writeFileSync(
+      path.resolve(__dirname, '..', 'src', 'data', 'regexes.yml'),
+      regexesYaml
+    );
 
-update.output = path.resolve(__dirname, '..', 'src', 'data', 'regexes.js');
+    const regexes = yaml.eval(regexesYaml);
 
-update.update((err) => {
-  if (err) {
-    console.error('Update unsuccessfull due to reasons');
-    console.log(err.message);
-    console.log(err.stack);
+    fs.writeFileSync(
+      path.resolve(__dirname, '..', 'src', 'data', 'regexes-agent.json'),
+      JSON.stringify(regexes.user_agent_parsers, null, 2)
+    );
 
-    return;
-  }
-  console.log(
-    'Successfully fetched and generated new parsers from the internets.'
-  );
-});
+    fs.writeFileSync(
+      path.resolve(__dirname, '..', 'src', 'data', 'regexes-os.json'),
+      JSON.stringify(regexes.os_parsers, null, 2)
+    );
+
+    fs.writeFileSync(
+      path.resolve(__dirname, '..', 'src', 'data', 'regexes-device.json'),
+      JSON.stringify(regexes.device_parsers, null, 2)
+    );
+  });
