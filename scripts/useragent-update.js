@@ -8,17 +8,33 @@ fetch(
   'https://raw.githubusercontent.com/ua-parser/uap-core/master/regexes.yaml'
 )
   .then((response) => response.text())
+
   .then((regexesYaml) => {
     fs.writeFileSync(
       path.resolve(__dirname, '..', 'src', 'data', 'regexes.yml'),
       regexesYaml
     );
 
+    const regexesExtraYaml = fs
+      .readFileSync(
+        path.resolve(__dirname, '..', 'src', 'data', 'regexes-extra.yml')
+      )
+      .toString();
+
     const regexes = yaml.eval(regexesYaml);
+    const regexesExtra = yaml.eval(regexesExtraYaml);
 
     fs.writeFileSync(
+      path.resolve(__dirname, '..', 'src', 'data', 'regexes-robot.json'),
+      JSON.stringify(regexesExtra.robot_parsers, null, 2)
+    );
+
+    const regexesAgent = regexesExtra.user_agent_parsers.concat(
+      regexes.user_agent_parsers
+    );
+    fs.writeFileSync(
       path.resolve(__dirname, '..', 'src', 'data', 'regexes-agent.json'),
-      JSON.stringify(regexes.user_agent_parsers, null, 2)
+      JSON.stringify(regexesAgent, null, 2)
     );
 
     fs.writeFileSync(

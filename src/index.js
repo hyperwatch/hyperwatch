@@ -21,6 +21,7 @@ module.exports = {
   constants,
   format,
   input,
+  lib,
   modules,
   pipeline,
   plugins,

@@ -1,5 +1,49 @@
 [
   {
+    "regex": "(BeakerBrowser)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Beaker Browser"
+  },
+  {
+    "regex": "(Atom)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Code)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "VS Code"
+  },
+  {
+    "regex": "(Code-Insiders)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "VS Code"
+  },
+  {
+    "regex": "(VSCodium)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Code-OSS)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "regex_flag": "i",
+    "family_replacement": "Code-OSS"
+  },
+  {
+    "regex": "(poi)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(JavaFX)/(\\d+)"
+  },
+  {
+    "regex": "(IntelliJ)"
+  },
+  {
+    "regex": "(DuckDuckGo)/(\\d+)"
+  },
+  {
+    "regex": "(GitHub)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Ecosia)"
+  },
+  {
+    "regex": "(QtWebEngine)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(GeoEvent Server) (\\d+)(?:\\.(\\d+)(?:\\.(\\d+)|)|)"
   },
   {

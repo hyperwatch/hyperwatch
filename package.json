@@ -24,7 +24,8 @@
     "test": "mocha --recursive",
     "prettier": "prettier \"**/*.@(js|json|md|yml)\"",
     "prettier:check": "npm run prettier -- --list-different",
-    "prettier:write": "npm run prettier -- --write"
+    "prettier:write": "npm run prettier -- --write",
+    "update": "node scripts/useragent-update && prettier src/data/* --write"
   },
   "dependencies": {
     "ajv": "^6.11.0",

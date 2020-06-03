@@ -19,12 +19,13 @@ function replaceMatches(string, res) {
  * @param {String} source The actual user agent string
  * @api public
  */
-function Agent(family, major, minor, patch, patch_minor, source) {
+function Agent(family, major, minor, patch, patch_minor, type, source) {
   this.family = family || undefined;
   this.major = major || undefined;
   this.minor = minor || undefined;
   this.patch = patch || undefined;
   this.patch_minor = patch_minor || undefined;
+  this.type = type || undefined;
   this.source = source || '';
 }
 
@@ -37,6 +38,10 @@ function Agent(family, major, minor, patch, patch_minor, source) {
 Object.defineProperty(Agent.prototype, 'os', {
   get: function lazyparse() {
     const userAgent = this.source;
+
+    if (this.type === 'robot') {
+      return null;
+    }
 
     for (const osRegex of regexes.os) {
       const res = osRegex.regex.exec(userAgent);
@@ -94,6 +99,10 @@ Object.defineProperty(Agent.prototype, 'os', {
 Object.defineProperty(Agent.prototype, 'device', {
   get: function lazyparse() {
     const userAgent = this.source;
+
+    if (this.type === 'robot') {
+      return null;
+    }
 
     for (const deviceRegex of regexes.device) {
       const res = deviceRegex.regex.exec(userAgent);
@@ -208,6 +217,9 @@ Agent.prototype.toJSON = function toJSON() {
     patch: this.patch,
     patch_minor: this.patch_minor,
   };
+  if (this.type) {
+    object.type = this.type;
+  }
   if (this.os) {
     object.os = this.os.toJSON();
   }
@@ -428,6 +440,35 @@ exports.parse = function parse(userAgent) {
     return new Agent();
   }
 
+  for (const robotRegex of regexes.robot) {
+    const res = robotRegex.regex.exec(userAgent);
+    if (res) {
+      const {
+        family_replacement,
+        v1_replacement,
+        v2_replacement,
+        v3_replacement,
+        v4_replacement,
+      } = robotRegex;
+      return new Agent(
+        // family
+        family_replacement ? replaceMatches(family_replacement, res) : res[1],
+        // major
+        v1_replacement || res[2] || null,
+        // minor
+        v2_replacement || res[3] || null,
+        // patch
+        v3_replacement || res[4] || null,
+        // minor_patch
+        v4_replacement || res[5] || null,
+        // type
+        'robot',
+        // source
+        userAgent
+      );
+    }
+  }
+
   for (const agentRegex of regexes.agent) {
     const res = agentRegex.regex.exec(userAgent);
     if (res) {
@@ -450,6 +491,8 @@ exports.parse = function parse(userAgent) {
         v3_replacement || res[4] || null,
         // minor_patch
         v4_replacement || res[5] || null,
+        // type
+        null,
         // source
         userAgent
       );
@@ -458,7 +501,7 @@ exports.parse = function parse(userAgent) {
 
   // We might still be able to parse the os and device,
   // so make sure we supply it with the source
-  return new Agent(null, null, null, null, null, userAgent);
+  return new Agent(null, null, null, null, null, null, userAgent);
 };
 
 /**
@@ -477,7 +520,8 @@ exports.fromJSON = function fromJSON(details) {
     details.major,
     details.minor,
     details.patch,
-    details.patch_minor
+    details.patch_minor,
+    details.type
   );
 
   if (details.os) {
@@ -501,4 +545,16 @@ exports.fromJSON = function fromJSON(details) {
   }
 
   return agent;
+};
+
+/**
+ * Add an extra Regex for agent detection
+ *
+ * @param {String} type (agent, os, device, robot)
+ * @param {Object} regex object
+ * @returns {Agent}
+ */
+exports.addRegex = function addRegex(type, object) {
+  object.regex = new RegExp(object.regex, object.regex_flag || '');
+  regexes[type].unshift(object);
 };

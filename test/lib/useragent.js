@@ -24,20 +24,41 @@ const tests = [
     },
     'Chrome 83.0.4103.61 / Mac OS X 10.10.5',
   ],
+
+  [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) BeakerBrowser/0.8.10 Chrome/80.0.3987.141 Electron/8.1.1 Safari/537.36',
+    {
+      family: 'Beaker Browser',
+      major: '0',
+      minor: '8',
+      patch: '10',
+      patch_minor: undefined,
+      os: {
+        family: 'Windows',
+        major: '10',
+        minor: undefined,
+        patch: undefined,
+        patch_minor: undefined,
+      },
+    },
+    'Beaker Browser 0.8.10 / Windows 10',
+  ],
 ];
 
 describe('useragent', () => {
   it('should parse all test cases', () => {
     for (const [ua, json, string] of tests) {
       const agent = useragent.parse(ua);
-      assert.deepStrictEqual(json, agent.toJSON());
-      assert.deepStrictEqual(string, agent.toString());
+      assert.deepStrictEqual(agent.toJSON(), json);
+      assert.deepStrictEqual(agent.toString(), string);
     }
   });
 
-  it('should construct from JSON', () => {
-    const agentJson = useragent.parse(tests[0][0]).toJSON();
-    const agent = useragent.fromJSON(agentJson);
-    assert.deepStrictEqual(agentJson, agent.toJSON());
+  it('should re-construct from JSON', () => {
+    for (const [ua] of tests) {
+      const agentJson = useragent.parse(ua).toJSON();
+      const agent = useragent.fromJSON(agentJson);
+      assert.deepStrictEqual(agent.toJSON(), agentJson);
+    }
   });
 });
