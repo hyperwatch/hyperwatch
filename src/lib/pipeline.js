@@ -187,7 +187,7 @@ class Pipeline extends Builder {
     this.monitors = [];
     this.stream = null;
     this.nodes = {
-      root: this,
+      raw: this,
       main: this,
     };
     this.pipeline = this;
