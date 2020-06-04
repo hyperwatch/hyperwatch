@@ -1,5 +1,3 @@
-const onFinished = require('on-finished');
-
 const { createLog } = require('../lib/util');
 
 function create({ name = 'Express Middleware', app } = {}) {
@@ -16,7 +14,7 @@ function create({ name = 'Express Middleware', app } = {}) {
     },
     middleware: function (req, res, next) {
       req.startAt = new Date();
-      onFinished('res', () => {
+      res.on('finish', () => {
         const { success, reject } = this;
         req.endAt = new Date();
         try {
