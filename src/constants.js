@@ -7,6 +7,10 @@ const constants = {
       active: false,
       priority: 0,
     },
+    identities: {
+      active: false,
+      priority: 0,
+    },
     logs: {
       active: true,
       priority: 0,
