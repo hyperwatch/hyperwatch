@@ -1,0 +1,1227 @@
+[
+  {
+    "regex": "(BeakerBrowser)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Beaker Browser"
+  },
+  {
+    "regex": "(Atom)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Code)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "VS Code"
+  },
+  {
+    "regex": "(Code-Insiders)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "VS Code"
+  },
+  {
+    "regex": "(VSCodium)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Code-OSS)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "regex_flag": "i",
+    "family_replacement": "Code-OSS"
+  },
+  {
+    "regex": "(poi)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(JavaFX)/(\\d+)"
+  },
+  {
+    "regex": "(IntelliJ)"
+  },
+  {
+    "regex": "(DuckDuckGo)/(\\d+)"
+  },
+  {
+    "regex": "(GitHub)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Ecosia)"
+  },
+  {
+    "regex": "(QtWebEngine)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(GeoEvent Server) (\\d+)(?:\\.(\\d+)(?:\\.(\\d+)|)|)"
+  },
+  {
+    "regex": "(ArcGIS Pro)(?: (\\d+)\\.(\\d+)\\.([^ ]+)|)"
+  },
+  {
+    "regex": "ArcGIS Client Using WinInet",
+    "family_replacement": "ArcMap"
+  },
+  {
+    "regex": "(OperationsDashboard)-(?:Windows)-(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Operations Dashboard for ArcGIS"
+  },
+  {
+    "regex": "(arcgisearth)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "ArcGIS Earth"
+  },
+  {
+    "regex": "com.esri.(earth).phone/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "ArcGIS Earth"
+  },
+  {
+    "regex": "(arcgis-explorer)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Explorer for ArcGIS"
+  },
+  {
+    "regex": "arcgis-(collector|aurora)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Collector for ArcGIS"
+  },
+  {
+    "regex": "(arcgis-workforce)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Workforce for ArcGIS"
+  },
+  {
+    "regex": "(Collector|Explorer|Workforce)-(?:Android|iOS)-(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "$1 for ArcGIS"
+  },
+  {
+    "regex": "(Explorer|Collector)/(\\d+) CFNetwork",
+    "family_replacement": "$1 for ArcGIS"
+  },
+  {
+    "regex": "ArcGISRuntime-(Android|iOS|NET|Qt)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "ArcGIS Runtime SDK for $1"
+  },
+  {
+    "regex": "ArcGIS\\.?(iOS|Android|NET|Qt)(?:-|\\.)(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "ArcGIS Runtime SDK for $1"
+  },
+  {
+    "regex": "ArcGIS\\.Runtime\\.(Qt)\\.(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "ArcGIS Runtime SDK for $1"
+  },
+  {
+    "regex": "^(Luminary)[Stage]+/(\\d+) CFNetwork"
+  },
+  {
+    "regex": "(ESPN)[%20| ]+Radio/(\\d+)\\.(\\d+)\\.(\\d+) CFNetwork"
+  },
+  {
+    "regex": "(Antenna)/(\\d+) CFNetwork",
+    "family_replacement": "AntennaPod"
+  },
+  {
+    "regex": "(TopPodcasts)Pro/(\\d+) CFNetwork"
+  },
+  {
+    "regex": "(MusicDownloader)Lite/(\\d+)\\.(\\d+)\\.(\\d+) CFNetwork"
+  },
+  {
+    "regex": "^(.*)-iPad\\/(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)(?:\\.(\\d+)|) CFNetwork"
+  },
+  {
+    "regex": "^(.*)-iPhone/(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)(?:\\.(\\d+)|) CFNetwork"
+  },
+  {
+    "regex": "^(.*)/(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)(?:\\.(\\d+)|) CFNetwork"
+  },
+  {
+    "regex": "^(Luminary)/(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(espn\\.go)",
+    "family_replacement": "ESPN"
+  },
+  {
+    "regex": "(espnradio\\.com)",
+    "family_replacement": "ESPN"
+  },
+  {
+    "regex": "ESPN APP$",
+    "family_replacement": "ESPN"
+  },
+  {
+    "regex": "(audioboom\\.com)",
+    "family_replacement": "AudioBoom"
+  },
+  {
+    "regex": " (Rivo) RHYTHM"
+  },
+  {
+    "regex": "(CFNetwork)(?:/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)|)",
+    "family_replacement": "CFNetwork"
+  },
+  {
+    "regex": "(Pingdom\\.com_bot_version_)(\\d+)\\.(\\d+)",
+    "family_replacement": "PingdomBot"
+  },
+  {
+    "regex": "(PingdomTMS)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "PingdomBot"
+  },
+  {
+    "regex": " (PTST)/(\\d+)(?:\\.(\\d+)|)$",
+    "family_replacement": "WebPageTest.org bot"
+  },
+  {
+    "regex": "X11; (Datanyze); Linux"
+  },
+  {
+    "regex": "(NewRelicPinger)/(\\d+)\\.(\\d+)",
+    "family_replacement": "NewRelicPingerBot"
+  },
+  {
+    "regex": "(Tableau)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Tableau"
+  },
+  {
+    "regex": "AppleWebKit/\\d+\\.\\d+.* Safari.* (CreativeCloud)/(\\d+)\\.(\\d+).(\\d+)",
+    "family_replacement": "Adobe CreativeCloud"
+  },
+  {
+    "regex": "(Salesforce)(?:.)\\/(\\d+)\\.(\\d?)"
+  },
+  {
+    "regex": "(\\(StatusCake\\))",
+    "family_replacement": "StatusCakeBot"
+  },
+  {
+    "regex": "(facebookexternalhit)/(\\d+)\\.(\\d+)",
+    "family_replacement": "FacebookBot"
+  },
+  {
+    "regex": "Google.*/\\+/web/snippet",
+    "family_replacement": "GooglePlusBot"
+  },
+  {
+    "regex": "via ggpht\\.com GoogleImageProxy",
+    "family_replacement": "GmailImageProxy"
+  },
+  {
+    "regex": "YahooMailProxy; https://help\\.yahoo\\.com/kb/yahoo-mail-proxy-SLN28749\\.html",
+    "family_replacement": "YahooMailProxy"
+  },
+  {
+    "regex": "(Twitterbot)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Twitterbot"
+  },
+  {
+    "regex": "/((?:Ant-|)Nutch|[A-z]+[Bb]ot|[A-z]+[Ss]pider|Axtaris|fetchurl|Isara|ShopSalad|Tailsweep)[ \\-](\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "\\b(008|Altresium|Argus|BaiduMobaider|BoardReader|DNSGroup|DataparkSearch|EDI|Goodzer|Grub|INGRID|Infohelfer|LinkedInBot|LOOQ|Nutch|OgScrper|PathDefender|Peew|PostPost|Steeler|Twitterbot|VSE|WebCrunch|WebZIP|Y!J-BR[A-Z]|YahooSeeker|envolk|sproose|wminer)/(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(MSIE) (\\d+)\\.(\\d+)([a-z]\\d|[a-z]|);.* MSIECrawler",
+    "family_replacement": "MSIECrawler"
+  },
+  {
+    "regex": "(DAVdroid)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(Google-HTTP-Java-Client|Apache-HttpClient|Go-http-client|scalaj-http|http%20client|Python-urllib|HttpMonitor|TLSProber|WinHTTP|JNLP|okhttp|aihttp|reqwest|axios|unirest-(?:java|python|ruby|nodejs|php|net))(?:[ /](\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)|)"
+  },
+  {
+    "regex": "(Pinterest(?:bot|))/(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)[;\\s(]+\\+https://www.pinterest.com/bot.html",
+    "family_replacement": "Pinterestbot"
+  },
+  {
+    "regex": "(CSimpleSpider|Cityreview Robot|CrawlDaddy|CrawlFire|Finderbots|Index crawler|Job Roboter|KiwiStatus Spider|Lijit Crawler|QuerySeekerSpider|ScollSpider|Trends Crawler|USyd-NLP-Spider|SiteCat Webbot|BotName\\/\\$BotVersion|123metaspider-Bot|1470\\.net crawler|50\\.nu|8bo Crawler Bot|Aboundex|Accoona-[A-z]{1,30}-Agent|AdsBot-Google(?:-[a-z]{1,30}|)|altavista|AppEngine-Google|archive.{0,30}\\.org_bot|archiver|Ask Jeeves|[Bb]ai[Dd]u[Ss]pider(?:-[A-Za-z]{1,30})(?:-[A-Za-z]{1,30}|)|bingbot|BingPreview|blitzbot|BlogBridge|Bloglovin|BoardReader Blog Indexer|BoardReader Favicon Fetcher|boitho.com-dc|BotSeer|BUbiNG|\\b\\w{0,30}favicon\\w{0,30}\\b|\\bYeti(?:-[a-z]{1,30}|)|Catchpoint(?: bot|)|[Cc]harlotte|Checklinks|clumboot|Comodo HTTP\\(S\\) Crawler|Comodo-Webinspector-Crawler|ConveraCrawler|CRAWL-E|CrawlConvera|Daumoa(?:-feedfetcher|)|Feed Seeker Bot|Feedbin|findlinks|Flamingo_SearchEngine|FollowSite Bot|furlbot|Genieo|gigabot|GomezAgent|gonzo1|(?:[a-zA-Z]{1,30}-|)Googlebot(?:-[a-zA-Z]{1,30}|)|Google SketchUp|grub-client|gsa-crawler|heritrix|HiddenMarket|holmes|HooWWWer|htdig|ia_archiver|ICC-Crawler|Icarus6j|ichiro(?:/mobile|)|IconSurf|IlTrovatore(?:-Setaccio|)|InfuzApp|Innovazion Crawler|InternetArchive|IP2[a-z]{1,30}Bot|jbot\\b|KaloogaBot|Kraken|Kurzor|larbin|LEIA|LesnikBot|Linguee Bot|LinkAider|LinkedInBot|Lite Bot|Llaut|lycos|Mail\\.RU_Bot|masscan|masidani_bot|Mediapartners-Google|Microsoft .{0,30} Bot|mogimogi|mozDex|MJ12bot|msnbot(?:-media {0,2}|)|msrbot|Mtps Feed Aggregation System|netresearch|Netvibes|NewsGator[^/]{0,30}|^NING|Nutch[^/]{0,30}|Nymesis|ObjectsSearch|OgScrper|Orbiter|OOZBOT|PagePeeker|PagesInventory|PaxleFramework|Peeplo Screenshot Bot|PlantyNet_WebRobot|Pompos|Qwantify|Read%20Later|Reaper|RedCarpet|Retreiver|Riddler|Rival IQ|scooter|Scrapy|Scrubby|searchsight|seekbot|semanticdiscovery|SemrushBot|Simpy|SimplePie|SEOstats|SimpleRSS|SiteCon|Slackbot-LinkExpanding|Slack-ImgProxy|Slurp|snappy|Speedy Spider|Squrl Java|Stringer|TheUsefulbot|ThumbShotsBot|Thumbshots\\.ru|Tiny Tiny RSS|Twitterbot|WhatsApp|URL2PNG|Vagabondo|VoilaBot|^vortex|Votay bot|^voyager|WASALive.Bot|Web-sniffer|WebThumb|WeSEE:[A-z]{1,30}|WhatWeb|WIRE|WordPress|Wotbox|www\\.almaden\\.ibm\\.com|Xenu(?:.s|) Link Sleuth|Xerka [A-z]{1,30}Bot|yacy(?:bot|)|YahooSeeker|Yahoo! Slurp|Yandex\\w{1,30}|YodaoBot(?:-[A-z]{1,30}|)|YottaaMonitor|Yowedo|^Zao|^Zao-Crawler|ZeBot_www\\.ze\\.bz|ZooShot|ZyBorg|ArcGIS Hub Indexer)(?:[ /]v?(\\d+)(?:\\.(\\d+)(?:\\.(\\d+)|)|)|)"
+  },
+  {
+    "regex": "\\b(Boto3?|JetS3t|aws-(?:cli|sdk-(?:cpp|go|java|nodejs|ruby2?|dotnet-(?:\\d{1,2}|core)))|s3fs)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(FME)\\/(\\d+\\.\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(QGIS)\\/(\\d)\\.?0?(\\d{1,2})\\.?0?(\\d{1,2})"
+  },
+  {
+    "regex": "(JOSM)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Tygron Platform) \\((\\d+)\\.(\\d+)\\.(\\d+(?:\\.\\d+| RC \\d+\\.\\d+))"
+  },
+  {
+    "regex": "\\[(FBAN/MessengerForiOS|FB_IAB/MESSENGER);FBAV/(\\d+)(?:\\.(\\d+)(?:\\.(\\d+)|)|)",
+    "family_replacement": "Facebook Messenger"
+  },
+  {
+    "regex": "\\[FB.*;(FBAV)/(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)",
+    "family_replacement": "Facebook"
+  },
+  {
+    "regex": "\\[FB.*;",
+    "family_replacement": "Facebook"
+  },
+  {
+    "regex": "(?:\\/[A-Za-z0-9\\.]+|) {0,5}([A-Za-z0-9 \\-_\\!\\[\\]:]{0,50}(?:[Aa]rchiver|[Ii]ndexer|[Ss]craper|[Bb]ot|[Ss]pider|[Cc]rawl[a-z]{0,50}))[/ ](\\d+)(?:\\.(\\d+)(?:\\.(\\d+)|)|)"
+  },
+  {
+    "regex": "((?:[A-Za-z][A-Za-z0-9 -]{0,50}|)[^C][^Uu][Bb]ot)\\b(?:(?:[ /]| v)(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)|)"
+  },
+  {
+    "regex": "((?:[A-z0-9]{1,50}|[A-z\\-]{1,50} ?|)(?: the |)(?:[Ss][Pp][Ii][Dd][Ee][Rr]|[Ss]crape|[Cc][Rr][Aa][Ww][Ll])[A-z0-9]{0,50})(?:(?:[ /]| v)(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)|)"
+  },
+  {
+    "regex": "(HbbTV)/(\\d+)\\.(\\d+)\\.(\\d+) \\("
+  },
+  {
+    "regex": "(Chimera|SeaMonkey|Camino|Waterfox)/(\\d+)\\.(\\d+)\\.?([ab]?\\d+[a-z]*|)"
+  },
+  {
+    "regex": "(SailfishBrowser)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "Sailfish Browser"
+  },
+  {
+    "regex": "\\[(Pinterest)/[^\\]]+\\]"
+  },
+  {
+    "regex": "(Pinterest)(?: for Android(?: Tablet|)|)/(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "Mozilla.*Mobile.*(Instagram).(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "Mozilla.*Mobile.*(Flipboard).(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "Mozilla.*Mobile.*(Flipboard-Briefing).(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "Mozilla.*Mobile.*(Onefootball)\\/Android.(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Snapchat)\\/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Twitter for (?:iPhone|iPad)|TwitterAndroid)(?:\\/(\\d+)\\.(\\d+)|)",
+    "family_replacement": "Twitter"
+  },
+  {
+    "regex": "Mozilla.*Mobile.*AspiegelBot",
+    "family_replacement": "Spider",
+    "brand_replacement": "Spider",
+    "model_replacement": "Smartphone"
+  },
+  {
+    "regex": "AspiegelBot",
+    "family_replacement": "Spider",
+    "brand_replacement": "Spider",
+    "model_replacement": "Desktop"
+  },
+  {
+    "regex": "(Firefox)/(\\d+)\\.(\\d+) Basilisk/(\\d+)",
+    "family_replacement": "Basilisk"
+  },
+  {
+    "regex": "(PaleMoon)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "Pale Moon"
+  },
+  {
+    "regex": "(Fennec)/(\\d+)\\.(\\d+)\\.?([ab]?\\d+[a-z]*)",
+    "family_replacement": "Firefox Mobile"
+  },
+  {
+    "regex": "(Fennec)/(\\d+)\\.(\\d+)(pre)",
+    "family_replacement": "Firefox Mobile"
+  },
+  {
+    "regex": "(Fennec)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Firefox Mobile"
+  },
+  {
+    "regex": "(?:Mobile|Tablet);.*(Firefox)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Firefox Mobile"
+  },
+  {
+    "regex": "(Namoroka|Shiretoko|Minefield)/(\\d+)\\.(\\d+)\\.(\\d+(?:pre|))",
+    "family_replacement": "Firefox ($1)"
+  },
+  {
+    "regex": "(Firefox)/(\\d+)\\.(\\d+)(a\\d+[a-z]*)",
+    "family_replacement": "Firefox Alpha"
+  },
+  {
+    "regex": "(Firefox)/(\\d+)\\.(\\d+)(b\\d+[a-z]*)",
+    "family_replacement": "Firefox Beta"
+  },
+  {
+    "regex": "(Firefox)-(?:\\d+\\.\\d+|)/(\\d+)\\.(\\d+)(a\\d+[a-z]*)",
+    "family_replacement": "Firefox Alpha"
+  },
+  {
+    "regex": "(Firefox)-(?:\\d+\\.\\d+|)/(\\d+)\\.(\\d+)(b\\d+[a-z]*)",
+    "family_replacement": "Firefox Beta"
+  },
+  {
+    "regex": "(Namoroka|Shiretoko|Minefield)/(\\d+)\\.(\\d+)([ab]\\d+[a-z]*|)",
+    "family_replacement": "Firefox ($1)"
+  },
+  {
+    "regex": "(Firefox).*Tablet browser (\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "MicroB"
+  },
+  {
+    "regex": "(MozillaDeveloperPreview)/(\\d+)\\.(\\d+)([ab]\\d+[a-z]*|)"
+  },
+  {
+    "regex": "(FxiOS)/(\\d+)\\.(\\d+)(\\.(\\d+)|)(\\.(\\d+)|)",
+    "family_replacement": "Firefox iOS"
+  },
+  {
+    "regex": "(Flock)/(\\d+)\\.(\\d+)(b\\d+?)"
+  },
+  {
+    "regex": "(RockMelt)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Navigator)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Netscape"
+  },
+  {
+    "regex": "(Navigator)/(\\d+)\\.(\\d+)([ab]\\d+)",
+    "family_replacement": "Netscape"
+  },
+  {
+    "regex": "(Netscape6)/(\\d+)\\.(\\d+)\\.?([ab]?\\d+|)",
+    "family_replacement": "Netscape"
+  },
+  {
+    "regex": "(MyIBrow)/(\\d+)\\.(\\d+)",
+    "family_replacement": "My Internet Browser"
+  },
+  {
+    "regex": "(UC? ?Browser|UCWEB|U3)[ /]?(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "UC Browser"
+  },
+  {
+    "regex": "(Opera Tablet).*Version/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(Opera Mini)(?:/att|)/?(\\d+|)(?:\\.(\\d+)|)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(Opera)/.+Opera Mobi.+Version/(\\d+)\\.(\\d+)",
+    "family_replacement": "Opera Mobile"
+  },
+  {
+    "regex": "(Opera)/(\\d+)\\.(\\d+).+Opera Mobi",
+    "family_replacement": "Opera Mobile"
+  },
+  {
+    "regex": "Opera Mobi.+(Opera)(?:/|\\s+)(\\d+)\\.(\\d+)",
+    "family_replacement": "Opera Mobile"
+  },
+  {
+    "regex": "Opera Mobi",
+    "family_replacement": "Opera Mobile"
+  },
+  {
+    "regex": "(Opera)/9.80.*Version/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(?:Mobile Safari).*(OPR)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Opera Mobile"
+  },
+  {
+    "regex": "(?:Chrome).*(OPR)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Opera"
+  },
+  {
+    "regex": "(Coast)/(\\d+).(\\d+).(\\d+)",
+    "family_replacement": "Opera Coast"
+  },
+  {
+    "regex": "(OPiOS)/(\\d+).(\\d+).(\\d+)",
+    "family_replacement": "Opera Mini"
+  },
+  {
+    "regex": "Chrome/.+( MMS)/(\\d+).(\\d+).(\\d+)",
+    "family_replacement": "Opera Neon"
+  },
+  {
+    "regex": "(hpw|web)OS/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "webOS Browser"
+  },
+  {
+    "regex": "(luakit)",
+    "family_replacement": "LuaKit"
+  },
+  {
+    "regex": "(Snowshoe)/(\\d+)\\.(\\d+).(\\d+)"
+  },
+  {
+    "regex": "Gecko/\\d+ (Lightning)/(\\d+)\\.(\\d+)\\.?((?:[ab]?\\d+[a-z]*)|(?:\\d*))"
+  },
+  {
+    "regex": "(Firefox)/(\\d+)\\.(\\d+)\\.(\\d+(?:pre|)) \\(Swiftfox\\)",
+    "family_replacement": "Swiftfox"
+  },
+  {
+    "regex": "(Firefox)/(\\d+)\\.(\\d+)([ab]\\d+[a-z]*|) \\(Swiftfox\\)",
+    "family_replacement": "Swiftfox"
+  },
+  {
+    "regex": "(rekonq)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|) Safari",
+    "family_replacement": "Rekonq"
+  },
+  {
+    "regex": "rekonq",
+    "family_replacement": "Rekonq"
+  },
+  {
+    "regex": "(conkeror|Conkeror)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "Conkeror"
+  },
+  {
+    "regex": "(konqueror)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Konqueror"
+  },
+  {
+    "regex": "(WeTab)-Browser"
+  },
+  {
+    "regex": "(Comodo_Dragon)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Comodo Dragon"
+  },
+  {
+    "regex": "(Symphony) (\\d+).(\\d+)"
+  },
+  {
+    "regex": "PLAYSTATION 3.+WebKit",
+    "family_replacement": "NetFront NX"
+  },
+  {
+    "regex": "PLAYSTATION 3",
+    "family_replacement": "NetFront"
+  },
+  {
+    "regex": "(PlayStation Portable)",
+    "family_replacement": "NetFront"
+  },
+  {
+    "regex": "(PlayStation Vita)",
+    "family_replacement": "NetFront NX"
+  },
+  {
+    "regex": "AppleWebKit.+ (NX)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "NetFront NX"
+  },
+  {
+    "regex": "(Nintendo 3DS)",
+    "family_replacement": "NetFront NX"
+  },
+  {
+    "regex": "(Silk)/(\\d+)\\.(\\d+)(?:\\.([0-9\\-]+)|)",
+    "family_replacement": "Amazon Silk"
+  },
+  {
+    "regex": "(Puffin)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "Windows Phone .*(Edge)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Edge Mobile"
+  },
+  {
+    "regex": "(EdgiOS|EdgA)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Edge Mobile"
+  },
+  {
+    "regex": "(SamsungBrowser)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Samsung Internet"
+  },
+  {
+    "regex": "(SznProhlizec)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "Seznam prohlížeč"
+  },
+  {
+    "regex": "(coc_coc_browser)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "Coc Coc"
+  },
+  {
+    "regex": "(baidubrowser)[/\\s](\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)",
+    "family_replacement": "Baidu Browser"
+  },
+  {
+    "regex": "(FlyFlow)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Baidu Explorer"
+  },
+  {
+    "regex": "(MxBrowser)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "Maxthon"
+  },
+  {
+    "regex": "(Crosswalk)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Line)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "LINE"
+  },
+  {
+    "regex": "(MiuiBrowser)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "MiuiBrowser"
+  },
+  {
+    "regex": "(Mint Browser)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Mint Browser"
+  },
+  {
+    "regex": "(TopBuzz)/(\\d+).(\\d+).(\\d+)",
+    "family_replacement": "TopBuzz"
+  },
+  {
+    "regex": "Mozilla.+Android.+(GSA)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Google"
+  },
+  {
+    "regex": "(MQQBrowser/Mini)(?:(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)|)",
+    "family_replacement": "QQ Browser Mini"
+  },
+  {
+    "regex": "(MQQBrowser)(?:/(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)|)",
+    "family_replacement": "QQ Browser Mobile"
+  },
+  {
+    "regex": "(QQBrowser)(?:/(\\d+)(?:\\.(\\d+)\\.(\\d+)(?:\\.(\\d+)|)|)|)",
+    "family_replacement": "QQ Browser"
+  },
+  {
+    "regex": "Version/.+(Chrome)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Chrome Mobile WebView"
+  },
+  {
+    "regex": "; wv\\).+(Chrome)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Chrome Mobile WebView"
+  },
+  {
+    "regex": "(CrMo)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Chrome Mobile"
+  },
+  {
+    "regex": "(CriOS)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Chrome Mobile iOS"
+  },
+  {
+    "regex": "(Chrome)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+) Mobile(?:[ /]|$)",
+    "family_replacement": "Chrome Mobile"
+  },
+  {
+    "regex": " Mobile .*(Chrome)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Chrome Mobile"
+  },
+  {
+    "regex": "(chromeframe)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Chrome Frame"
+  },
+  {
+    "regex": "(SLP Browser)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Tizen Browser"
+  },
+  {
+    "regex": "(SE 2\\.X) MetaSr (\\d+)\\.(\\d+)",
+    "family_replacement": "Sogou Explorer"
+  },
+  {
+    "regex": "(Rackspace Monitoring)/(\\d+)\\.(\\d+)",
+    "family_replacement": "RackspaceBot"
+  },
+  {
+    "regex": "(PRTG Network Monitor)"
+  },
+  {
+    "regex": "(PyAMF)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(YaBrowser)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Yandex Browser"
+  },
+  {
+    "regex": "(Chrome)/(\\d+)\\.(\\d+)\\.(\\d+).* MRCHROME",
+    "family_replacement": "Mail.ru Chromium Browser"
+  },
+  {
+    "regex": "(AOL) (\\d+)\\.(\\d+); AOLBuild (\\d+)"
+  },
+  {
+    "regex": "(PodCruncher|Downcast)[ /]?(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": " (BoxNotes)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Whale)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+) Mobile(?:[ /]|$)",
+    "family_replacement": "Whale"
+  },
+  {
+    "regex": "(Whale)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Whale"
+  },
+  {
+    "regex": "(1Password)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Ghost)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Slack_SSB)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Slack Desktop Client"
+  },
+  {
+    "regex": "(HipChat)/?(\\d+|)",
+    "family_replacement": "HipChat Desktop Client"
+  },
+  {
+    "regex": "\\b(MobileIron|FireWeb|Jasmine|ANTGalio|Midori|Fresco|Lobo|PaleMoon|Maxthon|Lynx|OmniWeb|Dillo|Camino|Demeter|Fluid|Fennec|Epiphany|Shiira|Sunrise|Spotify|Flock|Netscape|Lunascape|WebPilot|NetFront|Netfront|Konqueror|SeaMonkey|Kazehakase|Vienna|Iceape|Iceweasel|IceWeasel|Iron|K-Meleon|Sleipnir|Galeon|GranParadiso|Opera Mini|iCab|NetNewsWire|ThunderBrowse|Iris|UP\\.Browser|Bunjalloo|Google Earth|Raven for Mac|Openwave|MacOutlook|Electron|OktaMobile)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "Microsoft Office Outlook 12\\.\\d+\\.\\d+|MSOffice 12",
+    "family_replacement": "Outlook",
+    "v1_replacement": "2007"
+  },
+  {
+    "regex": "Microsoft Outlook 14\\.\\d+\\.\\d+|MSOffice 14",
+    "family_replacement": "Outlook",
+    "v1_replacement": "2010"
+  },
+  {
+    "regex": "Microsoft Outlook 15\\.\\d+\\.\\d+",
+    "family_replacement": "Outlook",
+    "v1_replacement": "2013"
+  },
+  {
+    "regex": "Microsoft Outlook (?:Mail )?16\\.\\d+\\.\\d+|MSOffice 16",
+    "family_replacement": "Outlook",
+    "v1_replacement": "2016"
+  },
+  {
+    "regex": "Microsoft Office (Word) 2014"
+  },
+  {
+    "regex": "Outlook-Express\\/7\\.0.*",
+    "family_replacement": "Windows Live Mail"
+  },
+  {
+    "regex": "(Airmail) (\\d+)\\.(\\d+)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(Thunderbird)/(\\d+)\\.(\\d+)(?:\\.(\\d+(?:pre|))|)",
+    "family_replacement": "Thunderbird"
+  },
+  {
+    "regex": "(Postbox)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Postbox"
+  },
+  {
+    "regex": "(Barca(?:Pro)?)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "Barca"
+  },
+  {
+    "regex": "(Lotus-Notes)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "Lotus Notes"
+  },
+  {
+    "regex": "Superhuman",
+    "family_replacement": "Superhuman"
+  },
+  {
+    "regex": "(Vivaldi)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Edge?)/(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)(?:\\.(\\d+)|)",
+    "family_replacement": "Edge"
+  },
+  {
+    "regex": "(brave)/(\\d+)\\.(\\d+)\\.(\\d+) Chrome",
+    "family_replacement": "Brave"
+  },
+  {
+    "regex": "(Chrome)/(\\d+)\\.(\\d+)\\.(\\d+)[\\d.]* Iron[^/]",
+    "family_replacement": "Iron"
+  },
+  {
+    "regex": "\\b(Dolphin)(?: |HDCN/|/INT\\-)(\\d+)\\.(\\d+)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(HeadlessChrome)(?:/(\\d+)\\.(\\d+)\\.(\\d+)|)"
+  },
+  {
+    "regex": "(Evolution)/(\\d+)\\.(\\d+)\\.(\\d+\\.\\d+)"
+  },
+  {
+    "regex": "(RCM CardDAV plugin)/(\\d+)\\.(\\d+)\\.(\\d+(?:-dev|))"
+  },
+  {
+    "regex": "(bingbot|Bolt|AdobeAIR|Jasmine|IceCat|Skyfire|Midori|Maxthon|Lynx|Arora|IBrowse|Dillo|Camino|Shiira|Fennec|Phoenix|Flock|Netscape|Lunascape|Epiphany|WebPilot|Opera Mini|Opera|NetFront|Netfront|Konqueror|Googlebot|SeaMonkey|Kazehakase|Vienna|Iceape|Iceweasel|IceWeasel|Iron|K-Meleon|Sleipnir|Galeon|GranParadiso|iCab|iTunes|MacAppStore|NetNewsWire|Space Bison|Stainless|Orca|Dolfin|BOLT|Minimo|Tizen Browser|Polaris|Abrowser|Planetweb|ICE Browser|mDolphin|qutebrowser|Otter|QupZilla|MailBar|kmail2|YahooMobileMail|ExchangeWebServices|ExchangeServicesClient|Dragon|Outlook-iOS-Android)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(Chromium|Chrome)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(IEMobile)[ /](\\d+)\\.(\\d+)",
+    "family_replacement": "IE Mobile"
+  },
+  {
+    "regex": "(BacaBerita App)\\/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "^(bPod|Pocket Casts|Player FM)$"
+  },
+  {
+    "regex": "^(AlexaMediaPlayer|VLC)/(\\d+)\\.(\\d+)\\.([^.\\s]+)"
+  },
+  {
+    "regex": "^(AntennaPod|WMPlayer|Zune|Podkicker|Radio|ExoPlayerDemo|Overcast|PocketTunes|NSPlayer|okhttp|DoggCatcher|QuickNews|QuickTime|Peapod|Podcasts|GoldenPod|VLC|Spotify|Miro|MediaGo|Juice|iPodder|gPodder|Banshee)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "^(Peapod|Liferea)/([^.\\s]+)\\.([^.\\s]+|)\\.?([^.\\s]+|)"
+  },
+  {
+    "regex": "^(bPod|Player FM) BMID/(\\S+)"
+  },
+  {
+    "regex": "^(Podcast ?Addict)/v(\\d+) "
+  },
+  {
+    "regex": "^(Podcast ?Addict) ",
+    "family_replacement": "PodcastAddict"
+  },
+  {
+    "regex": "(Replay) AV"
+  },
+  {
+    "regex": "(VOX) Music Player"
+  },
+  {
+    "regex": "(CITA) RSS Aggregator/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Pocket Casts)$"
+  },
+  {
+    "regex": "(Player FM)$"
+  },
+  {
+    "regex": "(LG Player|Doppler|FancyMusic|MediaMonkey|Clementine) (\\d+)\\.(\\d+)\\.?([^.\\s]+|)\\.?([^.\\s]+|)"
+  },
+  {
+    "regex": "(philpodder)/(\\d+)\\.(\\d+)\\.?([^.\\s]+|)\\.?([^.\\s]+|)"
+  },
+  {
+    "regex": "(Player FM|Pocket Casts|DoggCatcher|Spotify|MediaMonkey|MediaGo|BashPodder)"
+  },
+  {
+    "regex": "(QuickTime)\\.(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Kinoma)(\\d+)"
+  },
+  {
+    "regex": "(Fancy) Cloud Music (\\d+)\\.(\\d+)",
+    "family_replacement": "FancyMusic"
+  },
+  {
+    "regex": "EspnDownloadManager",
+    "family_replacement": "ESPN"
+  },
+  {
+    "regex": "(ESPN) Radio (\\d+)\\.(\\d+)(?:\\.(\\d+)|) ?(?:rv:(\\d+)|) "
+  },
+  {
+    "regex": "(podracer|jPodder) v ?(\\d+)\\.(\\d+)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(ZDM)/(\\d+)\\.(\\d+)[; ]?"
+  },
+  {
+    "regex": "(Zune|BeyondPod) (\\d+)(?:\\.(\\d+)|)[\\);]"
+  },
+  {
+    "regex": "(WMPlayer)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "^(Lavf)",
+    "family_replacement": "WMPlayer"
+  },
+  {
+    "regex": "^(RSSRadio)[ /]?(\\d+|)"
+  },
+  {
+    "regex": "(RSS_Radio) (\\d+)\\.(\\d+)",
+    "family_replacement": "RSSRadio"
+  },
+  {
+    "regex": "(Podkicker) \\S+/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Podkicker"
+  },
+  {
+    "regex": "^(HTC) Streaming Player \\S+ / \\S+ / \\S+ / (\\d+)\\.(\\d+)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "^(Stitcher)/iOS"
+  },
+  {
+    "regex": "^(Stitcher)/Android"
+  },
+  {
+    "regex": "^(VLC) .*version (\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": " (VLC) for"
+  },
+  {
+    "regex": "(vlc)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "VLC"
+  },
+  {
+    "regex": "^(foobar)\\S+/([^.\\s]+)\\.([^.\\s]+|)\\.?([^.\\s]+|)"
+  },
+  {
+    "regex": "^(Clementine)\\S+ ([^.\\s]+)\\.([^.\\s]+|)\\.?([^.\\s]+|)"
+  },
+  {
+    "regex": "(amarok)/([^.\\s]+)\\.([^.\\s]+|)\\.?([^.\\s]+|)",
+    "family_replacement": "Amarok"
+  },
+  {
+    "regex": "(Custom)-Feed Reader"
+  },
+  {
+    "regex": "(iRider|Crazy Browser|SkipStone|iCab|Lunascape|Sleipnir|Maemo Browser) (\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(iCab|Lunascape|Opera|Android|Jasmine|Polaris|Microsoft SkyDriveSync|The Bat!) (\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(Kindle)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Android) Donut",
+    "v1_replacement": "1",
+    "v2_replacement": "2"
+  },
+  {
+    "regex": "(Android) Eclair",
+    "v1_replacement": "2",
+    "v2_replacement": "1"
+  },
+  {
+    "regex": "(Android) Froyo",
+    "v1_replacement": "2",
+    "v2_replacement": "2"
+  },
+  {
+    "regex": "(Android) Gingerbread",
+    "v1_replacement": "2",
+    "v2_replacement": "3"
+  },
+  {
+    "regex": "(Android) Honeycomb",
+    "v1_replacement": "3"
+  },
+  {
+    "regex": "(MSIE) (\\d+)\\.(\\d+).*XBLWP7",
+    "family_replacement": "IE Large Screen"
+  },
+  {
+    "regex": "(Nextcloud)"
+  },
+  {
+    "regex": "(mirall)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(ownCloud-android)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Owncloud"
+  },
+  {
+    "regex": "(OC)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+) \\(Skype for Business\\)",
+    "family_replacement": "Skype"
+  },
+  {
+    "regex": "(Obigo)InternetBrowser"
+  },
+  {
+    "regex": "(Obigo)\\-Browser"
+  },
+  {
+    "regex": "(Obigo|OBIGO)[^\\d]*(\\d+)(?:.(\\d+)|)",
+    "family_replacement": "Obigo"
+  },
+  {
+    "regex": "(MAXTHON|Maxthon) (\\d+)\\.(\\d+)",
+    "family_replacement": "Maxthon"
+  },
+  {
+    "regex": "(Maxthon|MyIE2|Uzbl|Shiira)",
+    "v1_replacement": "0"
+  },
+  {
+    "regex": "(BrowseX) \\((\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(NCSA_Mosaic)/(\\d+)\\.(\\d+)",
+    "family_replacement": "NCSA Mosaic"
+  },
+  {
+    "regex": "(POLARIS)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Polaris"
+  },
+  {
+    "regex": "(Embider)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Polaris"
+  },
+  {
+    "regex": "(BonEcho)/(\\d+)\\.(\\d+)\\.?([ab]?\\d+|)",
+    "family_replacement": "Bon Echo"
+  },
+  {
+    "regex": "(TopBuzz) com.alex.NewsMaster/(\\d+).(\\d+).(\\d+)",
+    "family_replacement": "TopBuzz"
+  },
+  {
+    "regex": "(TopBuzz) com.mobilesrepublic.newsrepublic/(\\d+).(\\d+).(\\d+)",
+    "family_replacement": "TopBuzz"
+  },
+  {
+    "regex": "(TopBuzz) com.topbuzz.videoen/(\\d+).(\\d+).(\\d+)",
+    "family_replacement": "TopBuzz"
+  },
+  {
+    "regex": "(iPod|iPhone|iPad).+GSA/(\\d+)\\.(\\d+)\\.(\\d+)(?:\\.(\\d+)|) Mobile",
+    "family_replacement": "Google"
+  },
+  {
+    "regex": "(iPod|iPhone|iPad).+Version/(\\d+)\\.(\\d+)(?:\\.(\\d+)|).*[ +]Safari",
+    "family_replacement": "Mobile Safari"
+  },
+  {
+    "regex": "(iPod|iPod touch|iPhone|iPad);.*CPU.*OS[ +](\\d+)_(\\d+)(?:_(\\d+)|).* AppleNews\\/\\d+\\.\\d+\\.\\d+?",
+    "family_replacement": "Mobile Safari UI/WKWebView"
+  },
+  {
+    "regex": "(iPod|iPhone|iPad).+Version/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)",
+    "family_replacement": "Mobile Safari UI/WKWebView"
+  },
+  {
+    "regex": "(iPod|iPod touch|iPhone|iPad).* Safari",
+    "family_replacement": "Mobile Safari"
+  },
+  {
+    "regex": "(iPod|iPod touch|iPhone|iPad)",
+    "family_replacement": "Mobile Safari UI/WKWebView"
+  },
+  {
+    "regex": "(Watch)(\\d+),(\\d+)",
+    "family_replacement": "Apple $1 App"
+  },
+  {
+    "regex": "(Outlook-iOS)/\\d+\\.\\d+\\.prod\\.iphone \\((\\d+)\\.(\\d+)\\.(\\d+)\\)"
+  },
+  {
+    "regex": "(AvantGo) (\\d+).(\\d+)"
+  },
+  {
+    "regex": "(OneBrowser)/(\\d+).(\\d+)",
+    "family_replacement": "ONE Browser"
+  },
+  {
+    "regex": "(Avant)",
+    "v1_replacement": "1"
+  },
+  {
+    "regex": "(QtCarBrowser)",
+    "v1_replacement": "1"
+  },
+  {
+    "regex": "^(iBrowser/Mini)(\\d+).(\\d+)",
+    "family_replacement": "iBrowser Mini"
+  },
+  {
+    "regex": "^(iBrowser|iRAPP)/(\\d+).(\\d+)"
+  },
+  {
+    "regex": "^(Nokia)",
+    "family_replacement": "Nokia Services (WAP) Browser"
+  },
+  {
+    "regex": "(NokiaBrowser)/(\\d+)\\.(\\d+).(\\d+)\\.(\\d+)",
+    "family_replacement": "Nokia Browser"
+  },
+  {
+    "regex": "(NokiaBrowser)/(\\d+)\\.(\\d+).(\\d+)",
+    "family_replacement": "Nokia Browser"
+  },
+  {
+    "regex": "(NokiaBrowser)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Nokia Browser"
+  },
+  {
+    "regex": "(BrowserNG)/(\\d+)\\.(\\d+).(\\d+)",
+    "family_replacement": "Nokia Browser"
+  },
+  {
+    "regex": "(Series60)/5\\.0",
+    "family_replacement": "Nokia Browser",
+    "v1_replacement": "7",
+    "v2_replacement": "0"
+  },
+  {
+    "regex": "(Series60)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Nokia OSS Browser"
+  },
+  {
+    "regex": "(S40OviBrowser)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Ovi Browser"
+  },
+  {
+    "regex": "(Nokia)[EN]?(\\d+)"
+  },
+  {
+    "regex": "(PlayBook).+RIM Tablet OS (\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "BlackBerry WebKit"
+  },
+  {
+    "regex": "(Black[bB]erry|BB10).+Version/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "BlackBerry WebKit"
+  },
+  {
+    "regex": "(Black[bB]erry)\\s?(\\d+)",
+    "family_replacement": "BlackBerry"
+  },
+  {
+    "regex": "(OmniWeb)/v(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Blazer)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Palm Blazer"
+  },
+  {
+    "regex": "(Pre)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Palm Pre"
+  },
+  {
+    "regex": "(ELinks)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(ELinks) \\((\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Links) \\((\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(QtWeb) Internet Browser/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(PhantomJS)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(AppleWebKit)/(\\d+)(?:\\.(\\d+)|)\\+ .* Safari",
+    "family_replacement": "WebKit Nightly"
+  },
+  {
+    "regex": "(Version)/(\\d+)\\.(\\d+)(?:\\.(\\d+)|).*Safari/",
+    "family_replacement": "Safari"
+  },
+  {
+    "regex": "(Safari)/\\d+"
+  },
+  {
+    "regex": "(OLPC)/Update(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(OLPC)/Update()\\.(\\d+)",
+    "v1_replacement": "0"
+  },
+  {
+    "regex": "(SEMC\\-Browser)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Teleca)",
+    "family_replacement": "Teleca Browser"
+  },
+  {
+    "regex": "(Phantom)/V(\\d+)\\.(\\d+)",
+    "family_replacement": "Phantom Browser"
+  },
+  {
+    "regex": "(Trident)/(7|8)\\.(0)",
+    "family_replacement": "IE",
+    "v1_replacement": "11"
+  },
+  {
+    "regex": "(Trident)/(6)\\.(0)",
+    "family_replacement": "IE",
+    "v1_replacement": "10"
+  },
+  {
+    "regex": "(Trident)/(5)\\.(0)",
+    "family_replacement": "IE",
+    "v1_replacement": "9"
+  },
+  {
+    "regex": "(Trident)/(4)\\.(0)",
+    "family_replacement": "IE",
+    "v1_replacement": "8"
+  },
+  {
+    "regex": "(Espial)/(\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "(AppleWebKit)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Apple Mail"
+  },
+  {
+    "regex": "(Firefox)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Firefox)/(\\d+)\\.(\\d+)(pre|[ab]\\d+[a-z]*|)"
+  },
+  {
+    "regex": "([MS]?IE) (\\d+)\\.(\\d+)",
+    "family_replacement": "IE"
+  },
+  {
+    "regex": "(python-requests)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Python Requests"
+  },
+  {
+    "regex": "\\b(Windows-Update-Agent|WindowsPowerShell|Microsoft-CryptoAPI|SophosUpdateManager|SophosAgent|Debian APT-HTTP|Ubuntu APT-HTTP|libcurl-agent|libwww-perl|urlgrabber|curl|PycURL|Wget|wget2|aria2|Axel|OpenBSD ftp|lftp|jupdate|insomnia|fetch libfetch|akka-http|got)(?:[ /](\\d+)(?:\\.(\\d+)|)(?:\\.(\\d+)|)|)"
+  },
+  {
+    "regex": "(Python/3\\.\\d{1,3} aiohttp)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Python aiohttp"
+  },
+  {
+    "regex": "(Java)[/ ]?\\d+\\.(\\d+)\\.(\\d+)[_-]*([a-zA-Z0-9]+|)"
+  },
+  {
+    "regex": "^(Cyberduck)/(\\d+)\\.(\\d+)\\.(\\d+)(?:\\.\\d+|)"
+  },
+  {
+    "regex": "^(S3 Browser) (\\d+)-(\\d+)-(\\d+)(?:\\s*http://s3browser\\.com|)"
+  },
+  {
+    "regex": "(S3Gof3r)"
+  },
+  {
+    "regex": "\\b(ibm-cos-sdk-(?:core|java|js|python))/(\\d+)\\.(\\d+)(?:\\.(\\d+)|)"
+  },
+  {
+    "regex": "^(rusoto)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "^(rclone)/v(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "^(Roku)/DVP-(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Kurio)\\/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Kurio App"
+  },
+  {
+    "regex": "^(Box(?: Sync)?)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "^(ViaFree|Viafree)-(?:tvOS-)?[A-Z]{2}/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "ViaFree"
+  }
+]

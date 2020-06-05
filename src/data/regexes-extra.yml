@@ -1,0 +1,130 @@
+user_agent_parsers:
+  - regex: '(BeakerBrowser)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Beaker Browser'
+
+  - regex: '(Atom)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(Code)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'VS Code'
+
+  - regex: '(Code-Insiders)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'VS Code'
+
+  - regex: '(VSCodium)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(Code-OSS)/(\d+)\.(\d+)\.(\d+)'
+    regex_flag: 'i'
+    family_replacement: 'Code-OSS'
+
+  # https://poi.moe/
+  - regex: '(poi)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(JavaFX)/(\d+)'
+
+  - regex: '(IntelliJ)'
+
+  - regex: '(DuckDuckGo)/(\d+)'
+
+  - regex: '(GitHub)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(Ecosia)'
+
+  - regex: '(QtWebEngine)/(\d+)\.(\d+)\.(\d+)'
+
+robot_parsers:
+  # Main Crawlers
+
+  - regex: '(Googlebot)/(\d+)\.(\d+)'
+
+  - regex: '(Googlebot)-Image/(\d+)\.(\d+)'
+
+  - regex: 'Mediapartners-(Google)'
+
+  - regex: '(Applebot)/(\d+)\.(\d+)'
+
+  - regex: '(DotBot)/(\d+)\.(\d+)'
+    family_replacement: 'Moz'
+
+  - regex: '(bingbot)/(\d+)\.(\d+)'
+    family_replacement: 'Bing'
+
+  - regex: '(Bing)Preview/(\d+)\.(\d+)'
+
+  - regex: '(Yandex)Bot/(\d+)\.(\d+)'
+
+  - regex: '(Yandex)Images/(\d+)\.(\d+)'
+
+  - regex: '(coccocbot)/(\d+)\.(\d+)'
+    family_replacement: 'Coc Coc'
+
+  - regex: '(coccocbot-image)/(\d+)\.(\d+)'
+    family_replacement: 'Coc Coc'
+
+  - regex: '(Baidu)spider-render/(\d+)\.(\d+)'
+
+  - regex: '(Semrush)Bot/(\d+)'
+
+  - regex: '(Sogou) web spider/(\d+)\.(\d+)'
+
+  - regex: '(Ahrefs)Bot/(\d+)\.(\d+)'
+
+  - regex: '(Seznam)Bot/(\d+)\.(\d+)'
+
+  - regex: '(special_archiver)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Archive.org'
+
+  - regex: '(MJ12bot)/v(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Majestic'
+
+  - regex: '(Yeti)/(\d+)\.(\d+)'
+    family_replacement: 'Naver'
+
+  # https://yacy.net/bot.html
+  - regex: 'yacybot'
+    family_replacement: 'YaCy'
+
+  # Smaller Crawlers
+
+  - regex: '(ArchiveTeam) ArchiveBot/(\d+)\.(\d+)'
+
+  - regex: 'Bytespider'
+
+  # Images Proxies
+
+  - regex: 'github-camo'
+    family_replacement: 'GitHub Camo'
+
+  - regex: '(GoogleImageProxy)'
+
+  - regex: '(Camo Asset Proxy) (\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(go-camo)'
+
+  # Monitoring / Audit
+
+  - regex: '(Pingdom)\.com_bot_version_(\d+)\.(\d+)'
+
+  - regex: '(WebPageTest)\.org'
+
+  # Libraries
+
+  - regex: '(Go-http-client)/(\d+)\.(\d+)'
+    family_replacement: 'Go HTTP Client'
+
+  - regex: '(node-fetch)/(\d+)\.(\d+)'
+    family_replacement: 'Node Fetch'
+
+  - regex: '(request)/(\d+)\.(\d+)\.(\d+)'
+
+  # https://github.com/prerender/prerender
+  - regex: '(Prerender)'
+
+  # Services
+
+  - regex: '(Stripe)/(\d+)\.(\d+)'
+
+  # Social
+
+  - regex: '(Misskey)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(Embedly)/(\d+)\.(\d+)'
