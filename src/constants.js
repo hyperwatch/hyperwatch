@@ -11,6 +11,10 @@ const constants = {
       active: true,
       priority: 0,
     },
+    status: {
+      active: true,
+      priority: 0,
+    },
   },
 };
 

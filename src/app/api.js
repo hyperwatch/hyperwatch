@@ -7,10 +7,6 @@ const app = express();
 
 app.use(express.json());
 
-app.get('/monitoring', (req, res) => {
-  res.send(monitoring.getAllComputed());
-});
-
 const logToString = (log) => {
   return `${log.getIn(['request', 'time'])} ${
     log.getIn(['hostname', 'value']) ||
