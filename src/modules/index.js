@@ -2,8 +2,9 @@ const constants = require('../constants');
 
 const addresses = require('./addresses');
 const logs = require('./logs');
+const status = require('./status');
 
-const modules = { addresses, logs };
+const modules = { addresses, logs, status };
 
 function load() {
   Object.keys(constants.modules)

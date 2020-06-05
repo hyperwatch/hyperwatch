@@ -32,8 +32,8 @@ exports.createLog = (req, res) => {
   });
 };
 
-exports.aggregateSpeed = (ip, key) =>
-  ip
+exports.aggregateSpeed = (entry, key) =>
+  entry
     .getIn(['speed', key])
     .compute()
     .reduce((p, c) => p + c, 0);
