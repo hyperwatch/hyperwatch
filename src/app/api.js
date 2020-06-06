@@ -1,3 +1,4 @@
+const Table = require('easy-table');
 const express = require('express');
 const uuid = require('uuid');
 
@@ -70,6 +71,29 @@ app.streamToHttp = (
     Object.values(requests).forEach(([, res]) => {
       res.write(`${logToString(log)}\n`);
     });
+  });
+};
+
+app.registerAggregator = (name, aggregator) => {
+  app.get(`/${name}(.:format(txt|json))?`, (req, res) => {
+    const raw = req.query.raw ? true : false;
+    const format = req.params.format || (raw ? 'json' : 'txt');
+    const limit = req.query.limit || 100;
+    const sort = req.query.sort || '15m';
+
+    const data = aggregator.getData({
+      sort,
+      limit,
+      format,
+      raw,
+    });
+
+    if (format === 'txt') {
+      res.setHeader('Content-Type', 'text/plain');
+      res.send(Table.print(data.toJS()));
+    } else {
+      res.send(data);
+    }
   });
 };
 

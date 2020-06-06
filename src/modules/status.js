@@ -23,17 +23,18 @@ function mapper(entry, format) {
 
 function load() {
   api.get('/status(.:format(txt|json))?', (req, res) => {
+    const raw = req.query.raw ? true : false;
+    const format = req.params.format || (raw ? 'json' : 'txt');
+
     let rawData = monitoring.getAllComputed();
 
     if (req.query.type) {
       rawData = rawData.filter((entry) => entry.get('type') === req.query.type);
     }
 
-    const data = req.query.raw
-      ? rawData
-      : rawData.map((address) => mapper(address, req.params.format));
+    const data = raw ? rawData : rawData.map((entry) => mapper(entry, format));
 
-    if (req.params.format === 'txt') {
+    if (format === 'txt') {
       res.setHeader('Content-Type', 'text/plain');
       res.send(Table.print(data));
     } else {
