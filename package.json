@@ -36,6 +36,7 @@
     "geoip-lite": "^1.4.0",
     "immutable": "^4.0.0-rc.12",
     "ip-cidr": "^2.0.12",
+    "lodash": "^4.17.15",
     "lru-cache": "^5.1.1",
     "micro-strptime": "^0.2.3",
     "proxy-addr": "^2.0.5",
