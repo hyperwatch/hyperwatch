@@ -4,6 +4,14 @@
     "family_replacement": "Beaker Browser"
   },
   {
+    "regex": "(HuaweiBrowser)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Huawei Browser"
+  },
+  {
+    "regex": "(Whale)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Naver Whale"
+  },
+  {
     "regex": "(Atom)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
@@ -29,6 +37,15 @@
     "regex": "(poi)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(Notion)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Typora)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(uTools)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(JavaFX)/(\\d+)"
   },
   {
@@ -45,6 +62,12 @@
   },
   {
     "regex": "(QtWebEngine)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(githubdocset)"
+  },
+  {
+    "regex": "(LibreOffice)"
   },
   {
     "regex": "(GeoEvent Server) (\\d+)(?:\\.(\\d+)(?:\\.(\\d+)|)|)"

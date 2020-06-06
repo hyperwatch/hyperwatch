@@ -12,6 +12,13 @@
     "regex": "(Applebot)/(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(Twitterbot)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(facebookexternalhit)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Facebook"
+  },
+  {
     "regex": "(DotBot)/(\\d+)\\.(\\d+)",
     "family_replacement": "Moz"
   },
@@ -24,6 +31,9 @@
   },
   {
     "regex": "(Yandex)Bot/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Yandex)MobileBot/(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(Yandex)Images/(\\d+)\\.(\\d+)"
@@ -40,6 +50,9 @@
     "regex": "(Baidu)spider-render/(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(Baidu)spider-image/(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(Semrush)Bot/(\\d+)"
   },
   {
@@ -53,6 +66,9 @@
   },
   {
     "regex": "(Seznam)Bot/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Pinterest)bot/(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(special_archiver)/(\\d+)\\.(\\d+)\\.(\\d+)",
@@ -77,7 +93,7 @@
     "regex": "(Mojeek)Bot/(\\d+)\\.(\\d+)"
   },
   {
-    "regex": "(ArchiveTeam) ArchiveBot/(\\d+)\\.(\\d+)"
+    "regex": "(ArchiveTeam) ArchiveBot/(\\d+)"
   },
   {
     "regex": "(Bytespider)"
@@ -97,6 +113,19 @@
   {
     "regex": "(MBCrawler)/(\\d+)\\.(\\d+)",
     "family_replacement": "Monitor Backlinks"
+  },
+  {
+    "regex": "(Riddler)"
+  },
+  {
+    "regex": "(heritrix)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Heritrix"
+  },
+  {
+    "regex": "(WordPress.com mShots)"
+  },
+  {
+    "regex": "(MagiBot)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
     "regex": "github-camo",
@@ -119,6 +148,10 @@
     "regex": "(Pingdom)\\.com_bot_version_(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(PingdomPageSpeed)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Pingdom Page Speed"
+  },
+  {
     "regex": "(WebPageTest)\\.org"
   },
   {
@@ -136,6 +169,9 @@
     "regex": "(Java)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(okhttp)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(Prerender)"
   },
   {
@@ -149,5 +185,8 @@
   },
   {
     "regex": "(AHC)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(adreview)/(\\d+)\\.(\\d+)"
   }
 ]

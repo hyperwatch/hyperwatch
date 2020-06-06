@@ -9,23 +9,27 @@ function augment(log) {
   switch (family) {
     // Per hostname
     case 'Applebot':
-      return hostname && hostname.endsWith('.applebot.apple.com')
+      return hostname && hostname.endsWith('.apple.com')
         ? log.set('identity', family)
         : log;
     case 'Googlebot':
       return hostname && hostname.endsWith('.googlebot.com')
         ? log.set('identity', family)
         : log;
+    case 'GoogleImageProxy':
+      return hostname && hostname.endsWith('.google.com')
+        ? log.set('identity', family)
+        : log;
     case 'Baidu':
-      return hostname && hostname.endsWith('.crawl.baidu.com')
+      return hostname && hostname.endsWith('.baidu.com')
         ? log.set('identity', family)
         : log;
     case 'Bing':
-      return hostname && hostname.endsWith('.search.msn.com')
+      return hostname && hostname.endsWith('.msn.com')
         ? log.set('identity', family)
         : log;
     case 'Yandex':
-      return hostname && hostname.endsWith('.spider.yandex.com')
+      return hostname && hostname.endsWith('.yandex.com')
         ? log.set('identity', family)
         : log;
     case 'Semrush':
@@ -41,7 +45,7 @@ function augment(log) {
         ? log.set('identity', family)
         : log;
     case 'Sogou':
-      return hostname && hostname.endsWith('.crawl.sogou.com')
+      return hostname && hostname.endsWith('.sogou.com')
         ? log.set('identity', family)
         : log;
     case 'Mojeek':
@@ -52,15 +56,48 @@ function augment(log) {
       return hostname && hostname.endsWith('.webmeup.com')
         ? log.set('identity', family)
         : log;
-
-    case 'Raven':
-      return hostname && hostname.endsWith('.compute-1.amazonaws.com')
+    case 'PetalBot':
+      return hostname && hostname.endsWith('.aspiegel.com')
+        ? log.set('identity', family)
+        : log;
+    case 'Ahrefs':
+      return hostname && hostname.endsWith('.ahrefs.com')
+        ? log.set('identity', family)
+        : log;
+    case 'Pinterest':
+      return hostname && hostname.endsWith('.pinterest.com')
+        ? log.set('identity', family)
+        : log;
+    case 'Naver':
+      return hostname && hostname.endsWith('.naver.com')
+        ? log.set('identity', family)
+        : log;
+    case 'Facebook':
+      return hostname && hostname.endsWith('.fbsv.net')
         ? log.set('identity', family)
         : log;
 
     // Per CIDR
     case 'GitHub Camo':
       return address && new IPCIDR('140.82.112.0/20').contains(address)
+        ? log.set('identity', family)
+        : log;
+    case 'Twitterbot':
+      return address && new IPCIDR('199.16.156.0/22').contains(address)
+        ? log.set('identity', family)
+        : log;
+    case 'Seznam':
+      return address && new IPCIDR('2a02:598::/32').contains(address)
+        ? log.set('identity', family)
+        : log;
+
+    // EC2
+    case 'Raven':
+      return hostname && hostname.endsWith('.compute-1.amazonaws.com')
+        ? log.set('identity', family)
+        : log;
+    case 'Monitor Backlinks':
+      return hostname && hostname.endsWith('.compute-1.amazonaws.com')
         ? log.set('identity', family)
         : log;
   }

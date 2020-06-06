@@ -2,6 +2,12 @@ user_agent_parsers:
   - regex: '(BeakerBrowser)/(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Beaker Browser'
 
+  - regex: '(HuaweiBrowser)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Huawei Browser'
+
+  - regex: '(Whale)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Naver Whale'
+
   - regex: '(Atom)/(\d+)\.(\d+)\.(\d+)'
 
   - regex: '(Code)/(\d+)\.(\d+)\.(\d+)'
@@ -21,6 +27,12 @@ user_agent_parsers:
   # https://poi.moe/
   - regex: '(poi)/(\d+)\.(\d+)\.(\d+)'
 
+  - regex: '(Notion)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(Typora)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(uTools)/(\d+)\.(\d+)\.(\d+)'
+
   - regex: '(JavaFX)/(\d+)'
 
   - regex: '(IntelliJ)'
@@ -33,16 +45,24 @@ user_agent_parsers:
 
   - regex: '(QtWebEngine)/(\d+)\.(\d+)\.(\d+)'
 
+  - regex: '(githubdocset)'
+
+  - regex: '(LibreOffice)'
+
 robot_parsers:
-  # Main Crawlers
+  # Major Crawlers
 
   - regex: '(Googlebot)/(\d+)\.(\d+)'
-
   - regex: '(Googlebot)-Image/(\d+)\.(\d+)'
 
   - regex: 'Mediapartners-(Google)'
 
   - regex: '(Applebot)/(\d+)\.(\d+)'
+
+  - regex: '(Twitterbot)/(\d+)\.(\d+)'
+
+  - regex: '(facebookexternalhit)/(\d+)\.(\d+)'
+    family_replacement: 'Facebook'
 
   - regex: '(DotBot)/(\d+)\.(\d+)'
     family_replacement: 'Moz'
@@ -53,16 +73,17 @@ robot_parsers:
   - regex: '(Bing)Preview/(\d+)\.(\d+)'
 
   - regex: '(Yandex)Bot/(\d+)\.(\d+)'
-
+  - regex: '(Yandex)MobileBot/(\d+)\.(\d+)'
   - regex: '(Yandex)Images/(\d+)\.(\d+)'
 
   - regex: '(coccocbot)/(\d+)\.(\d+)'
     family_replacement: 'Coc Coc'
-
   - regex: '(coccocbot-image)/(\d+)\.(\d+)'
     family_replacement: 'Coc Coc'
 
+  # http://www.baidu.com/search/spider.htm
   - regex: '(Baidu)spider-render/(\d+)\.(\d+)'
+  - regex: '(Baidu)spider-image/(\d+)\.(\d+)'
 
   - regex: '(Semrush)Bot/(\d+)'
   - regex: '(Semrush)Bot'
@@ -72,6 +93,9 @@ robot_parsers:
   - regex: '(Ahrefs)Bot/(\d+)\.(\d+)'
 
   - regex: '(Seznam)Bot/(\d+)\.(\d+)'
+
+  # http://www.pinterest.com/bot.html
+  - regex: '(Pinterest)bot/(\d+)\.(\d+)'
 
   - regex: '(special_archiver)/(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Archive.org'
@@ -92,10 +116,11 @@ robot_parsers:
 
   - regex: '(Mojeek)Bot/(\d+)\.(\d+)'
 
-  # Smaller Crawlers
+  # Other Crawlers
 
-  - regex: '(ArchiveTeam) ArchiveBot/(\d+)\.(\d+)'
+  - regex: '(ArchiveTeam) ArchiveBot/(\d+)'
 
+  # https://zhanzhang.toutiao.com/
   - regex: '(Bytespider)'
 
   # https://aspiegel.com/petalbot
@@ -113,6 +138,17 @@ robot_parsers:
   # https://monitorbacklinks.com/robot
   - regex: '(MBCrawler)/(\d+)\.(\d+)'
     family_replacement: 'Monitor Backlinks'
+
+  # http://riddler.io/about
+  - regex: '(Riddler)'
+
+  - regex: '(heritrix)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Heritrix'
+
+  - regex: '(WordPress.com mShots)'
+
+  # https://magi.com/bots
+  - regex: '(MagiBot)/(\d+)\.(\d+)\.(\d+)'
 
   # Images Proxies
 
@@ -132,6 +168,9 @@ robot_parsers:
 
   - regex: '(Pingdom)\.com_bot_version_(\d+)\.(\d+)'
 
+  - regex: '(PingdomPageSpeed)/(\d+)\.(\d+)'
+    family_replacement: 'Pingdom Page Speed'
+
   - regex: '(WebPageTest)\.org'
 
   # Libraries
@@ -145,6 +184,8 @@ robot_parsers:
   - regex: '(request)/(\d+)\.(\d+)\.(\d+)'
 
   - regex: '(Java)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(okhttp)/(\d+)\.(\d+)\.(\d+)'
 
   # https://github.com/prerender/prerender
   - regex: '(Prerender)'
@@ -162,3 +203,5 @@ robot_parsers:
   # Others
 
   - regex: '(AHC)/(\d+)\.(\d+)'
+
+  - regex: '(adreview)/(\d+)\.(\d+)'
