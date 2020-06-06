@@ -8,20 +8,10 @@ const app = express();
 
 app.use(express.json());
 
-const logToString = (log) => {
-  return `${log.getIn(['request', 'time'])} ${
-    log.getIn(['hostname', 'value']) ||
-    log.getIn(['address', 'value']) ||
-    log.getIn(['request', 'address'])
-  } ${log.getIn(['request', 'method'])} ${log.getIn([
-    'request',
-    'url',
-  ])} ${log.getIn(['response', 'status'])}`;
-};
-
 app.streamToHttp = (
   endpoint,
   stream,
+  formatter,
   { name = `HTTP: ${endpoint}`, monitoringEnabled = false } = {}
 ) => {
   const requests = {};
@@ -69,7 +59,7 @@ app.streamToHttp = (
 
   stream.map((log) => {
     Object.values(requests).forEach(([, res]) => {
-      res.write(`${logToString(log)}\n`);
+      res.write(`${formatter(log)}\n`);
     });
   });
 };
