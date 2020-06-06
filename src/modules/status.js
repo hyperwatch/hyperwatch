@@ -16,8 +16,9 @@ function mapper(entry, format) {
       (format === 'txt' ? '' : null),
     '24h':
       aggregateSpeed(entry, ['speeds', 'processed', 'per_hour']) ||
-      aggregateSpeed(entry, ['speeds', 'accepted', 'per_minute']) ||
+      aggregateSpeed(entry, ['speeds', 'accepted', 'per_hour']) ||
       (format === 'txt' ? '' : null),
+    status: entry.get('status'),
   };
 }
 

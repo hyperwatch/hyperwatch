@@ -27,9 +27,9 @@ app.streamToWebsocket = (
       if (clientsSize) {
         monitor.status = `${clientsSize} client${
           clientsSize > 1 ? 's' : ''
-        } listening on #API_WEBSOCKET_URL#${endpoint}`;
+        } listening on ${endpoint}`;
       } else {
-        monitor.status = `Waiting for clients on #API_WEBSOCKET_URL#${endpoint}`;
+        monitor.status = `Waiting for clients on ${endpoint}`;
       }
     }
   };

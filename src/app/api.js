@@ -41,9 +41,9 @@ app.streamToHttp = (
       if (clientsSize) {
         monitor.status = `${clientsSize} client${
           clientsSize > 1 ? 's' : ''
-        } listening on #API_HTTP_URL#${endpoint}`;
+        } listening on ${endpoint}`;
       } else {
-        monitor.status = `Waiting for clients on #API_HTTP_URL#${endpoint}`;
+        monitor.status = `Waiting for clients on ${endpoint}`;
       }
     }
   };
