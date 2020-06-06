@@ -8,6 +8,10 @@ function augment(log) {
 
   switch (family) {
     // Per hostname
+    case 'Applebot':
+      return hostname && hostname.endsWith('.applebot.apple.com')
+        ? log.set('identity', family)
+        : log;
     case 'Googlebot':
       return hostname && hostname.endsWith('.googlebot.com')
         ? log.set('identity', family)
@@ -34,6 +38,23 @@ function augment(log) {
         : log;
     case 'Archive.org':
       return hostname && hostname.endsWith('.archive.org')
+        ? log.set('identity', family)
+        : log;
+    case 'Sogou':
+      return hostname && hostname.endsWith('.crawl.sogou.com')
+        ? log.set('identity', family)
+        : log;
+    case 'Mojeek':
+      return hostname && hostname.endsWith('.mojeek.com')
+        ? log.set('identity', family)
+        : log;
+    case 'BLEXBot':
+      return hostname && hostname.endsWith('.webmeup.com')
+        ? log.set('identity', family)
+        : log;
+
+    case 'Raven':
+      return hostname && hostname.endsWith('.compute-1.amazonaws.com')
         ? log.set('identity', family)
         : log;
 

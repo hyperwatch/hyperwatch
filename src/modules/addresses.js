@@ -11,7 +11,17 @@ const pipeline = require('../lib/pipeline');
 const identifier = (log) =>
   log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
 
-let mapper = (entry) => pick(defaultMapper(entry), ['address', '15m', '24h']);
+let mapper = (entry) =>
+  pick(defaultMapper(entry), [
+    'address',
+    'cc',
+    'reg',
+    'city',
+    'agent',
+    'os',
+    '15m',
+    '24h',
+  ]);
 const setMapper = (fn) => (mapper = fn);
 
 let enricher = defaultEnricher;

@@ -3,17 +3,53 @@ const { Map, Set } = require('immutable');
 const { Speed } = require('../lib/speed');
 const { aggregateSpeed } = require('../lib/util');
 
+function getAddress(entry) {
+  return entry.getIn(['address', 'hostname'])
+    ? `${entry.getIn(['address', 'hostname'])}${
+        entry.getIn(['hostname', 'verified']) ? '+' : ''
+      }`
+    : entry.getIn(['address', 'value']) || entry.getIn(['request', 'address']);
+}
+
+function getAgent(entry) {
+  const agent = entry.get('useragent');
+  if (!agent) {
+    return;
+  }
+  if (agent.get('family') === 'Other' || !agent.get('family')) {
+    return;
+  }
+  if (!agent.get('major') || agent.get('type') === 'robot') {
+    return agent.get('family');
+  }
+  return `${agent.get('family')} ${agent.get('major')}`;
+}
+
+function getOs(entry) {
+  const os = entry.getIn(['useragent', 'os']);
+  if (!os) {
+    return;
+  }
+  if (os.get('family') === 'Other' || !os.get('family')) {
+    return;
+  }
+  if (os.get('family') === 'Mac OS X') {
+    return 'macOS';
+  }
+  return os.get('family');
+}
+
 const defaultMapper = (entry) => ({
   identity: entry.getIn(['identity']),
 
-  address:
-    entry.getIn(['address', 'hostname']) ||
-    entry.getIn(['address', 'value']) ||
-    entry.getIn(['request', 'address']),
+  address: getAddress(entry),
 
   cc: entry.getIn(['geoip', 'country']),
   reg: entry.getIn(['geoip', 'region']),
   city: entry.getIn(['geoip', 'city']),
+
+  agent: getAgent(entry),
+  os: getOs(entry),
 
   '15m': aggregateSpeed(entry, 'per_minute'),
   '24h': aggregateSpeed(entry, 'per_hour'),
