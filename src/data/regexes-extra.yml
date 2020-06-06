@@ -12,9 +12,11 @@ user_agent_parsers:
 
   - regex: '(VSCodium)/(\d+)\.(\d+)\.(\d+)'
 
+  - regex: '(VSCode@FB)/(\d+)\.(\d+)\.(\d+)'
+
   - regex: '(Code-OSS)/(\d+)\.(\d+)\.(\d+)'
     regex_flag: 'i'
-    family_replacement: 'Code-OSS'
+    family_replacement: 'Code OSS'
 
   # https://poi.moe/
   - regex: '(poi)/(\d+)\.(\d+)\.(\d+)'
@@ -63,6 +65,7 @@ robot_parsers:
   - regex: '(Baidu)spider-render/(\d+)\.(\d+)'
 
   - regex: '(Semrush)Bot/(\d+)'
+  - regex: '(Semrush)Bot'
 
   - regex: '(Sogou) web spider/(\d+)\.(\d+)'
 
@@ -76,6 +79,7 @@ robot_parsers:
   - regex: '(MJ12bot)/v(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Majestic'
 
+  # http://naver.me/spd
   - regex: '(Yeti)/(\d+)\.(\d+)'
     family_replacement: 'Naver'
 
@@ -83,11 +87,32 @@ robot_parsers:
   - regex: 'yacybot'
     family_replacement: 'YaCy'
 
+  # https://raventools.com/seo-website-auditor/
+  - regex: '(Raven)Crawler/(\d+)\.(\d+)'
+
+  - regex: '(Mojeek)Bot/(\d+)\.(\d+)'
+
   # Smaller Crawlers
 
   - regex: '(ArchiveTeam) ArchiveBot/(\d+)\.(\d+)'
 
-  - regex: 'Bytespider'
+  - regex: '(Bytespider)'
+
+  # https://aspiegel.com/petalbot
+  - regex: '(PetalBot)'
+
+  # http://cincrawdata.net/bot/
+  - regex: '(Cincraw)/(\d+)\.(\d+)'
+
+  # https://scrapy.org
+  - regex: '(Scrapy)/(\d+)\.(\d+)\.(\d+)'
+
+  # http://webmeup-crawler.com/
+  - regex: '(BLEXBot)/(\d+)\.(\d+)'
+
+  # https://monitorbacklinks.com/robot
+  - regex: '(MBCrawler)/(\d+)\.(\d+)'
+    family_replacement: 'Monitor Backlinks'
 
   # Images Proxies
 
@@ -95,6 +120,9 @@ robot_parsers:
     family_replacement: 'GitHub Camo'
 
   - regex: '(GoogleImageProxy)'
+
+  - regex: 'Slack-ImgProxy'
+    family_replacement: 'Slack ImgProxy'
 
   - regex: '(Camo Asset Proxy) (\d+)\.(\d+)\.(\d+)'
 
@@ -116,6 +144,8 @@ robot_parsers:
 
   - regex: '(request)/(\d+)\.(\d+)\.(\d+)'
 
+  - regex: '(Java)/(\d+)\.(\d+)\.(\d+)'
+
   # https://github.com/prerender/prerender
   - regex: '(Prerender)'
 
@@ -128,3 +158,7 @@ robot_parsers:
   - regex: '(Misskey)/(\d+)\.(\d+)\.(\d+)'
 
   - regex: '(Embedly)/(\d+)\.(\d+)'
+
+  # Others
+
+  - regex: '(AHC)/(\d+)\.(\d+)'

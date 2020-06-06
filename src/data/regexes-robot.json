@@ -43,6 +43,9 @@
     "regex": "(Semrush)Bot/(\\d+)"
   },
   {
+    "regex": "(Semrush)Bot"
+  },
+  {
     "regex": "(Sogou) web spider/(\\d+)\\.(\\d+)"
   },
   {
@@ -68,10 +71,32 @@
     "family_replacement": "YaCy"
   },
   {
+    "regex": "(Raven)Crawler/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Mojeek)Bot/(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(ArchiveTeam) ArchiveBot/(\\d+)\\.(\\d+)"
   },
   {
-    "regex": "Bytespider"
+    "regex": "(Bytespider)"
+  },
+  {
+    "regex": "(PetalBot)"
+  },
+  {
+    "regex": "(Cincraw)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Scrapy)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(BLEXBot)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(MBCrawler)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Monitor Backlinks"
   },
   {
     "regex": "github-camo",
@@ -79,6 +104,10 @@
   },
   {
     "regex": "(GoogleImageProxy)"
+  },
+  {
+    "regex": "Slack-ImgProxy",
+    "family_replacement": "Slack ImgProxy"
   },
   {
     "regex": "(Camo Asset Proxy) (\\d+)\\.(\\d+)\\.(\\d+)"
@@ -104,6 +133,9 @@
     "regex": "(request)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(Java)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(Prerender)"
   },
   {
@@ -114,5 +146,8 @@
   },
   {
     "regex": "(Embedly)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(AHC)/(\\d+)\\.(\\d+)"
   }
 ]

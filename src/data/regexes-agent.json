@@ -18,9 +18,12 @@
     "regex": "(VSCodium)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(VSCode@FB)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(Code-OSS)/(\\d+)\\.(\\d+)\\.(\\d+)",
     "regex_flag": "i",
-    "family_replacement": "Code-OSS"
+    "family_replacement": "Code OSS"
   },
   {
     "regex": "(poi)/(\\d+)\\.(\\d+)\\.(\\d+)"
