@@ -58,8 +58,12 @@ app.streamToHttp = (
   });
 
   stream.map((log) => {
-    Object.values(requests).forEach(([, res]) => {
-      res.write(`${formatter(log)}\n`);
+    Object.values(requests).forEach(([req, res]) => {
+      const grep = req.query.grep;
+      const line = formatter(log);
+      if (!grep || line.includes(grep)) {
+        res.write(`${line}\n`);
+      }
     });
   });
 };
