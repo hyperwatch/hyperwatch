@@ -25,7 +25,7 @@ function augment(log) {
   if (userAgentString) {
     const agent = lookup(userAgentString);
     if (agent) {
-      log = log.set('agent', fromJS(agent));
+      log = log.set('useragent', fromJS(agent));
     }
   }
 
