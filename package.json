@@ -28,6 +28,7 @@
     "update": "node scripts/useragent-update && prettier src/data/* --write"
   },
   "dependencies": {
+    "accept-language-parser": "^1.5.0",
     "ajv": "^6.12.2",
     "chalk": "^4.1.0",
     "country-code-emoji": "^1.0.0",
@@ -36,7 +37,7 @@
     "express-ws": "^4.0.0",
     "geoip-lite": "^1.4.2",
     "immutable": "^4.0.0-rc.12",
-    "ip-cidr": "^2.0.12",
+    "ip-cidr": "^2.0.13",
     "lru-cache": "^5.1.1",
     "micro-strptime": "^0.2.3",
     "proxy-addr": "^2.0.6",
@@ -52,8 +53,8 @@
     "eslint-plugin-import": "^2.21.2",
     "eslint-plugin-node": "^11.1.0",
     "husky": "^4.2.5",
-    "lint-staged": "^10.2.9",
-    "mocha": "^8.0.0",
+    "lint-staged": "^10.2.10",
+    "mocha": "^8.0.1",
     "node-fetch": "^2.6.0",
     "prettier": "^2.0.5",
     "prettier-package-json": "^2.1.3",
