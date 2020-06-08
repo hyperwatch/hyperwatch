@@ -1,8 +1,10 @@
-const Table = require('easy-table');
 const express = require('express');
 const uuid = require('uuid');
 
+const { colorize } = require('../lib/formatter');
 const monitoring = require('../lib/monitoring');
+const { formatTable } = require('../lib/util');
+const stylesheet = require('../stylesheet');
 
 const app = express();
 
@@ -50,8 +52,20 @@ app.streamToHttp = (
       updateMonitoringStatus();
     };
 
-    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Type', 'text/html');
     res.setHeader('Cache-Control', 'no-cache');
+
+    res.write(
+      `<!DOCTYPE html>
+<html>
+<head>
+<style>
+${stylesheet}
+body { display: flex; flex-direction: column-reverse; }
+</style>
+</head>
+<body>`
+    );
 
     req.on('close', close);
     res.on('close', close);
@@ -60,18 +74,18 @@ app.streamToHttp = (
   stream.map((log) => {
     Object.values(requests).forEach(([req, res]) => {
       const grep = req.query.grep;
-      const line = formatter(log);
+      const line = formatter.format(log);
       if (!grep || line.includes(grep)) {
-        res.write(`${line}\n`);
+        res.write(`<div>${line}</div>\n`);
       }
     });
   });
 };
 
 app.registerAggregator = (name, aggregator) => {
-  app.get(`/${name}(.:format(txt|json))?`, (req, res) => {
+  app.get(`/${name}(.:format(json))?`, (req, res) => {
     const raw = req.query.raw ? true : false;
-    const format = req.params.format || (raw ? 'json' : 'txt');
+    const format = req.params.format || (raw ? 'json' : null);
     const limit = req.query.limit || 100;
     const sort = req.query.sort || '15m';
 
@@ -82,11 +96,17 @@ app.registerAggregator = (name, aggregator) => {
       raw,
     });
 
-    if (format === 'txt') {
-      res.setHeader('Content-Type', 'text/plain');
-      res.send(Table.print(data.toJS()));
-    } else {
+    if (format === 'json') {
       res.send(data);
+    } else {
+      res.setHeader('Content-Type', 'text/html');
+      res.send(
+        `<!DOCTYPE html>
+<html>
+<head><style>${stylesheet}</style></head>
+<body>${formatTable(data.map(colorize).toJS())}</body>
+</html>`
+      );
     }
   });
 };

@@ -1,23 +1,9 @@
 const { api, websocket } = require('../app');
+const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
 
-const defaultFormatter = (log) => {
-  return `${log.getIn(['request', 'time'])} ${
-    log.getIn(['hostname', 'value']) ||
-    log.getIn(['address', 'value']) ||
-    log.getIn(['request', 'address'])
-  } "${log.getIn(['request', 'method'])} ${log.getIn([
-    'request',
-    'url',
-  ])} ${log.getIn(['response', 'status'])}" ${log.getIn([
-    'request',
-    'headers',
-    'user-agent',
-  ])}`;
-};
-
-let formatter = defaultFormatter;
-const setFormatter = (fn) => (formatter = fn);
+let formatter = new Formatter();
+const setFormatter = (obj) => (formatter = obj);
 
 function load() {
   for (const [name, stream] of Object.entries(pipeline.nodes)) {

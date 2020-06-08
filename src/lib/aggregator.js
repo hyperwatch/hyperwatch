@@ -1,55 +1,19 @@
-const { Map, Set } = require('immutable');
+const { Map, Set, is } = require('immutable');
 
+const { address, agent, os, country, identity } = require('../lib/formatter');
 const { Speed } = require('../lib/speed');
 const { aggregateSpeed } = require('../lib/util');
 
-function getAddress(entry) {
-  return entry.getIn(['address', 'hostname'])
-    ? `${entry.getIn(['address', 'hostname'])}${
-        entry.getIn(['hostname', 'verified']) ? '+' : ''
-      }`
-    : entry.getIn(['address', 'value']) || entry.getIn(['request', 'address']);
-}
-
-function getAgent(entry) {
-  const agent = entry.get('useragent');
-  if (!agent) {
-    return;
-  }
-  if (agent.get('family') === 'Other' || !agent.get('family')) {
-    return;
-  }
-  if (!agent.get('major') || agent.get('type') === 'robot') {
-    return agent.get('family');
-  }
-  return `${agent.get('family')} ${agent.get('major')}`;
-}
-
-function getOs(entry) {
-  const os = entry.getIn(['useragent', 'os']);
-  if (!os) {
-    return;
-  }
-  if (os.get('family') === 'Other' || !os.get('family')) {
-    return;
-  }
-  if (os.get('family') === 'Mac OS X') {
-    return 'macOS';
-  }
-  return os.get('family');
-}
-
 const defaultMapper = (entry) => ({
-  identity: entry.getIn(['identity']),
+  identity: identity(entry),
 
-  address: getAddress(entry),
+  address: address(entry),
 
-  cc: entry.getIn(['geoip', 'country']),
-  reg: entry.getIn(['geoip', 'region']),
+  cc: country(entry),
   city: entry.getIn(['geoip', 'city']),
 
-  agent: getAgent(entry),
-  os: getOs(entry),
+  agent: agent(entry),
+  os: os(entry),
 
   '15m': aggregateSpeed(entry, 'per_minute'),
   '24h': aggregateSpeed(entry, 'per_hour'),
@@ -65,7 +29,7 @@ const defaultEnricher = (entry, log) => {
     'hostname',
     'useragent',
   ]) {
-    if (log.has(field)) {
+    if (log.has(field) && !is(log.get(field), entry.get(field))) {
       entry = entry.set(field, log.get(field));
     }
   }

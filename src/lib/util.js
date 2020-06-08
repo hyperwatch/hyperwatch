@@ -37,3 +37,24 @@ exports.aggregateSpeed = (entry, key) =>
     .getIn(['speed', key])
     .compute()
     .reduce((p, c) => p + c, 0);
+
+exports.formatTable = (data) => {
+  if (!data || data.length === 0) {
+    return '';
+  }
+
+  const headings = `<tr>${Object.keys(data[0])
+    .map((key) => `<th>${key}</th>`)
+    .join('')}</tr>`;
+
+  const rows = data
+    .map(
+      (entry) =>
+        `<tr>${Object.values(entry)
+          .map((value) => `<td>${value || ''}</td>`)
+          .join('')}</tr>`
+    )
+    .join('\n');
+
+  return `<table>\n${headings}\n${rows}\n</table>`;
+};
