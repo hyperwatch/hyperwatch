@@ -1,56 +1,83 @@
 user_agent_parsers:
+  # Browsers
   - regex: '(BeakerBrowser)/(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Beaker Browser'
 
   - regex: '(HuaweiBrowser)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Huawei Browser'
 
+  - regex: '(IceDragon)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(PrivacyBrowser)/(\d+)\.(\d+)'
+    family_replacement: 'Privacy Browser'
+
   - regex: '(Whale)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Naver Whale'
 
+  # Apps
+
   - regex: '(Atom)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(calibre-viewer)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Calibre'
 
   - regex: '(Code)/(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'VS Code'
-
-  - regex: '(Code-Insiders)/(\d+)\.(\d+)\.(\d+)'
-    family_replacement: 'VS Code'
-
-  - regex: '(VSCodium)/(\d+)\.(\d+)\.(\d+)'
-
-  - regex: '(VSCode@FB)/(\d+)\.(\d+)\.(\d+)'
 
   - regex: '(Code-OSS)/(\d+)\.(\d+)\.(\d+)'
     regex_flag: 'i'
     family_replacement: 'Code OSS'
 
+  - regex: '(Code-Insiders)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'VS Code'
+
+  - regex: '(discord)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Discord'
+
+  - regex: '(githubdocset)'
+
+  - regex: '(IntelliJ)'
+
+  - regex: '(JavaFX)/(\d+)'
+
+  - regex: '(LibreOffice)'
+
+  - regex: '(Mastodon)App/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(mattermost)-(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Mattermost'
+
+  - regex: '(Notion)/(\d+)\.(\d+)\.(\d+)'
+
   # https://poi.moe/
   - regex: '(poi)/(\d+)\.(\d+)\.(\d+)'
 
-  - regex: '(Notion)/(\d+)\.(\d+)\.(\d+)'
+  - regex: '(QtWebEngine)/(\d+)\.(\d+)\.(\d+)'
 
   - regex: '(Typora)/(\d+)\.(\d+)\.(\d+)'
 
   - regex: '(uTools)/(\d+)\.(\d+)\.(\d+)'
 
-  - regex: '(JavaFX)/(\d+)'
+  - regex: '(VSCodium)/(\d+)\.(\d+)\.(\d+)'
 
-  - regex: '(IntelliJ)'
+  - regex: '(VSCode@FB)/(\d+)\.(\d+)\.(\d+)'
+
+  # Mobile Apps
 
   - regex: '(DuckDuckGo)/(\d+)'
 
-  - regex: '(GitHub)/(\d+)\.(\d+)\.(\d+)'
-
   - regex: '(Ecosia)'
 
-  - regex: '(QtWebEngine)/(\d+)\.(\d+)\.(\d+)'
+  - regex: '(GitHub)/(\d+)\.(\d+)\.(\d+)'
 
-  - regex: '(githubdocset)'
+  - regex: '(LinkedIn)App'
 
-  - regex: '(LibreOffice)'
+  # Email
+
+  - regex: '(Mailspring)/(\d+)\.(\d+)\.(\d+)'
 
 robot_parsers:
-  # Major Crawlers
+  # Major Crawlers (verified identity)
 
   - regex: '(Googlebot)/(\d+)\.(\d+)'
   - regex: '(Googlebot)-Image/(\d+)\.(\d+)'
@@ -72,6 +99,10 @@ robot_parsers:
 
   - regex: '(Bing)Preview/(\d+)\.(\d+)'
 
+  # https://duckduckgo.com/duckduckbot
+  - regex: '(DuckDuckBot)-Https/(\d+)\.(\d+)'
+    family_replacement: 'DuckDuckGo'
+
   - regex: '(Yandex)Bot/(\d+)\.(\d+)'
   - regex: '(Yandex)MobileBot/(\d+)\.(\d+)'
   - regex: '(Yandex)Images/(\d+)\.(\d+)'
@@ -84,13 +115,17 @@ robot_parsers:
   # http://www.baidu.com/search/spider.htm
   - regex: '(Baidu)spider-render/(\d+)\.(\d+)'
   - regex: '(Baidu)spider-image/(\d+)\.(\d+)'
+  - regex: '(Baidu)spider-image'
 
   - regex: '(Semrush)Bot/(\d+)'
   - regex: '(Semrush)Bot'
 
   - regex: '(Sogou) web spider/(\d+)\.(\d+)'
+  - regex: '(Sogou) Pic Spider/(\d+)\.(\d+)'
 
   - regex: '(Ahrefs)Bot/(\d+)\.(\d+)'
+
+  - regex: '(Slackbot)-LinkExpanding (\d+)\.(\d+)'
 
   - regex: '(Seznam)Bot/(\d+)\.(\d+)'
 
@@ -103,6 +138,8 @@ robot_parsers:
   - regex: '(MJ12bot)/v(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Majestic'
 
+  - regex: '(CloudFlare)-AlwaysOnline/(\d+)\.(\d+)'
+
   # http://naver.me/spd
   - regex: '(Yeti)/(\d+)\.(\d+)'
     family_replacement: 'Naver'
@@ -111,44 +148,47 @@ robot_parsers:
   - regex: 'yacybot'
     family_replacement: 'YaCy'
 
-  # https://raventools.com/seo-website-auditor/
-  - regex: '(Raven)Crawler/(\d+)\.(\d+)'
-
   - regex: '(Mojeek)Bot/(\d+)\.(\d+)'
 
   # Other Crawlers
 
   - regex: '(ArchiveTeam) ArchiveBot/(\d+)'
 
+  # https://babbar.tech/crawler
+  - regex: '(Barkrowler)/(\d+)\.(\d+)'
+
+  # http://webmeup-crawler.com/
+  - regex: '(BLEXBot)/(\d+)\.(\d+)'
+
   # https://zhanzhang.toutiao.com/
   - regex: '(Bytespider)'
-
-  # https://aspiegel.com/petalbot
-  - regex: '(PetalBot)'
 
   # http://cincrawdata.net/bot/
   - regex: '(Cincraw)/(\d+)\.(\d+)'
 
-  # https://scrapy.org
-  - regex: '(Scrapy)/(\d+)\.(\d+)\.(\d+)'
+  - regex: '(heritrix)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Heritrix'
 
-  # http://webmeup-crawler.com/
-  - regex: '(BLEXBot)/(\d+)\.(\d+)'
+  # https://magi.com/bots
+  - regex: '(MagiBot)/(\d+)\.(\d+)\.(\d+)'
 
   # https://monitorbacklinks.com/robot
   - regex: '(MBCrawler)/(\d+)\.(\d+)'
     family_replacement: 'Monitor Backlinks'
 
+  # https://aspiegel.com/petalbot
+  - regex: '(PetalBot)'
+
+  # https://raventools.com/seo-website-auditor/
+  - regex: '(Raven)Crawler/(\d+)\.(\d+)'
+
   # http://riddler.io/about
   - regex: '(Riddler)'
 
-  - regex: '(heritrix)/(\d+)\.(\d+)\.(\d+)'
-    family_replacement: 'Heritrix'
+  # https://scrapy.org
+  - regex: '(Scrapy)/(\d+)\.(\d+)\.(\d+)'
 
   - regex: '(WordPress.com mShots)'
-
-  # https://magi.com/bots
-  - regex: '(MagiBot)/(\d+)\.(\d+)\.(\d+)'
 
   # Images Proxies
 
@@ -156,9 +196,6 @@ robot_parsers:
     family_replacement: 'GitHub Camo'
 
   - regex: '(GoogleImageProxy)'
-
-  - regex: 'Slack-ImgProxy'
-    family_replacement: 'Slack ImgProxy'
 
   - regex: '(Camo Asset Proxy) (\d+)\.(\d+)\.(\d+)'
 
@@ -171,37 +208,85 @@ robot_parsers:
   - regex: '(PingdomPageSpeed)/(\d+)\.(\d+)'
     family_replacement: 'Pingdom Page Speed'
 
-  - regex: '(WebPageTest)\.org'
+  - regex: '(PTST)/(\d+)\.(\d+)'
+    family_replacement: 'WebPageTest.org'
+
+  # Email
+
+  - regex: '(Superhuman)'
+
+  - regex: '(YahooMailProxy)'
 
   # Libraries
+
+  - regex: '(axios)/(\d+)\.(\d+)\.(\d+)'
 
   - regex: '(Go-http-client)/(\d+)\.(\d+)'
     family_replacement: 'Go HTTP Client'
 
-  - regex: '(node-fetch)/(\d+)\.(\d+)'
-    family_replacement: 'Node Fetch'
-
-  - regex: '(request)/(\d+)\.(\d+)\.(\d+)'
+  # https://github.com/sindresorhus/got
+  - regex: '(got) '
 
   - regex: '(Java)/(\d+)\.(\d+)\.(\d+)'
 
+  - regex: '(Needle)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(node-fetch)/(\d+)\.(\d+)'
+    family_replacement: 'Node Fetch'
+
   - regex: '(okhttp)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(python-requests)/(\d+)\.(\d+)\.(\d+)'
+    family_replacement: 'Python Requests'
+
+  - regex: '(request)/(\d+)\.(\d+)\.(\d+)'
+
+  # Services
+
+  - regex: '(HelloWorks)'
+
+  - regex: '(mailgun)'
+    family_replacement: 'Mailgun'
+
+  - regex: '(Stripe)/(\d+)\.(\d+)'
+
+  - regex: '(TransferWise)-Webhook/(\d+)\.(\d+)'
+
+  # Others
+
+  - regex: '(adreview)/(\d+)\.(\d+)'
+
+  - regex: '(AHC)/(\d+)\.(\d+)'
+
+  # https://github.com/pirate/ArchiveBox
+  - regex: '(ArchiveBox)'
+
+  - regex: '(Embedly)/(\d+)\.(\d+)'
+
+  - regex: '(e.ventures) Investment Crawler'
+
+  # https://imageoptim.com/api
+  - regex: '(ImageOptim)/(\d+)\.(\d+)\.(\d+)'
+
+  # http://ltx71.com/
+  - regex: 'ltx71'
+
+  - regex: '(Misskey)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(Package Control)'
 
   # https://github.com/prerender/prerender
   - regex: '(Prerender)'
 
-  # Services
+  - regex: '(seocompany\.store)'
 
-  - regex: '(Stripe)/(\d+)\.(\d+)'
+  - regex: '(Shields.io)'
 
-  # Social
+  - regex: '(Synapse)/(\d+)\.(\d+)\.(\d+)'
 
-  - regex: '(Misskey)/(\d+)\.(\d+)\.(\d+)'
+  - regex: '(Test Certificate Info)'
 
-  - regex: '(Embedly)/(\d+)\.(\d+)'
+  - regex: '(Triplebyte)'
 
-  # Others
-
-  - regex: '(AHC)/(\d+)\.(\d+)'
-
-  - regex: '(adreview)/(\d+)\.(\d+)'
+  # http://vk.com/dev/Share
+  - regex: '(vkShare)'

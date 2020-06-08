@@ -76,14 +76,21 @@ function augment(log) {
       return hostname && hostname.endsWith('.fbsv.net')
         ? log.set('identity', family)
         : log;
+    case 'Stripe':
+      return hostname && hostname.endsWith('.stripe.com')
+        ? log.set('identity', family)
+        : log;
+
+    // Per hostname + CIDR
+    case 'Twitterbot':
+      return (hostname && hostname.endsWith('.twttr.com')) ||
+        (address && new IPCIDR('199.16.156.0/22').contains(address))
+        ? log.set('identity', family)
+        : log;
 
     // Per CIDR
     case 'GitHub Camo':
       return address && new IPCIDR('140.82.112.0/20').contains(address)
-        ? log.set('identity', family)
-        : log;
-    case 'Twitterbot':
-      return address && new IPCIDR('199.16.156.0/22').contains(address)
         ? log.set('identity', family)
         : log;
     case 'Seznam':
@@ -97,6 +104,14 @@ function augment(log) {
         ? log.set('identity', family)
         : log;
     case 'Monitor Backlinks':
+      return hostname && hostname.endsWith('.compute-1.amazonaws.com')
+        ? log.set('identity', family)
+        : log;
+    case 'Shields.io':
+      return hostname && hostname.endsWith('.compute-1.amazonaws.com')
+        ? log.set('identity', family)
+        : log;
+    case 'Slackbot':
       return hostname && hostname.endsWith('.compute-1.amazonaws.com')
         ? log.set('identity', family)
         : log;

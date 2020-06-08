@@ -8,6 +8,13 @@
     "family_replacement": "Huawei Browser"
   },
   {
+    "regex": "(IceDragon)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(PrivacyBrowser)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Privacy Browser"
+  },
+  {
     "regex": "(Whale)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
     "family_replacement": "Naver Whale"
   },
@@ -15,18 +22,12 @@
     "regex": "(Atom)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(calibre-viewer)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Calibre"
+  },
+  {
     "regex": "(Code)/(\\d+)\\.(\\d+)\\.(\\d+)",
     "family_replacement": "VS Code"
-  },
-  {
-    "regex": "(Code-Insiders)/(\\d+)\\.(\\d+)\\.(\\d+)",
-    "family_replacement": "VS Code"
-  },
-  {
-    "regex": "(VSCodium)/(\\d+)\\.(\\d+)\\.(\\d+)"
-  },
-  {
-    "regex": "(VSCode@FB)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(Code-OSS)/(\\d+)\\.(\\d+)\\.(\\d+)",
@@ -34,10 +35,40 @@
     "family_replacement": "Code OSS"
   },
   {
-    "regex": "(poi)/(\\d+)\\.(\\d+)\\.(\\d+)"
+    "regex": "(Code-Insiders)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "VS Code"
+  },
+  {
+    "regex": "(discord)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Discord"
+  },
+  {
+    "regex": "(githubdocset)"
+  },
+  {
+    "regex": "(IntelliJ)"
+  },
+  {
+    "regex": "(JavaFX)/(\\d+)"
+  },
+  {
+    "regex": "(LibreOffice)"
+  },
+  {
+    "regex": "(Mastodon)App/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(mattermost)-(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Mattermost"
   },
   {
     "regex": "(Notion)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(poi)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(QtWebEngine)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(Typora)/(\\d+)\\.(\\d+)\\.(\\d+)"
@@ -46,28 +77,25 @@
     "regex": "(uTools)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
-    "regex": "(JavaFX)/(\\d+)"
+    "regex": "(VSCodium)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
-    "regex": "(IntelliJ)"
+    "regex": "(VSCode@FB)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(DuckDuckGo)/(\\d+)"
   },
   {
-    "regex": "(GitHub)/(\\d+)\\.(\\d+)\\.(\\d+)"
-  },
-  {
     "regex": "(Ecosia)"
   },
   {
-    "regex": "(QtWebEngine)/(\\d+)\\.(\\d+)\\.(\\d+)"
+    "regex": "(GitHub)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
-    "regex": "(githubdocset)"
+    "regex": "(LinkedIn)App"
   },
   {
-    "regex": "(LibreOffice)"
+    "regex": "(Mailspring)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(GeoEvent Server) (\\d+)(?:\\.(\\d+)(?:\\.(\\d+)|)|)"
