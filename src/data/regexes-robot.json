@@ -30,6 +30,10 @@
     "regex": "(Bing)Preview/(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(DuckDuckBot)-Https/(\\d+)\\.(\\d+)",
+    "family_replacement": "DuckDuckGo"
+  },
+  {
     "regex": "(Yandex)Bot/(\\d+)\\.(\\d+)"
   },
   {
@@ -53,6 +57,9 @@
     "regex": "(Baidu)spider-image/(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(Baidu)spider-image"
+  },
+  {
     "regex": "(Semrush)Bot/(\\d+)"
   },
   {
@@ -62,7 +69,13 @@
     "regex": "(Sogou) web spider/(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(Sogou) Pic Spider/(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(Ahrefs)Bot/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Slackbot)-LinkExpanding (\\d+)\\.(\\d+)"
   },
   {
     "regex": "(Seznam)Bot/(\\d+)\\.(\\d+)"
@@ -79,6 +92,9 @@
     "family_replacement": "Majestic"
   },
   {
+    "regex": "(CloudFlare)-AlwaysOnline/(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(Yeti)/(\\d+)\\.(\\d+)",
     "family_replacement": "Naver"
   },
@@ -87,45 +103,48 @@
     "family_replacement": "YaCy"
   },
   {
-    "regex": "(Raven)Crawler/(\\d+)\\.(\\d+)"
-  },
-  {
     "regex": "(Mojeek)Bot/(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(ArchiveTeam) ArchiveBot/(\\d+)"
   },
   {
-    "regex": "(Bytespider)"
-  },
-  {
-    "regex": "(PetalBot)"
-  },
-  {
-    "regex": "(Cincraw)/(\\d+)\\.(\\d+)"
-  },
-  {
-    "regex": "(Scrapy)/(\\d+)\\.(\\d+)\\.(\\d+)"
+    "regex": "(Barkrowler)/(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(BLEXBot)/(\\d+)\\.(\\d+)"
   },
   {
-    "regex": "(MBCrawler)/(\\d+)\\.(\\d+)",
-    "family_replacement": "Monitor Backlinks"
+    "regex": "(Bytespider)"
   },
   {
-    "regex": "(Riddler)"
+    "regex": "(Cincraw)/(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(heritrix)/(\\d+)\\.(\\d+)\\.(\\d+)",
     "family_replacement": "Heritrix"
   },
   {
-    "regex": "(WordPress.com mShots)"
+    "regex": "(MagiBot)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
-    "regex": "(MagiBot)/(\\d+)\\.(\\d+)\\.(\\d+)"
+    "regex": "(MBCrawler)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Monitor Backlinks"
+  },
+  {
+    "regex": "(PetalBot)"
+  },
+  {
+    "regex": "(Raven)Crawler/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Riddler)"
+  },
+  {
+    "regex": "(Scrapy)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(WordPress.com mShots)"
   },
   {
     "regex": "github-camo",
@@ -133,10 +152,6 @@
   },
   {
     "regex": "(GoogleImageProxy)"
-  },
-  {
-    "regex": "Slack-ImgProxy",
-    "family_replacement": "Slack ImgProxy"
   },
   {
     "regex": "(Camo Asset Proxy) (\\d+)\\.(\\d+)\\.(\\d+)"
@@ -152,41 +167,104 @@
     "family_replacement": "Pingdom Page Speed"
   },
   {
-    "regex": "(WebPageTest)\\.org"
+    "regex": "(PTST)/(\\d+)\\.(\\d+)",
+    "family_replacement": "WebPageTest.org"
+  },
+  {
+    "regex": "(Superhuman)"
+  },
+  {
+    "regex": "(YahooMailProxy)"
+  },
+  {
+    "regex": "(axios)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(Go-http-client)/(\\d+)\\.(\\d+)",
     "family_replacement": "Go HTTP Client"
   },
   {
-    "regex": "(node-fetch)/(\\d+)\\.(\\d+)",
-    "family_replacement": "Node Fetch"
-  },
-  {
-    "regex": "(request)/(\\d+)\\.(\\d+)\\.(\\d+)"
+    "regex": "(got) "
   },
   {
     "regex": "(Java)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(Needle)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(node-fetch)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Node Fetch"
+  },
+  {
     "regex": "(okhttp)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
-    "regex": "(Prerender)"
+    "regex": "(python-requests)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Python Requests"
+  },
+  {
+    "regex": "(request)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(HelloWorks)"
+  },
+  {
+    "regex": "(mailgun)",
+    "family_replacement": "Mailgun"
   },
   {
     "regex": "(Stripe)/(\\d+)\\.(\\d+)"
   },
   {
-    "regex": "(Misskey)/(\\d+)\\.(\\d+)\\.(\\d+)"
+    "regex": "(TransferWise)-Webhook/(\\d+)\\.(\\d+)"
   },
   {
-    "regex": "(Embedly)/(\\d+)\\.(\\d+)"
+    "regex": "(adreview)/(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(AHC)/(\\d+)\\.(\\d+)"
   },
   {
-    "regex": "(adreview)/(\\d+)\\.(\\d+)"
+    "regex": "(ArchiveBox)"
+  },
+  {
+    "regex": "(Embedly)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(e.ventures) Investment Crawler"
+  },
+  {
+    "regex": "(ImageOptim)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "ltx71"
+  },
+  {
+    "regex": "(Misskey)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Package Control)"
+  },
+  {
+    "regex": "(Prerender)"
+  },
+  {
+    "regex": "(seocompany\\.store)"
+  },
+  {
+    "regex": "(Shields.io)"
+  },
+  {
+    "regex": "(Synapse)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Test Certificate Info)"
+  },
+  {
+    "regex": "(Triplebyte)"
+  },
+  {
+    "regex": "(vkShare)"
   }
 ]
