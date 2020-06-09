@@ -1,4 +1,5 @@
 const chalk = require('chalk');
+const countryCodeEmoji = require('country-code-emoji');
 
 const time = (log) => log.getIn(['request', 'time']).slice(11, -5);
 
@@ -11,7 +12,12 @@ const address = (log) => {
   }
 };
 
-const country = (log) => log.getIn(['geoip', 'country']) || '';
+const country = (log, output) => {
+  const cc = log.getIn(['geoip', 'country']);
+  if (cc) {
+    return output === 'console' ? cc : `${countryCodeEmoji(cc)} ${cc}`;
+  }
+};
 
 const request = (log) => {
   const method = log.getIn(['request', 'method']);
@@ -97,15 +103,10 @@ const colorize = (object, output = 'console') => {
             : `<span class="blue">${value}</span>`;
 
         break;
-      case 'cc':
-      case 'country':
-        object[key] =
-          output === 'console'
-            ? chalk.red(value)
-            : `<span class="red">${value}</span>`;
-        break;
       case 'agent':
       case 'os':
+      case 'cc':
+      case 'country':
       case 'city':
         object[key] =
           output === 'console'
@@ -128,7 +129,7 @@ const defaultLogFormatter = (log, output) => ({
   time: time(log),
   identity: identity(log),
   address: address(log),
-  cc: country(log),
+  cc: country(log, output),
   request: request(log),
   executionTime: executionTime(log, output),
   agent: agent(log),

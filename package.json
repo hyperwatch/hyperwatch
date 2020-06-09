@@ -30,6 +30,7 @@
   "dependencies": {
     "ajv": "^6.11.0",
     "chalk": "^4.0.0",
+    "country-code-emoji": "^1.0.0",
     "dnsbl": "^3.2.0",
     "express": "^4.17.1",
     "express-ws": "^4.0.0",

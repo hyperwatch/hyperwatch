@@ -52,7 +52,7 @@ app.streamToHttp = (
       updateMonitoringStatus();
     };
 
-    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
 
     res.write(
@@ -99,7 +99,7 @@ app.registerAggregator = (name, aggregator) => {
     if (format === 'json') {
       res.send(data);
     } else {
-      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.send(
         `<!DOCTYPE html>
 <html>
