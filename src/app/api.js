@@ -1,7 +1,6 @@
 const express = require('express');
 const uuid = require('uuid');
 
-const { colorize } = require('../lib/formatter');
 const monitoring = require('../lib/monitoring');
 const { formatTable } = require('../lib/util');
 const stylesheet = require('../stylesheet');
@@ -104,7 +103,7 @@ app.registerAggregator = (name, aggregator) => {
         `<!DOCTYPE html>
 <html>
 <head><style>${stylesheet}</style></head>
-<body>${formatTable(data.map(colorize).toJS())}</body>
+<body>${formatTable(data.toJS())}</body>
 </html>`
       );
     }

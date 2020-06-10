@@ -2,7 +2,7 @@ const { api, websocket } = require('../app');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
 
-let formatter = new Formatter();
+let formatter = new Formatter('html');
 const setFormatter = (obj) => (formatter = obj);
 
 function load() {

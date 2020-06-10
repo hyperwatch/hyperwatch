@@ -15,11 +15,11 @@ table tr:last-child th, table tr:last-child td { border-bottom: 0; }
 table tr th:last-child, table tr td:last-child { border-right: 0; }
 
 .red { color: #ff5086; }
-.blue { color: #4cdeea; }
+.cyan { color: #4cdeea; }
 .grey { color: #797979; }
 .yellow { color: #ffd74b; }
 .orange { color: #ff8b57; }
 .green { color: #99de66; }
-.purple { color: #ab98f4; }`;
+.magenta { color: #ab98f4; }`;
 
 module.exports = stylesheet;
