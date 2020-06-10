@@ -1,6 +1,13 @@
 const { Map, Set, is } = require('immutable');
 
-const { address, agent, os, country, identity } = require('../lib/formatter');
+const {
+  address,
+  agent,
+  city,
+  country,
+  identity,
+  os,
+} = require('../lib/formatter');
 const { Speed } = require('../lib/speed');
 const { aggregateSpeed } = require('../lib/util');
 
@@ -10,7 +17,7 @@ const defaultMapper = (entry) => ({
   address: address(entry),
 
   cc: country(entry),
-  city: entry.getIn(['geoip', 'city']),
+  city: city(entry),
 
   agent: agent(entry),
   os: os(entry),

@@ -19,6 +19,10 @@ const country = (log, output) => {
   }
 };
 
+const city = (log) => {
+  return log.getIn(['geoip', 'country']);
+};
+
 const request = (log) => {
   const method = log.getIn(['request', 'method']);
   const url = log.getIn(['request', 'url']).split('?')[0];
@@ -159,7 +163,9 @@ module.exports = {
   colorize,
   time,
   address,
+  request,
   country,
+  city,
   agent,
   os,
   identity,
