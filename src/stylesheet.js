@@ -14,6 +14,8 @@ table tr th:first-child, table tr td:first-child { border-left: 0; }
 table tr:last-child th, table tr:last-child td { border-bottom: 0; }
 table tr th:last-child, table tr td:last-child { border-right: 0; }
 
+a { color: inherit }
+
 .red { color: #ff5086; }
 .cyan { color: #4cdeea; }
 .grey { color: #797979; }

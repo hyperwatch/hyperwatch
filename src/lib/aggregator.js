@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+
 const { Map, Set, is } = require('immutable');
 
 const { Formatter, address, identity } = require('../lib/formatter');
@@ -76,10 +78,13 @@ class Aggregator {
   }
 
   processLog(log) {
-    const id = this.identifier(log);
+    const identifier = this.identifier(log);
+    const id = crypto.createHash('md5').update(identifier).digest('hex');
 
     if (!this.entries.has(id)) {
       this.entries = this.entries
+        .setIn([id, 'id'], id)
+        .setIn([id, 'identifier'], identifier)
         .setIn([id, 'speed', 'per_minute'], new Speed(60, 15).hit())
         .setIn([id, 'speed', 'per_hour'], new Speed(3600, 24).hit());
     } else {
@@ -88,9 +93,15 @@ class Aggregator {
         .updateIn([id, 'speed', 'per_hour'], (speed) => speed.hit());
     }
 
-    this.entries = this.entries.updateIn([id], (id) => this.enricher(id, log));
+    this.entries = this.entries.updateIn([id], (entry) =>
+      this.enricher(entry, log)
+    );
 
     return log;
+  }
+
+  get(id) {
+    return this.entries.get(id);
   }
 
   getData({ raw, sort, format, limit }) {
