@@ -3,6 +3,8 @@ user_agent_parsers:
   - regex: '(BeakerBrowser)/(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Beaker Browser'
 
+  - regex: '(Falkon)/(\d+)\.(\d+)\.(\d+)'
+
   - regex: '(HuaweiBrowser)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Huawei Browser'
 
@@ -47,12 +49,16 @@ user_agent_parsers:
   - regex: '(mattermost)-(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Mattermost'
 
+  - regex: '(mailapp)/(\d+)\.(\d+)\.(\d+)'
+
   - regex: '(Notion)/(\d+)\.(\d+)\.(\d+)'
 
   # https://poi.moe/
   - regex: '(poi)/(\d+)\.(\d+)\.(\d+)'
 
   - regex: '(QtWebEngine)/(\d+)\.(\d+)\.(\d+)'
+
+  - regex: '(SketchUp)/(\d+)\.(\d+)'
 
   - regex: '(Typora)/(\d+)\.(\d+)\.(\d+)'
 
@@ -223,6 +229,8 @@ robot_parsers:
 
   - regex: '(Go-http-client)/(\d+)\.(\d+)'
     family_replacement: 'Go HTTP Client'
+
+  - regex: (fasthttp)
 
   # https://github.com/sindresorhus/got
   - regex: '(got) '

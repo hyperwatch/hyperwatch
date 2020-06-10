@@ -184,6 +184,9 @@
     "family_replacement": "Go HTTP Client"
   },
   {
+    "regex": "(fasthttp)"
+  },
+  {
     "regex": "(got) "
   },
   {
