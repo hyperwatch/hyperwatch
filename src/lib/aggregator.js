@@ -1,9 +1,9 @@
 const { Map, Set, is } = require('immutable');
 
 const {
+  Formatter,
   address,
   agent,
-  city,
   country,
   identity,
   os,
@@ -11,19 +11,18 @@ const {
 const { Speed } = require('../lib/speed');
 const { aggregateSpeed } = require('../lib/util');
 
-const defaultMapper = (entry) => ({
-  identity: identity(entry),
+const defaultFormatter = new Formatter('html', {
+  identity,
 
-  address: address(entry),
+  address,
 
-  cc: country(entry),
-  city: city(entry),
+  country,
 
-  agent: agent(entry),
-  os: os(entry),
+  agent,
+  os,
 
-  '15m': aggregateSpeed(entry, 'per_minute'),
-  '24h': aggregateSpeed(entry, 'per_hour'),
+  '15m': (entry) => aggregateSpeed(entry, 'per_minute'),
+  '24h': (entry) => aggregateSpeed(entry, 'per_hour'),
 });
 
 const defaultEnricher = (entry, log) => {
@@ -60,7 +59,7 @@ const defaultSorters = {
 class Aggregator {
   constructor() {
     this.entries = new Map();
-    this.mapper = defaultMapper;
+    this.formatter = defaultFormatter;
     this.enricher = defaultEnricher;
     this.identifier = defaultIdentifier;
     this.sorters = defaultSorters;
@@ -69,16 +68,22 @@ class Aggregator {
     setInterval(() => this.gc(), 60 * 1000);
   }
 
-  setMapper(fn) {
-    this.mapper = fn;
+  setFormatter(fn) {
+    this.formatter = fn;
+
+    return this;
   }
 
   setEnricher(fn) {
     this.enricher = fn;
+
+    return this;
   }
 
   setIdentifier(fn) {
     this.identifier = fn;
+
+    return this;
   }
 
   processLog(log) {
@@ -112,7 +117,11 @@ class Aggregator {
       .keySeq()
       .map((id) => this.entries.get(id));
 
-    return raw ? rawData : rawData.map((entry) => this.mapper(entry, format));
+    const output = format === 'json' ? 'text' : 'html';
+
+    return raw
+      ? rawData
+      : rawData.map((entry) => this.formatter.formatObject(entry, output));
   }
 
   gc() {
@@ -135,4 +144,4 @@ class Aggregator {
   }
 }
 
-module.exports = { Aggregator, defaultMapper, defaultEnricher };
+module.exports = { Aggregator, defaultFormatter, defaultEnricher };

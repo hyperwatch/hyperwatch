@@ -1,5 +1,15 @@
 const chalk = require('chalk');
 const countryCodeEmoji = require('country-code-emoji');
+const { mapValues } = require('lodash');
+
+const colorize = (name, value, output) => {
+  if (output === 'console') {
+    return chalk[name](value);
+  } else if (output === 'html') {
+    return `<span class="${name}">${value}</span>`;
+  }
+  return value;
+};
 
 const time = (log) => log.getIn(['request', 'time']).slice(11, -5);
 
@@ -15,12 +25,12 @@ const address = (log) => {
 const country = (log, output) => {
   const cc = log.getIn(['geoip', 'country']);
   if (cc) {
-    return output === 'console' ? cc : `${countryCodeEmoji(cc)} ${cc}`;
+    return output === 'html' ? `${countryCodeEmoji(cc)} ${cc}` : cc;
   }
 };
 
 const city = (log) => {
-  return log.getIn(['geoip', 'country']);
+  return log.getIn(['geoip', 'city']);
 };
 
 const request = (log) => {
@@ -31,19 +41,11 @@ const request = (log) => {
 };
 
 const executionTime = (log, output) => {
-  if (output === 'console') {
-    return log.get('executionTime') <= 100
-      ? chalk.green(`${log.get('executionTime')}ms`)
-      : log.get('executionTime') >= 1000
-      ? chalk.red(`${log.get('executionTime')}ms`)
-      : chalk.yellow(`${log.get('executionTime')}ms`);
-  } else {
-    return log.get('executionTime') <= 100
-      ? `<span class="green">${log.get('executionTime')}ms</span>`
-      : log.get('executionTime') >= 1000
-      ? `<span class="orange">${log.get('executionTime')}ms</span>`
-      : `<span class="yellow">${log.get('executionTime')}ms</span>`;
-  }
+  return log.get('executionTime') <= 100
+    ? colorize('green', `${log.get('executionTime')}ms`, output)
+    : log.get('executionTime') >= 1000
+    ? colorize('red', `${log.get('executionTime')}ms`, output)
+    : colorize('yellow', `${log.get('executionTime')}ms`, output);
 };
 
 const identity = (log) => log.getIn(['identity'], '');
@@ -88,71 +90,61 @@ const os = (log) => {
   return agentOs.get('family');
 };
 
-const colorize = (object, output = 'console') => {
-  for (const [key, value] of Object.entries(object)) {
-    if (!value) {
-      continue;
-    }
-    switch (key) {
-      case 'time':
-        object[key] =
-          output === 'console'
-            ? chalk.grey(value)
-            : `<span class="grey">${value}</span>`;
-        break;
-      case 'address':
-        object[key] =
-          output === 'console'
-            ? chalk.cyan(value)
-            : `<span class="blue">${value}</span>`;
-
-        break;
-      case 'agent':
-      case 'os':
-      case 'cc':
-      case 'country':
-      case 'city':
-        object[key] =
-          output === 'console'
-            ? chalk.grey(value)
-            : `<span class="grey">${value}</span>`;
-        break;
-      case 'identity':
-        object[key] =
-          output === 'console'
-            ? chalk.magenta(value)
-            : `<span class="purple">${value}</span>`;
-        break;
-    }
-  }
-
-  return object;
-};
-
-const defaultLogFormatter = (log, output) => ({
-  time: time(log),
-  identity: identity(log),
-  address: address(log),
-  cc: country(log, output),
-  request: request(log),
-  executionTime: executionTime(log, output),
-  agent: agent(log),
-});
-
 class Formatter {
-  constructor(output, logFormatter) {
+  constructor(output, formats) {
     this.output = output || 'html';
-    this.logFormatter = logFormatter || defaultLogFormatter;
+
+    this.formats = formats || {
+      time,
+      identity,
+      address,
+      country,
+      request,
+      executionTime,
+      agent,
+    };
+
+    this.colors = {
+      time: 'grey',
+      identity: 'magenta',
+      address: 'cyan',
+      country: 'grey',
+      agent: 'grey',
+      os: 'grey',
+    };
   }
 
-  setLogFormatter(fn) {
-    this.logFormatter = fn;
+  setFormat(nameOrFormats, fn) {
+    if (typeof nameOrFormats === 'string') {
+      const name = nameOrFormats;
+      this.formats[name] = fn;
+    } else {
+      this.formats = nameOrFormats;
+    }
+
+    return this;
+  }
+
+  formatObject(log, output) {
+    output = output || this.output;
+
+    const result = mapValues(this.formats, (fn) => fn(log, output));
+
+    if (this.output === 'console' || this.output === 'html') {
+      for (const [key, name] of Object.entries(this.colors)) {
+        if (result[key]) {
+          result[key] = colorize(name, result[key], output);
+        }
+      }
+    }
+
+    return result;
   }
 
   format(log) {
-    return Object.values(
-      colorize(this.logFormatter(log, this.output), this.output)
-    )
+    const result = this.formatObject(log);
+
+    return Object.values(result)
       .filter((str) => str && str.length > 0)
       .join(' ');
   }
