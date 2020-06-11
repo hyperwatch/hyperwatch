@@ -51,7 +51,7 @@ function create({
         client.ping();
         isAlive = false;
       }
-    }, 60 * 1000);
+    }, 10 * 1000);
 
     client.on('pong', () => {
       isAlive = true;
@@ -60,8 +60,10 @@ function create({
     client.on('close', () => {
       status(null, 'Websocket connection has been closed');
       if (reconnectOnClose) {
-        status(null, 'Reconnecting Websocket');
-        setupWebSocketClient({ status, success, reject });
+        setTimeout(() => {
+          status(null, 'Reconnecting Websocket');
+          setupWebSocketClient({ status, success, reject });
+        }, 1000);
       }
       clearInterval(keepAlive);
     });
