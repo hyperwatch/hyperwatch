@@ -4,6 +4,10 @@
     "family_replacement": "Beaker Browser"
   },
   {
+    "regex": "(coc_coc_browser)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Coc Coc Browser"
+  },
+  {
     "regex": "(Falkon)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
@@ -20,6 +24,9 @@
   {
     "regex": "(Whale)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
     "family_replacement": "Naver Whale"
+  },
+  {
+    "regex": "(AltairGraphQLClient)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(Atom)/(\\d+)\\.(\\d+)\\.(\\d+)"
@@ -44,6 +51,13 @@
   {
     "regex": "(discord)/(\\d+)\\.(\\d+)\\.(\\d+)",
     "family_replacement": "Discord"
+  },
+  {
+    "regex": "(draw\\.io)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "diagrams.net"
+  },
+  {
+    "regex": "(Evolution)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(githubdocset)"
@@ -80,6 +94,13 @@
     "regex": "(SketchUp)/(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "SkypeUriPreview",
+    "family_replacement": "Skype"
+  },
+  {
+    "regex": "(Teams)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(Typora)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
@@ -104,7 +125,23 @@
     "regex": "(LinkedIn)App"
   },
   {
+    "regex": "(WhatsApp)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(Mailspring)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Focus)/(\\d+)\\.(\\d+)\\.(\\d+)",
+    "family_replacement": "Firefox Focus"
+  },
+  {
+    "regex": "(Microsoft Surface)"
+  },
+  {
+    "regex": "^(Mozilla)/(\\d+)\\.(\\d+) \\(compatible\\)$"
+  },
+  {
+    "regex": "^(Mozilla)$"
   },
   {
     "regex": "(GeoEvent Server) (\\d+)(?:\\.(\\d+)(?:\\.(\\d+)|)|)"

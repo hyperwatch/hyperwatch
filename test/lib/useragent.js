@@ -43,6 +43,54 @@ const tests = [
     },
     'Beaker Browser 0.8.10 / Windows 10',
   ],
+
+  [
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) VSCode@FB/1.45.1591656041 Chrome/78.0.3904.130 Electron/7.3.0 Safari/537.36',
+    {
+      family: 'VSCode@FB',
+      major: '1',
+      minor: '45',
+      patch: '1591656041',
+      patch_minor: undefined,
+      os: {
+        family: 'Mac OS X',
+        major: '10',
+        minor: '15',
+        patch: '5',
+        patch_minor: undefined,
+      },
+      device: {
+        brand: 'Apple',
+        family: 'Mac',
+        model: 'Mac',
+      },
+    },
+    'VSCode@FB 1.45.1591656041 / Mac OS X 10.15.5',
+  ],
+
+  [
+    'Mozilla/5.0 (compatible)',
+    {
+      family: 'Mozilla',
+      major: '5',
+      minor: '0',
+      patch: undefined,
+      patch_minor: undefined,
+    },
+    'Mozilla 5.0',
+  ],
+
+  [
+    'Mozilla/5.0 (compatible; +http://tweetedtimes.com)',
+    {
+      family: 'The Tweeted Times',
+      major: undefined,
+      minor: undefined,
+      patch: undefined,
+      patch_minor: undefined,
+    },
+    'The Tweeted Times',
+  ],
 ];
 
 describe('useragent', () => {
