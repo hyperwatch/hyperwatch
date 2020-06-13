@@ -1,6 +1,4 @@
 const chalk = require('chalk');
-const countryCodeEmoji = require('country-code-emoji');
-const { mapValues } = require('lodash');
 
 const colorize = (name, value, output) => {
   if (output === 'console') {
@@ -20,17 +18,6 @@ const address = (log) => {
   } else {
     return log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
   }
-};
-
-const country = (log, output) => {
-  const cc = log.getIn(['geoip', 'country']);
-  if (cc) {
-    return output === 'html' ? `${countryCodeEmoji(cc)} ${cc}` : cc;
-  }
-};
-
-const city = (log) => {
-  return log.getIn(['geoip', 'city']);
 };
 
 const request = (log) => {
@@ -91,18 +78,15 @@ const os = (log) => {
 };
 
 class Formatter {
-  constructor(output, formats) {
-    this.output = output || 'html';
-
-    this.formats = formats || {
-      time,
-      identity,
-      address,
-      country,
-      request,
-      executionTime,
-      agent,
-    };
+  constructor() {
+    this.formats = [
+      ['time', time],
+      ['identity', identity],
+      ['address', address],
+      ['request', request],
+      ['executionTime', executionTime],
+      ['agent', agent],
+    ];
 
     this.colors = {
       time: 'grey',
@@ -114,23 +98,58 @@ class Formatter {
     };
   }
 
-  setFormat(nameOrFormats, fn) {
-    if (typeof nameOrFormats === 'string') {
-      const name = nameOrFormats;
-      this.formats[name] = fn;
-    } else {
-      this.formats = nameOrFormats;
+  setOutput(output) {
+    this.output = output;
+
+    return this;
+  }
+
+  setFormats(formats) {
+    this.formats = formats;
+
+    return this;
+  }
+
+  pickFormats(keys = []) {
+    this.formats = this.formats.filter(([key]) => keys.includes(key));
+
+    return this;
+  }
+
+  replaceFormat(key, fn) {
+    const index = this.formats.findIndex(([k]) => k == key);
+    if (index) {
+      this.formats[index] = [key, fn];
     }
 
     return this;
   }
 
+  insertFormat(key, fn, { after } = {}) {
+    if (after) {
+      const index = this.formats.findIndex(([k]) => k == after);
+      if (index) {
+        this.formats.splice(index + 1, 0, [key, fn]);
+
+        return this;
+      }
+    }
+
+    this.formats.push([key, fn]);
+
+    return this;
+  }
+
   formatObject(log, output) {
-    output = output || this.output;
+    output = output || this.output || 'html';
 
-    const result = mapValues(this.formats, (fn) => fn(log, output));
+    const result = Object.fromEntries(
+      this.formats.map(([key, fn]) => [key, fn(log, output)])
+    );
 
-    if (this.output === 'console' || this.output === 'html') {
+    console.log(result);
+
+    if (output === 'console' || output === 'html') {
       for (const [key, name] of Object.entries(this.colors)) {
         if (result[key]) {
           result[key] = colorize(name, result[key], output);
@@ -141,8 +160,8 @@ class Formatter {
     return result;
   }
 
-  format(log) {
-    const result = this.formatObject(log);
+  format(log, output) {
+    const result = this.formatObject(log, output);
 
     return Object.values(result)
       .filter((str) => str && str.length > 0)
@@ -156,8 +175,6 @@ module.exports = {
   time,
   address,
   request,
-  country,
-  city,
   agent,
   os,
   identity,

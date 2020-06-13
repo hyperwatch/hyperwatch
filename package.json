@@ -61,7 +61,7 @@
     "yamlparser": "0.0.2"
   },
   "engines": {
-    "node": ">=11.14.0"
+    "node": ">=12.0"
   },
   "depcheck": {
     "ignores": [

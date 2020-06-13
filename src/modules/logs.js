@@ -2,7 +2,7 @@ const { api, websocket } = require('../app');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
 
-let formatter = new Formatter('html');
+let formatter = new Formatter();
 const setFormatter = (obj) => (formatter = obj);
 
 function load() {
@@ -19,4 +19,4 @@ function load() {
   }
 }
 
-module.exports = { load, setFormatter };
+module.exports = { load, formatter, setFormatter };

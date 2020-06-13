@@ -73,7 +73,7 @@ body { display: flex; flex-direction: column-reverse; }
   stream.map((log) => {
     Object.values(requests).forEach(([req, res]) => {
       const grep = req.query.grep;
-      const line = formatter.format(log);
+      const line = formatter.format(log, 'html');
       if (!grep || line.includes(grep)) {
         res.write(`<div>${line}</div>\n`);
       }

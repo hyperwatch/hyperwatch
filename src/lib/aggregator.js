@@ -1,29 +1,18 @@
 const { Map, Set, is } = require('immutable');
 
-const {
-  Formatter,
-  address,
-  agent,
-  country,
-  identity,
-  os,
-} = require('../lib/formatter');
+const { Formatter, address, identity } = require('../lib/formatter');
 const { Speed } = require('../lib/speed');
 const { aggregateSpeed } = require('../lib/util');
 
-const defaultFormatter = new Formatter('html', {
-  identity,
+const defaultFormatter = new Formatter();
+defaultFormatter.setFormats([
+  ['identity', identity],
 
-  address,
+  ['address', address],
 
-  country,
-
-  agent,
-  os,
-
-  '15m': (entry) => aggregateSpeed(entry, 'per_minute'),
-  '24h': (entry) => aggregateSpeed(entry, 'per_hour'),
-});
+  ['15m', (entry) => aggregateSpeed(entry, 'per_minute')],
+  ['24h', (entry) => aggregateSpeed(entry, 'per_hour')],
+]);
 
 const defaultEnricher = (entry, log) => {
   for (const field of [
