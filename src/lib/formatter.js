@@ -125,11 +125,15 @@ class Formatter {
     return this;
   }
 
-  insertFormat(key, fn, { after } = {}) {
-    if (after) {
-      const index = this.formats.findIndex(([k]) => k == after);
+  insertFormat(key, fn, { after, before, color } = {}) {
+    if (color) {
+      this.colors[key] = color;
+    }
+
+    if (after || before) {
+      const index = this.formats.findIndex(([k]) => k == (after || before));
       if (index) {
-        this.formats.splice(index + 1, 0, [key, fn]);
+        this.formats.splice(after ? index + 1 : index, 0, [key, fn]);
 
         return this;
       }
@@ -146,8 +150,6 @@ class Formatter {
     const result = Object.fromEntries(
       this.formats.map(([key, fn]) => [key, fn(log, output)])
     );
-
-    console.log(result);
 
     if (output === 'console' || output === 'html') {
       for (const [key, name] of Object.entries(this.colors)) {

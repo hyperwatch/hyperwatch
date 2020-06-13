@@ -3,21 +3,29 @@ const rc = require('rc');
 const constants = {
   port: 3000,
   modules: {
-    addresses: {
-      active: false,
-      priority: 0,
-    },
-    identities: {
-      active: false,
-      priority: 0,
+    status: {
+      active: true,
+      priority: 100,
     },
     logs: {
       active: true,
-      priority: 0,
+      priority: 200,
     },
-    status: {
-      active: true,
-      priority: 0,
+    geoip: {
+      active: false,
+      priority: 500,
+    },
+    agent: {
+      active: false,
+      priority: 501,
+    },
+    addresses: {
+      active: false,
+      priority: 600,
+    },
+    identities: {
+      active: false,
+      priority: 600,
     },
   },
 };
