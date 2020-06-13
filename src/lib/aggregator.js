@@ -4,6 +4,30 @@ const { Formatter, address, identity } = require('../lib/formatter');
 const { Speed } = require('../lib/speed');
 const { aggregateSpeed } = require('../lib/util');
 
+const sparkline = (entry, key) => {
+  const identifier =
+    entry.getIn(['identity']) ||
+    entry.getIn(['address', 'value']) ||
+    entry.getIn(['request', 'address']);
+
+  const points = entry
+    .getIn(['speed', key])
+    .compute()
+    .toList()
+    .shift()
+    .reverse()
+    .toJS();
+
+  if (points.length <= 1) {
+    return;
+  }
+
+  return `<canvas id="${identifier}" width="100" height="12"></canvas>
+<script>
+sparkline ('${identifier}', ${JSON.stringify(points)}, '#797979', 14, 5);
+</script>`;
+};
+
 const defaultFormatter = new Formatter();
 defaultFormatter.setFormats([
   ['identity', identity],
@@ -12,6 +36,8 @@ defaultFormatter.setFormats([
 
   ['15m', (entry) => aggregateSpeed(entry, 'per_minute')],
   ['24h', (entry) => aggregateSpeed(entry, 'per_hour')],
+
+  ['activity', (entry) => sparkline(entry, 'per_minute')],
 ]);
 
 const defaultEnricher = (entry, log) => {
