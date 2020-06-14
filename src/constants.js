@@ -23,13 +23,13 @@ const constants = {
       active: false,
       priority: 502,
     },
-    identity: {
-      active: false,
-      priority: 503,
-    },
-    addresses: {
+    address: {
       active: false,
       priority: 600,
+    },
+    identity: {
+      active: false,
+      priority: 601,
     },
   },
 };
