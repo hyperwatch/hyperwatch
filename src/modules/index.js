@@ -6,8 +6,9 @@ const geoip = require('./geoip');
 const identities = require('./identities');
 const logs = require('./logs');
 const status = require('./status');
+const hostname = require('./hostname');
 
-const modules = { addresses, agent, geoip, identities, logs, status };
+const modules = { addresses, agent, geoip, hostname, identities, logs, status };
 
 function activeModules() {
   return Object.keys(constants.modules)

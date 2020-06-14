@@ -19,6 +19,10 @@ const constants = {
       active: false,
       priority: 501,
     },
+    hostname: {
+      active: false,
+      priority: 502,
+    },
     addresses: {
       active: false,
       priority: 600,
