@@ -3,12 +3,12 @@ const constants = require('../constants');
 const addresses = require('./addresses');
 const agent = require('./agent');
 const geoip = require('./geoip');
-const identities = require('./identities');
+const hostname = require('./hostname');
+const identity = require('./identity');
 const logs = require('./logs');
 const status = require('./status');
-const hostname = require('./hostname');
 
-const modules = { addresses, agent, geoip, hostname, identities, logs, status };
+const modules = { addresses, agent, geoip, hostname, identity, logs, status };
 
 function activeModules() {
   return Object.keys(constants.modules)

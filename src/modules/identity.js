@@ -1,7 +1,11 @@
 const IPCIDR = require('ip-cidr');
 
+const api = require('../app/api');
+const { Aggregator } = require('../lib/aggregator');
+const pipeline = require('../lib/pipeline');
+
 function augment(log) {
-  const family = log.getIn(['useragent', 'family']);
+  const family = log.getIn(['agent', 'family']);
   const hostname = log.getIn(['address', 'hostname']);
   const address =
     log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
@@ -165,6 +169,31 @@ function augment(log) {
   return log;
 }
 
+const identifier = (log) =>
+  log.getIn(['identity']) ||
+  log.getIn(['address', 'value']) ||
+  log.getIn(['request', 'address']);
+
+function registerPipeline() {
+  pipeline.getNode('main').map(augment).registerNode('main');
+}
+
+function register() {
+  registerPipeline();
+}
+
+function load() {
+  const aggregator = new Aggregator();
+
+  aggregator.setIdentifier(identifier);
+
+  pipeline.getNode('main').map((log) => aggregator.processLog(log));
+
+  api.registerAggregator('identities', aggregator);
+}
+
 module.exports = {
   augment,
+  register,
+  load,
 };
