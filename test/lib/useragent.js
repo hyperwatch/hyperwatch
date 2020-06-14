@@ -88,6 +88,7 @@ const tests = [
       minor: undefined,
       patch: undefined,
       patch_minor: undefined,
+      type: 'robot',
     },
     'The Tweeted Times',
   ],
