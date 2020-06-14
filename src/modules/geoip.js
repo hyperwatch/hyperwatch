@@ -3,8 +3,8 @@ const geoip = require('geoip-lite');
 const { fromJS } = require('immutable');
 
 const aggregator = require('../lib/aggregator');
+const logger = require('../lib/logger');
 const pipeline = require('../lib/pipeline');
-const logs = require('../modules/logs');
 
 function lookup(ip) {
   return geoip.lookup(ip);
@@ -43,7 +43,7 @@ function registerFormatters() {
     after: 'country',
     color: 'grey',
   });
-  logs.formatter.insertFormat('country', country, {
+  logger.defaultFormatter.insertFormat('country', country, {
     after: 'address',
     color: 'grey',
   });

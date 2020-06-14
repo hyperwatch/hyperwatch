@@ -38,43 +38,7 @@ const executionTime = (log, output) => {
 const identity = (log) => log.getIn(['identity'], '');
 
 const agent = (log) => {
-  const userAgent = log.getIn(['request', 'headers', 'user-agent'], '');
-  const agent = log.get('useragent');
-  if (agent && agent.get('family') && agent.get('family') !== 'Other') {
-    const { family, major, minor, patch, patch_minor } = agent.toJS();
-    const name = family
-      .replace('Mobile', '')
-      .replace(' iOS', '')
-      .replace('  ', ' ')
-      .trim();
-    if (patch_minor) {
-      return `${name}/${major}.${minor}.${patch}.${patch_minor}`;
-    } else if (patch) {
-      return `${name}/${major}.${minor}.${patch}`;
-    } else if (minor) {
-      return `${name}/${major}.${minor}`;
-    } else if (major) {
-      return `${name}/${major}`;
-    } else {
-      return `${name}`;
-    }
-  } else {
-    return userAgent;
-  }
-};
-
-const os = (log) => {
-  const agentOs = log.getIn(['useragent', 'os']);
-  if (!agentOs) {
-    return;
-  }
-  if (agentOs.get('family') === 'Other' || !agentOs.get('family')) {
-    return;
-  }
-  if (agentOs.get('family') === 'Mac OS X') {
-    return 'macOS';
-  }
-  return agentOs.get('family');
+  return log.getIn(['request', 'headers', 'user-agent'], '');
 };
 
 class Formatter {
@@ -177,8 +141,6 @@ module.exports = {
   time,
   address,
   request,
-  agent,
-  os,
   identity,
   executionTime,
 };

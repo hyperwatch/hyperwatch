@@ -2,9 +2,9 @@ const { fromJS } = require('immutable');
 const lruCache = require('lru-cache');
 
 const aggregator = require('../lib/aggregator');
+const logger = require('../lib/logger');
 const pipeline = require('../lib/pipeline');
 const useragent = require('../lib/useragent');
-const logs = require('../modules/logs');
 
 const cache = new lruCache({ max: 1000 });
 
@@ -81,7 +81,7 @@ function registerFormatters() {
     after: 'agent',
     color: 'grey',
   });
-  logs.formatter.replaceFormat('agent', agent);
+  logger.defaultFormatter.replaceFormat('agent', agent);
 }
 
 function registerPipeline() {
