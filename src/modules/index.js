@@ -9,6 +9,7 @@ const hostname = require('./hostname');
 const identity = require('./identity');
 const logs = require('./logs');
 const status = require('./status');
+const sparkline = require('./sparkline');
 
 const modules = {
   address,
@@ -20,6 +21,7 @@ const modules = {
   identity,
   logs,
   status,
+  sparkline,
 };
 
 function activeModules() {
