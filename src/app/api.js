@@ -1,9 +1,14 @@
+const fs = require('fs');
+const path = require('path');
+
 const express = require('express');
 const uuid = require('uuid');
 
 const monitoring = require('../lib/monitoring');
 const { formatTable } = require('../lib/util');
 const stylesheet = require('../stylesheet');
+
+const script = fs.readFileSync(path.join(__dirname, '..', 'script.js'));
 
 const app = express();
 
@@ -102,7 +107,10 @@ app.registerAggregator = (name, aggregator) => {
       res.send(
         `<!DOCTYPE html>
 <html>
-<head><style>${stylesheet}</style></head>
+<head>
+<style>${stylesheet}</style>
+<script>${script}</script>
+</head>
 <body>${formatTable(data.toJS())}</body>
 </html>`
       );
