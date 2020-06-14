@@ -23,6 +23,10 @@ const constants = {
       active: false,
       priority: 502,
     },
+    dnsbl: {
+      active: false,
+      priority: 503,
+    },
     address: {
       active: false,
       priority: 600,

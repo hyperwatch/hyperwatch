@@ -2,13 +2,23 @@ const constants = require('../constants');
 
 const address = require('./address');
 const agent = require('./agent');
+const dnsbl = require('./dnsbl');
 const geoip = require('./geoip');
 const hostname = require('./hostname');
 const identity = require('./identity');
 const logs = require('./logs');
 const status = require('./status');
 
-const modules = { address, agent, geoip, hostname, identity, logs, status };
+const modules = {
+  address,
+  agent,
+  dnsbl,
+  geoip,
+  hostname,
+  identity,
+  logs,
+  status,
+};
 
 function activeModules() {
   return Object.keys(constants.modules)
