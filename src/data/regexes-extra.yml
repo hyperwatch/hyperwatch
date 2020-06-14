@@ -108,7 +108,9 @@ user_agent_parsers:
 
   # Mozilla (suspicious)
 
-  - regex: '^(Mozilla)/(\d+)\.(\d+) \(compatible\)$'
+  - regex: '^(Mozilla)/(\d+)\.(\d+) \(compatible;?\)$'
+
+  - regex: '^(Mozilla)/(\d+)\.(\d+)$'
 
   - regex: '^(Mozilla)$'
 
@@ -223,6 +225,9 @@ robot_parsers:
   - regex: '(Yeti)/(\d+)\.(\d+)'
     family_replacement: 'Naver'
 
+  - regex: '(Yisou)Spider/(\d+)\.(\d+)'
+  - regex: '(Yisou)Spider'
+
   # Other Crawlers
 
   - regex: '(ArchiveTeam) ArchiveBot/(\d+)'
@@ -233,7 +238,11 @@ robot_parsers:
   - regex: '(Awario)SmartBot/(\d+)\.(\d+)'
 
   # https://babbar.tech/crawler
-  - regex: '(Barkrowler)/(\d+)\.(\d+)'
+  - regex: '(BarkRowler)/(\d+)\.(\d+)'
+
+  # http://bit.ly/
+  - regex: '(bitlybot)/(\d+)\.(\d+)'
+    family_replacement: 'Bitly'
 
   # http://webmeup-crawler.com/
   - regex: '(BLEXBot)/(\d+)\.(\d+)'
@@ -270,6 +279,12 @@ robot_parsers:
   # https://aspiegel.com/petalbot
   - regex: '(PetalBot)'
 
+  # http://www.proximic.com/info/spider.php
+  - regex: 'proximic'
+    family_replacement: 'Proximic'
+
+  - regex: '(Qwant)ify/(\d+)\.(\d+)'
+
   # https://raventools.com/seo-website-auditor/
   - regex: '(Raven)Crawler/(\d+)\.(\d+)'
 
@@ -293,9 +308,6 @@ robot_parsers:
   - regex: '(YaK)/(\d+)\.(\d+)'
     family_replacement: 'Linkfluence'
 
-  - regex: '(Yisou)Spider/(\d+)\.(\d+)'
-  - regex: '(Yisou)Spider'
-
   # Screenshots
 
   - regex: 'HggH PhantomJS Screenshoter'
@@ -317,6 +329,11 @@ robot_parsers:
   # Link Checkers
 
   - regex: '(brokenlinkcheck\.com)/(\d+)\.(\d+)'
+
+  - regex: '(broken-link-checker)/(\d+)\.(\d+)\.(\d+)'
+
+  # https://www.npmjs.com/package/hyperlink
+  - regex: '(Hyperlink) v(\d+)\.(\d+)\.(\d+)'
 
   - regex: 'LinkCheck by Siteimprove\.com'
     family_replacement: 'Siteimprove'
@@ -362,6 +379,8 @@ robot_parsers:
 
   - regex: '(GuzzleHttp)/(\d+)\.(\d+)\.(\d+)'
 
+  - regex: '(http\.rb)/(\d+)\.(\d+)\.(\d+)'
+
   - regex: '(Java)/(\d+)\.(\d+)\.(\d+)'
 
   - regex: '(lua-resty-http)/(\d+)\.(\d+)'
@@ -400,6 +419,9 @@ robot_parsers:
 
   - regex: '(AHC)/(\d+)\.(\d+)'
 
+  - regex: '(AppEngine-Google)'
+    family_replacement: 'Google App Engine'
+
   # https://github.com/pirate/ArchiveBox
   - regex: '(ArchiveBox)'
 
@@ -415,6 +437,9 @@ robot_parsers:
   - regex: '(Datanyze)'
 
   - regex: '(Drupal)'
+
+  # http://ecairn.com/grabber
+  - regex: '(eCairn-Grabber)/(\d+)\.(\d+)'
 
   # support@embed.ly
   - regex: '(Embedly)/(\d+)\.(\d+)'
@@ -443,6 +468,8 @@ robot_parsers:
 
   - regex: '(MeorcaBot)'
 
+  - regex: '(Mediatoolkit)bot'
+
   - regex: '(Misskey)/(\d+)\.(\d+)\.(\d+)'
 
   - regex: '(MS Search) (\d+)\.(\d+)'
@@ -459,6 +486,8 @@ robot_parsers:
 
   - regex: '(Nuzzel)'
 
+  - regex: '(ocPortal)'
+
   - regex: '(Package Control)'
 
   # https://social.evilma.id
@@ -472,6 +501,8 @@ robot_parsers:
   - regex: '^(Ruby)$'
 
   - regex: '(Scoop\.it)'
+
+  - regex: '(Screaming Frog SEO Spider)/(\d+)\.(\d+)'
 
   - regex: '(seocompany\.store)'
 
@@ -492,9 +523,9 @@ robot_parsers:
 
   - regex: '(Test Certificate Info)'
 
-  - regex: (The Knowledge AI)
+  - regex: '(The Knowledge AI)'
 
-  - regex: (The Lounge IRC Client)
+  - regex: '(The Lounge IRC Client)'
 
   - regex: '\+http:\/\/tweetedtimes\.com'
     family_replacement: 'The Tweeted Times'
@@ -507,6 +538,8 @@ robot_parsers:
 
   # http://vk.com/dev/Share
   - regex: '(vkShare)'
+
+  - regex: '(Wappalyzer)'
 
   - regex: '(WordPress)/(\d+)\.(\d+)\.(\d+)'
 

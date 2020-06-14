@@ -81,6 +81,18 @@ const tests = [
   ],
 
   [
+    'Mozilla/5.0 (compatible;)',
+    {
+      family: 'Mozilla',
+      major: '5',
+      minor: '0',
+      patch: undefined,
+      patch_minor: undefined,
+    },
+    'Mozilla 5.0',
+  ],
+
+  [
     'Mozilla/5.0 (compatible; +http://tweetedtimes.com)',
     {
       family: 'The Tweeted Times',
@@ -91,6 +103,19 @@ const tests = [
       type: 'robot',
     },
     'The Tweeted Times',
+  ],
+
+  [
+    'http.rb/4.0.0',
+    {
+      family: 'http.rb',
+      major: '4',
+      minor: '0',
+      patch: '0',
+      patch_minor: undefined,
+      type: 'robot',
+    },
+    'http.rb 4.0.0',
   ],
 ];
 

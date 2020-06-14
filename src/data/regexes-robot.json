@@ -168,6 +168,12 @@
     "family_replacement": "Naver"
   },
   {
+    "regex": "(Yisou)Spider/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Yisou)Spider"
+  },
+  {
     "regex": "(ArchiveTeam) ArchiveBot/(\\d+)"
   },
   {
@@ -177,7 +183,11 @@
     "regex": "(Awario)SmartBot/(\\d+)\\.(\\d+)"
   },
   {
-    "regex": "(Barkrowler)/(\\d+)\\.(\\d+)"
+    "regex": "(BarkRowler)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(bitlybot)/(\\d+)\\.(\\d+)",
+    "family_replacement": "Bitly"
   },
   {
     "regex": "(BLEXBot)/(\\d+)\\.(\\d+)"
@@ -216,6 +226,13 @@
     "regex": "(PetalBot)"
   },
   {
+    "regex": "proximic",
+    "family_replacement": "Proximic"
+  },
+  {
+    "regex": "(Qwant)ify/(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(Raven)Crawler/(\\d+)\\.(\\d+)"
   },
   {
@@ -241,12 +258,6 @@
     "family_replacement": "Linkfluence"
   },
   {
-    "regex": "(Yisou)Spider/(\\d+)\\.(\\d+)"
-  },
-  {
-    "regex": "(Yisou)Spider"
-  },
-  {
     "regex": "HggH PhantomJS Screenshoter"
   },
   {
@@ -268,6 +279,12 @@
   },
   {
     "regex": "(brokenlinkcheck\\.com)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(broken-link-checker)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Hyperlink) v(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
     "regex": "LinkCheck by Siteimprove\\.com",
@@ -322,6 +339,9 @@
     "regex": "(GuzzleHttp)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(http\\.rb)/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(Java)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
@@ -371,6 +391,10 @@
     "regex": "(AHC)/(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(AppEngine-Google)",
+    "family_replacement": "Google App Engine"
+  },
+  {
     "regex": "(ArchiveBox)"
   },
   {
@@ -390,6 +414,9 @@
   },
   {
     "regex": "(Drupal)"
+  },
+  {
+    "regex": "(eCairn-Grabber)/(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(Embedly)/(\\d+)\\.(\\d+)"
@@ -429,6 +456,9 @@
     "regex": "(MeorcaBot)"
   },
   {
+    "regex": "(Mediatoolkit)bot"
+  },
+  {
     "regex": "(Misskey)/(\\d+)\\.(\\d+)\\.(\\d+)"
   },
   {
@@ -450,6 +480,9 @@
     "regex": "(Nuzzel)"
   },
   {
+    "regex": "(ocPortal)"
+  },
+  {
     "regex": "(Package Control)"
   },
   {
@@ -466,6 +499,9 @@
   },
   {
     "regex": "(Scoop\\.it)"
+  },
+  {
+    "regex": "(Screaming Frog SEO Spider)/(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(seocompany\\.store)"
@@ -517,6 +553,9 @@
   },
   {
     "regex": "(vkShare)"
+  },
+  {
+    "regex": "(Wappalyzer)"
   },
   {
     "regex": "(WordPress)/(\\d+)\\.(\\d+)\\.(\\d+)"
