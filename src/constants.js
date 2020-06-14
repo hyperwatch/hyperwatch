@@ -3,21 +3,41 @@ const rc = require('rc');
 const constants = {
   port: 3000,
   modules: {
-    addresses: {
-      active: false,
-      priority: 0,
-    },
-    identities: {
-      active: false,
-      priority: 0,
+    status: {
+      active: true,
+      priority: 100,
     },
     logs: {
       active: true,
-      priority: 0,
+      priority: 200,
     },
-    status: {
-      active: true,
-      priority: 0,
+    cloudflare: {
+      active: false,
+      priority: 500,
+    },
+    geoip: {
+      active: false,
+      priority: 500,
+    },
+    agent: {
+      active: false,
+      priority: 501,
+    },
+    hostname: {
+      active: false,
+      priority: 502,
+    },
+    dnsbl: {
+      active: false,
+      priority: 503,
+    },
+    address: {
+      active: false,
+      priority: 600,
+    },
+    identity: {
+      active: false,
+      priority: 601,
     },
   },
 };

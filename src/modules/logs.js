@@ -1,9 +1,6 @@
 const { api, websocket } = require('../app');
-const { Formatter } = require('../lib/formatter');
+const { defaultFormatter } = require('../lib/logger');
 const pipeline = require('../lib/pipeline');
-
-let formatter = new Formatter();
-const setFormatter = (obj) => (formatter = obj);
 
 function load() {
   for (const [name, stream] of Object.entries(pipeline.nodes)) {
@@ -12,11 +9,11 @@ function load() {
       monitoringEnabled: true,
     });
 
-    api.streamToHttp(`/logs/${name}`, stream, formatter, {
+    api.streamToHttp(`/logs/${name}`, stream, defaultFormatter, {
       name: `HTTP stream (${name} logs)`,
       monitoringEnabled: true,
     });
   }
 }
 
-module.exports = { load, formatter, setFormatter };
+module.exports = { load };

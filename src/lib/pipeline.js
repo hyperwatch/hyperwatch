@@ -158,7 +158,7 @@ class Builder {
 
   // Helpers
 
-  registerNode(name, { monitor = true } = {}) {
+  registerNode(name, { monitor = false } = {}) {
     this.pipeline.registerNode(name, this);
     this.name = name;
     if (monitor) {

@@ -2,6 +2,8 @@ const dns = require('dns').promises;
 
 const lruCache = require('lru-cache');
 
+const pipeline = require('../lib/pipeline');
+
 const cache = new lruCache({ max: 1000 });
 
 function ignoreError() {
@@ -61,7 +63,17 @@ async function augment(log) {
   return log;
 }
 
+function registerPipeline() {
+  pipeline.getNode('main').map(augment).registerNode('main');
+}
+
+function register() {
+  registerPipeline();
+}
+
 module.exports = {
   lookup,
   augment,
+  register,
+  registerPipeline,
 };

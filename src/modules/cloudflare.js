@@ -1,3 +1,5 @@
+const pipeline = require('../lib/pipeline');
+
 function getConnectingIp(log) {
   return log.getIn(['request', 'headers', 'cf-connecting-ip']);
 }
@@ -33,6 +35,11 @@ function augment(log) {
   return log;
 }
 
+function register() {
+  pipeline.getNode('main').map(augment).registerNode('main');
+}
+
 module.exports = {
   augment,
+  register,
 };

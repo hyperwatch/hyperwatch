@@ -38,43 +38,7 @@ const executionTime = (log, output) => {
 const identity = (log) => log.getIn(['identity'], '');
 
 const agent = (log) => {
-  const userAgent = log.getIn(['request', 'headers', 'user-agent'], '');
-  const agent = log.get('useragent');
-  if (agent && agent.get('family') && agent.get('family') !== 'Other') {
-    const { family, major, minor, patch, patch_minor } = agent.toJS();
-    const name = family
-      .replace('Mobile', '')
-      .replace(' iOS', '')
-      .replace('  ', ' ')
-      .trim();
-    if (patch_minor) {
-      return `${name}/${major}.${minor}.${patch}.${patch_minor}`;
-    } else if (patch) {
-      return `${name}/${major}.${minor}.${patch}`;
-    } else if (minor) {
-      return `${name}/${major}.${minor}`;
-    } else if (major) {
-      return `${name}/${major}`;
-    } else {
-      return `${name}`;
-    }
-  } else {
-    return userAgent;
-  }
-};
-
-const os = (log) => {
-  const agentOs = log.getIn(['useragent', 'os']);
-  if (!agentOs) {
-    return;
-  }
-  if (agentOs.get('family') === 'Other' || !agentOs.get('family')) {
-    return;
-  }
-  if (agentOs.get('family') === 'Mac OS X') {
-    return 'macOS';
-  }
-  return agentOs.get('family');
+  return log.getIn(['request', 'headers', 'user-agent'], '');
 };
 
 class Formatter {
@@ -125,11 +89,15 @@ class Formatter {
     return this;
   }
 
-  insertFormat(key, fn, { after } = {}) {
-    if (after) {
-      const index = this.formats.findIndex(([k]) => k == after);
+  insertFormat(key, fn, { after, before, color } = {}) {
+    if (color) {
+      this.colors[key] = color;
+    }
+
+    if (after || before) {
+      const index = this.formats.findIndex(([k]) => k == (after || before));
       if (index) {
-        this.formats.splice(index + 1, 0, [key, fn]);
+        this.formats.splice(after ? index + 1 : index, 0, [key, fn]);
 
         return this;
       }
@@ -146,8 +114,6 @@ class Formatter {
     const result = Object.fromEntries(
       this.formats.map(([key, fn]) => [key, fn(log, output)])
     );
-
-    console.log(result);
 
     if (output === 'console' || output === 'html') {
       for (const [key, name] of Object.entries(this.colors)) {
@@ -175,8 +141,6 @@ module.exports = {
   time,
   address,
   request,
-  agent,
-  os,
   identity,
   executionTime,
 };

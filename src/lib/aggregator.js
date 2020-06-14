@@ -22,7 +22,7 @@ const defaultEnricher = (entry, log) => {
     'dnsbl',
     'geoip',
     'hostname',
-    'useragent',
+    'agent',
   ]) {
     if (log.has(field) && !is(log.get(field), entry.get(field))) {
       entry = entry.set(field, log.get(field));
