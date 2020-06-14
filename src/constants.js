@@ -11,6 +11,10 @@ const constants = {
       active: true,
       priority: 200,
     },
+    cloudflare: {
+      active: false,
+      priority: 500,
+    },
     geoip: {
       active: false,
       priority: 500,

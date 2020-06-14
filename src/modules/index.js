@@ -2,6 +2,7 @@ const constants = require('../constants');
 
 const address = require('./address');
 const agent = require('./agent');
+const cloudflare = require('./cloudflare');
 const dnsbl = require('./dnsbl');
 const geoip = require('./geoip');
 const hostname = require('./hostname');
@@ -12,6 +13,7 @@ const status = require('./status');
 const modules = {
   address,
   agent,
+  cloudflare,
   dnsbl,
   geoip,
   hostname,
