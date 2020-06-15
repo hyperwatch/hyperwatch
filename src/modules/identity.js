@@ -93,10 +93,6 @@ function augment(log) {
       return hostname && hostname.endsWith('.uptimerobot.com')
         ? log.set('identity', family)
         : log;
-    case 'Yisou':
-      return hostname && hostname.endsWith('.crawl.sm.cn')
-        ? log.set('identity', family)
-        : log;
     case 'Coc Coc':
       return hostname && hostname.endsWith('.coccoc.com')
         ? log.set('identity', family)
@@ -120,6 +116,20 @@ function augment(log) {
     case 'Bytespider':
       return hostname && hostname.endsWith('.crawl.bytedance.com')
         ? log.set('identity', family)
+        : log;
+    case 'Mail.RU':
+      return hostname && hostname.endsWith('.go.mail.ru')
+        ? log.set('identity', family)
+        : log;
+
+    // Agent Name different than identity
+    case 'YahooMailProxy':
+      return hostname && hostname.endsWith('.yahoo.net')
+        ? log.set('identity', 'Yahoo')
+        : log;
+    case 'Yisou':
+      return hostname && hostname.endsWith('.crawl.sm.cn')
+        ? log.set('identity', 'Shenma')
         : log;
 
     // Per hostname + CIDR
@@ -163,6 +173,9 @@ function augment(log) {
   if (hostname && !log.has('identity')) {
     if (hostname.endsWith('.crawl.sogou.com')) {
       log.set('identity', 'Sogou');
+    }
+    if (hostname.endsWith('.crawl.sm.cn')) {
+      log.set('identity', 'Shenma');
     }
   }
 

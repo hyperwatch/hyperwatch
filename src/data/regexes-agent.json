@@ -138,7 +138,10 @@
     "regex": "(Microsoft Surface)"
   },
   {
-    "regex": "^(Mozilla)/(\\d+)\\.(\\d+) \\(compatible\\)$"
+    "regex": "^(Mozilla)/(\\d+)\\.(\\d+) \\(compatible;?\\)$"
+  },
+  {
+    "regex": "^(Mozilla)/(\\d+)\\.(\\d+)$"
   },
   {
     "regex": "^(Mozilla)$"
