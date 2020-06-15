@@ -9,7 +9,9 @@ function create({
   name = 'WebSocket',
   address,
   path,
-  options,
+  username,
+  password,
+  options = {},
   type = 'client',
   parse = defaultParse,
   sample = 1,
@@ -19,6 +21,13 @@ function create({
 
   const setupWebSocketClient = ({ status, success, reject }) => {
     let isAlive;
+
+    if (username && password) {
+      options.headers = options.headers || {};
+      options.headers.authorization = `Basic ${Buffer.from(
+        `${username}:${password}`
+      ).toString('base64')}`;
+    }
 
     client = new WebSocket(address, [], options);
     status(null, `Waiting for connection to ${address}`);
