@@ -187,15 +187,11 @@ const identifier = (log) =>
   log.getIn(['address', 'value']) ||
   log.getIn(['request', 'address']);
 
-function registerPipeline() {
+function load() {
   pipeline.getNode('main').map(augment).registerNode('main');
 }
 
-function register() {
-  registerPipeline();
-}
-
-function load() {
+function beforeStart() {
   const aggregator = new Aggregator();
 
   aggregator.setIdentifier(identifier);
@@ -207,6 +203,6 @@ function load() {
 
 module.exports = {
   augment,
-  register,
   load,
+  beforeStart,
 };

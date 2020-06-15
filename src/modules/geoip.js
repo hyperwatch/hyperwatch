@@ -34,7 +34,9 @@ const country = (log, output) => {
   }
 };
 
-function registerFormatters() {
+function load() {
+  pipeline.getNode('main').map(augment).registerNode('main');
+
   aggregator.defaultFormatter.insertFormat('country', country, {
     after: 'address',
     color: 'grey',
@@ -49,18 +51,8 @@ function registerFormatters() {
   });
 }
 
-function registerPipeline() {
-  pipeline.getNode('main').map(augment).registerNode('main');
-}
-
-function register() {
-  registerPipeline();
-  registerFormatters();
-}
-
 module.exports = {
-  register,
   lookup,
+  load,
   augment,
-  registerFormatters,
 };

@@ -29,23 +29,16 @@ const language = (log) => {
   }
 };
 
-function registerFormatters() {
+function load() {
+  pipeline.getNode('main').map(augment).registerNode('main');
+
   aggregator.defaultFormatter.insertFormat('language', language, {
     before: '15m',
     color: 'grey',
   });
 }
 
-function registerPipeline() {
-  pipeline.getNode('main').map(augment).registerNode('main');
-}
-
-function register() {
-  registerPipeline();
-  registerFormatters();
-}
-
 module.exports = {
   augment,
-  register,
+  load,
 };

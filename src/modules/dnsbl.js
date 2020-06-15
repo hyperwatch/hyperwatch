@@ -35,23 +35,16 @@ const xblFormat = (log, output) => {
   }
 };
 
-function registerPipeline() {
+function load() {
   pipeline.getNode('main').map(augment).registerNode('main');
-}
 
-function registerFormatters() {
   aggregator.defaultFormatter.insertFormat('xbl', xblFormat, {
     after: 'address',
     color: 'grey',
   });
 }
 
-function register() {
-  registerPipeline();
-  registerFormatters();
-}
-
 module.exports = {
   augment,
-  register,
+  load,
 };

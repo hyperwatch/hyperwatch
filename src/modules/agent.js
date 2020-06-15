@@ -72,7 +72,9 @@ const os = (log) => {
   return agentOs.get('family');
 };
 
-function registerFormatters() {
+function load() {
+  pipeline.getNode('main').map(augment).registerNode('main');
+
   aggregator.defaultFormatter.insertFormat('agent', agent, {
     before: '15m',
     color: 'grey',
@@ -81,21 +83,12 @@ function registerFormatters() {
     after: 'agent',
     color: 'grey',
   });
+
   logger.defaultFormatter.replaceFormat('agent', agent);
-}
-
-function registerPipeline() {
-  pipeline.getNode('main').map(augment).registerNode('main');
-}
-
-function register() {
-  registerPipeline();
-  registerFormatters();
 }
 
 module.exports = {
   lookup,
   augment,
-  register,
-  registerFormatters,
+  load,
 };

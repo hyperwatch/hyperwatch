@@ -35,11 +35,11 @@ function augment(log) {
   return log;
 }
 
-function register() {
+function load() {
   pipeline.getNode('main').map(augment).registerNode('main');
 }
 
 module.exports = {
   augment,
-  register,
+  load,
 };

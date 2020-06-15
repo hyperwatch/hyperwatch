@@ -21,12 +21,12 @@ sparkline ('${id}', ${JSON.stringify(points)}, '#797979', 14, 5);
 </script>`;
 };
 
-function register() {
+function load() {
   aggregator.defaultFormatter.insertFormat('activity', (entry) =>
     sparkline(entry, 'per_minute')
   );
 }
 
 module.exports = {
-  register,
+  load,
 };

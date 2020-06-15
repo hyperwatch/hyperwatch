@@ -8,7 +8,12 @@ const plugins = require('./plugins');
 
 const { pipeline, util } = lib;
 
+function load() {
+  modules.load();
+}
+
 function start() {
+  modules.beforeStart();
   return Promise.all([app.start(), pipeline.start()]);
 }
 
@@ -25,6 +30,7 @@ module.exports = {
   modules,
   pipeline,
   plugins,
+  load,
   start,
   stop,
   util,

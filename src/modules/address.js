@@ -4,7 +4,18 @@ const pipeline = require('../lib/pipeline');
 
 const identifier = (log) => log.getIn(['address', 'value']);
 
+function fill(log) {
+  if (!log.hasIn(['address', 'value'])) {
+    log = log.setIn(['address', 'value'], log.getIn(['request', 'address']));
+  }
+  return log;
+}
+
 function load() {
+  pipeline.getNode('main').map(fill).registerNode('main');
+}
+
+function beforeStart() {
   const aggregator = new Aggregator();
 
   aggregator.setIdentifier(identifier);
@@ -14,22 +25,7 @@ function load() {
   api.registerAggregator('addresses', aggregator);
 }
 
-function fill(log) {
-  if (!log.hasIn(['address', 'value'])) {
-    log = log.setIn(['address', 'value'], log.getIn(['request', 'address']));
-  }
-  return log;
-}
-
-function registerPipeline() {
-  pipeline.getNode('main').map(fill).registerNode('main');
-}
-
-function register() {
-  registerPipeline();
-}
-
 module.exports = {
-  register,
   load,
+  beforeStart,
 };

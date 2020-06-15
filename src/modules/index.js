@@ -1,30 +1,33 @@
 const constants = require('../constants');
 
-const address = require('./address');
-const agent = require('./agent');
-const cloudflare = require('./cloudflare');
-const dnsbl = require('./dnsbl');
-const geoip = require('./geoip');
-const hostname = require('./hostname');
-const identity = require('./identity');
-const language = require('./language');
-const logs = require('./logs');
-const sparkline = require('./sparkline');
-const status = require('./status');
-
-const modules = {
-  address,
-  agent,
-  cloudflare,
-  dnsbl,
-  geoip,
-  hostname,
-  identity,
-  language,
-  logs,
-  status,
-  sparkline,
-};
+function getModule(module) {
+  switch (module) {
+    case 'address':
+      return require('./address');
+    case 'agent':
+      return require('./agent');
+    case 'cloudflare':
+      return require('./cloudflare');
+    case 'dnsbl':
+      return require('./dnsbl');
+    case 'geoip':
+      return require('./geoip');
+    case 'hostname':
+      return require('./hostname');
+    case 'identity':
+      return require('./identity');
+    case 'language':
+      return require('./language');
+    case 'logs':
+      return require('./logs');
+    case 'sparkline':
+      return require('./sparkline');
+    case 'status':
+      return require('./status');
+    default:
+      throw new Error(`Unknown module '${module}'`);
+  }
+}
 
 function activeModules() {
   return Object.keys(constants.modules)
@@ -33,24 +36,25 @@ function activeModules() {
     .filter((m) => m.active === true);
 }
 
-function register() {
-  activeModules().forEach(({ key }) => {
-    if (modules[key] && modules[key].register) {
-      modules[key].register();
+function load() {
+  for (const { key } of activeModules()) {
+    const module = getModule(key);
+    if (module && module.load) {
+      module.load();
     }
-  });
+  }
 }
 
-function load() {
-  activeModules().forEach(({ key }) => {
-    if (modules[key] && modules[key].load) {
-      modules[key].load();
+function beforeStart() {
+  for (const { key } of activeModules()) {
+    const module = getModule(key);
+    if (module && module.beforeStart) {
+      module.beforeStart();
     }
-  });
+  }
 }
 
 module.exports = {
-  register,
   load,
-  ...modules,
+  beforeStart,
 };

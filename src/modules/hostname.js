@@ -63,17 +63,12 @@ async function augment(log) {
   return log;
 }
 
-function registerPipeline() {
+function load() {
   pipeline.getNode('main').map(augment).registerNode('main');
-}
-
-function register() {
-  registerPipeline();
 }
 
 module.exports = {
   lookup,
   augment,
-  register,
-  registerPipeline,
+  load,
 };

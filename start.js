@@ -2,6 +2,10 @@ const path = require('path');
 
 const hyperwatch = require('./hyperwatch');
 
+// Load (will load modules)
+
+hyperwatch.load();
+
 // Load configuration
 
 if (process.argv[2]) {
@@ -9,10 +13,6 @@ if (process.argv[2]) {
 } else {
   require(path.resolve(__dirname, './config/default'));
 }
-
-// Load Modules
-
-hyperwatch.modules.load();
 
 // Start
 
