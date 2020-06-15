@@ -35,8 +35,13 @@ app.streamToWebsocket = (
   };
   updateMonitoringStatus();
 
-  app.ws(endpoint, (client) => {
-    const clientId = uuid.v4();
+  app.ws(endpoint, (client, req) => {
+    const clientId = req.query.clientId || uuid.v4();
+    if (clients[clientId]) {
+      console.log(`Client '${clientId}' is already connected. Terminating.`);
+      client.terminate();
+      return;
+    }
     clients[clientId] = client;
     updateMonitoringStatus();
     client.on('close', () => {
