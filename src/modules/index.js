@@ -7,6 +7,7 @@ const dnsbl = require('./dnsbl');
 const geoip = require('./geoip');
 const hostname = require('./hostname');
 const identity = require('./identity');
+const language = require('./language');
 const logs = require('./logs');
 const sparkline = require('./sparkline');
 const status = require('./status');
@@ -19,6 +20,7 @@ const modules = {
   geoip,
   hostname,
   identity,
+  language,
   logs,
   status,
   sparkline,

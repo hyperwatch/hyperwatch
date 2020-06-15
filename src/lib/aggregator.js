@@ -25,6 +25,7 @@ const defaultEnricher = (entry, log) => {
     'geoip',
     'hostname',
     'agent',
+    'language',
   ]) {
     if (log.has(field) && !is(log.get(field), entry.get(field))) {
       entry = entry.set(field, log.get(field));

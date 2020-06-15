@@ -20,18 +20,6 @@ const address = (log) => {
   }
 };
 
-const language = (log) => {
-  const code = log.getIn(['language', 0, 'code']);
-  if (code) {
-    const region = log.getIn(['language', 0, 'region']);
-    if (region) {
-      return `${code.toLowerCase()} ${region.toUpperCase()}`;
-    } else {
-      return code.toLowerCase();
-    }
-  }
-};
-
 const request = (log) => {
   const method = log.getIn(['request', 'method']);
   const url = log.getIn(['request', 'url']).split('?')[0];
@@ -154,6 +142,5 @@ module.exports = {
   address,
   request,
   identity,
-  language,
   executionTime,
 };

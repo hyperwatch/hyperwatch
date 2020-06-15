@@ -23,6 +23,10 @@ const constants = {
       active: false,
       priority: 501,
     },
+    language: {
+      active: false,
+      priority: 503,
+    },
     hostname: {
       active: false,
       priority: 502,
