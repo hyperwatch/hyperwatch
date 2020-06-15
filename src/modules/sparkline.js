@@ -1,10 +1,7 @@
 const aggregator = require('../lib/aggregator');
 
 const sparkline = (entry, key) => {
-  const identifier =
-    entry.getIn(['identity']) ||
-    entry.getIn(['address', 'value']) ||
-    entry.getIn(['request', 'address']);
+  const id = entry.get('id');
 
   const points = entry
     .getIn(['speed', key])
@@ -18,9 +15,9 @@ const sparkline = (entry, key) => {
     return;
   }
 
-  return `<canvas id="${identifier}" width="100" height="12"></canvas>
+  return `<canvas id="${id}" width="100" height="12"></canvas>
 <script>
-sparkline ('${identifier}', ${JSON.stringify(points)}, '#797979', 14, 5);
+sparkline ('${id}', ${JSON.stringify(points)}, '#797979', 14, 5);
 </script>`;
 };
 
