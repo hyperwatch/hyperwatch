@@ -172,10 +172,10 @@ function augment(log) {
   // Hostname only
   if (hostname && !log.has('identity')) {
     if (hostname.endsWith('.crawl.sogou.com')) {
-      log.set('identity', 'Sogou');
+      return log.set('identity', 'Sogou');
     }
     if (hostname.endsWith('.crawl.sm.cn')) {
-      log.set('identity', 'Shenma');
+      return log.set('identity', 'Shenma');
     }
   }
 
