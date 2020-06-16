@@ -25,16 +25,13 @@ fetch(
     const regexesExtra = yaml.eval(regexesExtraYaml);
 
     fs.writeFileSync(
-      path.resolve(__dirname, '..', 'src', 'data', 'regexes-robot.json'),
-      JSON.stringify(regexesExtra.robot_parsers, null, 2)
+      path.resolve(__dirname, '..', 'src', 'data', 'regexes-extra.json'),
+      JSON.stringify(regexesExtra.user_agent_parsers, null, 2)
     );
 
-    const regexesAgent = regexesExtra.user_agent_parsers.concat(
-      regexes.user_agent_parsers
-    );
     fs.writeFileSync(
       path.resolve(__dirname, '..', 'src', 'data', 'regexes-agent.json'),
-      JSON.stringify(regexesAgent, null, 2)
+      JSON.stringify(regexes.user_agent_parsers, null, 2)
     );
 
     fs.writeFileSync(
@@ -45,5 +42,18 @@ fetch(
     fs.writeFileSync(
       path.resolve(__dirname, '..', 'src', 'data', 'regexes-device.json'),
       JSON.stringify(regexes.device_parsers, null, 2)
+    );
+
+    const regexesCoreYaml = fs
+      .readFileSync(
+        path.resolve(__dirname, '..', 'src', 'data', 'regexes-core.yml')
+      )
+      .toString();
+
+    const regexesCore = yaml.eval(regexesCoreYaml);
+
+    fs.writeFileSync(
+      path.resolve(__dirname, '..', 'src', 'data', 'regexes-core.json'),
+      JSON.stringify(regexesCore, null, 2)
     );
   });

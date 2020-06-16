@@ -1,4 +1,9 @@
+const debug = require('debug');
+
 const regexes = require('../data/regexes');
+const parser = require('../lib/parser');
+
+const debugUseragent = debug('hyperwatch:useragent');
 
 function replaceMatches(string, res) {
   return string
@@ -19,15 +24,48 @@ function replaceMatches(string, res) {
  * @param {String} source The actual user agent string
  * @api public
  */
-function Agent(family, major, minor, patch, patch_minor, type, source) {
-  this.family = family || undefined;
-  this.major = major || undefined;
-  this.minor = minor || undefined;
-  this.patch = patch || undefined;
-  this.patch_minor = patch_minor || undefined;
-  this.type = type || undefined;
+function Agent(family, major, minor, patch, patch_minor, source) {
+  this.family = family || null;
+  this.major = major || null;
+  this.minor = minor || null;
+  this.patch = patch || null;
+  this.patch_minor = patch_minor || null;
   this.source = source || '';
 }
+
+/**
+ * OnDemand parsing of the type
+ *
+ * @type {String}
+ * @api public
+ */
+Object.defineProperty(Agent.prototype, 'type', {
+  get: function lazyparse() {
+    const device = this.device;
+
+    if (device && device.family === 'Spider') {
+      return Object.defineProperty(this, 'type', {
+        value: 'robot',
+      }).type;
+    }
+
+    return Object.defineProperty(this, 'type', {
+      value: null,
+    }).type;
+  },
+
+  /**
+   * Bypass the OnDemand parsing and set a type
+   *
+   * @param {String} type
+   * @api public
+   */
+  set: function set(type) {
+    Object.defineProperty(this, 'type', {
+      value: type,
+    });
+  },
+});
 
 /**
  * OnDemand parsing of the Operating System.
@@ -39,33 +77,27 @@ Object.defineProperty(Agent.prototype, 'os', {
   get: function lazyparse() {
     const userAgent = this.source;
 
-    if (this.type === 'robot') {
-      return null;
-    }
-
     for (const osRegex of regexes.os) {
       const res = osRegex.regex.exec(userAgent);
       if (res) {
-        const {
-          os_replacement,
-          os_v1_replacement,
-          os_v2_replacement,
-          os_v3_replacement,
-          os_v4_replacement,
-        } = osRegex;
+        const family = osRegex.os_replacement
+          ? replaceMatches(osRegex.os_replacement, res)
+          : res[1];
+        const major = osRegex.os_v1_replacement
+          ? replaceMatches(osRegex.os_v1_replacement, res)
+          : res[2];
+        const minor = osRegex.os_v2_replacement
+          ? replaceMatches(osRegex.os_v2_replacement, res)
+          : res[3];
+        const patch = osRegex.os_v3_replacement
+          ? replaceMatches(osRegex.os_v3_replacement, res)
+          : res[4];
+        const patch_minor = osRegex.os_v4_replacement
+          ? replaceMatches(osRegex.os_v4_replacement, res)
+          : res[5];
+
         return Object.defineProperty(this, 'os', {
-          value: new OperatingSystem(
-            // family
-            os_replacement ? replaceMatches(os_replacement, res) : res[1],
-            // major
-            os_v1_replacement ? replaceMatches(os_v1_replacement, res) : res[2],
-            // minor
-            os_v2_replacement ? replaceMatches(os_v2_replacement, res) : res[3],
-            // patch
-            os_v3_replacement ? replaceMatches(os_v3_replacement, res) : res[4],
-            // patch_minor
-            os_v4_replacement ? replaceMatches(os_v4_replacement, res) : res[5]
-          ),
+          value: new OperatingSystem(family, major, minor, patch, patch_minor),
         }).os;
       }
     }
@@ -100,29 +132,21 @@ Object.defineProperty(Agent.prototype, 'device', {
   get: function lazyparse() {
     const userAgent = this.source;
 
-    if (this.type === 'robot') {
-      return null;
-    }
-
     for (const deviceRegex of regexes.device) {
       const res = deviceRegex.regex.exec(userAgent);
       if (res) {
-        const {
-          device_replacement,
-          brand_replacement,
-          model_replacement,
-        } = deviceRegex;
+        const family = deviceRegex.device_replacement
+          ? replaceMatches(deviceRegex.device_replacement, res)
+          : res[1];
+        const brand = deviceRegex.brand_replacement
+          ? replaceMatches(deviceRegex.brand_replacement, res)
+          : res[2];
+        const model = deviceRegex.model_replacement
+          ? replaceMatches(deviceRegex.model_replacement, res)
+          : res[3];
+
         return Object.defineProperty(this, 'device', {
-          value: new Device(
-            // family
-            device_replacement
-              ? replaceMatches(device_replacement, res)
-              : res[1],
-            // brand
-            brand_replacement ? replaceMatches(brand_replacement, res) : res[2],
-            // model
-            model_replacement ? replaceMatches(model_replacement, res) : res[3]
-          ),
+          value: new Device(family, brand, model),
         }).device;
       }
     }
@@ -299,10 +323,10 @@ OperatingSystem.prototype.toVersion = function toVersion() {
 OperatingSystem.prototype.toJSON = function toJSON() {
   return {
     family: this.family,
-    major: this.major || undefined,
-    minor: this.minor || undefined,
-    patch: this.patch || undefined,
-    patch_minor: this.patch_minor || undefined,
+    major: this.major || null,
+    minor: this.minor || null,
+    patch: this.patch || null,
+    patch_minor: this.patch_minor || null,
   };
 };
 
@@ -374,8 +398,8 @@ Device.prototype.toVersion = function toVersion() {
 Device.prototype.toJSON = function toJSON() {
   return {
     family: this.family,
-    brand: this.brand || undefined,
-    model: this.model || undefined,
+    brand: this.brand || null,
+    model: this.model || null,
   };
 };
 
@@ -431,73 +455,95 @@ function isSafe(userAgent) {
  * @returns {Agent}
  * @api public
  */
-exports.parse = function parse(userAgent) {
+exports.parse = function parse(
+  userAgent,
+  enableCore = true,
+  enableExtra = true,
+  enableUapCore = true
+) {
+  debugUseragent(userAgent);
+
   if (userAgent && userAgent.length > 1000) {
     userAgent = userAgent.substring(0, 1000);
   }
+
+  // Remove known artefacts
+  userAgent = userAgent.replace(',gzip(gfe)', '');
 
   if (!userAgent || !isSafe(userAgent)) {
     return new Agent();
   }
 
-  for (const robotRegex of regexes.robot) {
-    const res = robotRegex.regex.exec(userAgent);
-    if (res) {
+  const regexSets = {};
+
+  if (enableCore) {
+    const result = parser.parse(userAgent);
+    if (result.meta) {
+      debugUseragent(result.meta);
+    }
+    if (result.regexes) {
+      regexSets['hyperwatch-core'] = result.regexes;
+    }
+  }
+  if (enableExtra) {
+    regexSets['hyperwatch-extra'] = regexes.extra;
+  }
+  if (enableUapCore) {
+    regexSets['uap-core'] = regexes.agent;
+  }
+
+  for (const [setName, regexSet] of Object.entries(regexSets)) {
+    for (const entry of regexSet) {
       const {
+        regex,
         family_replacement,
         v1_replacement,
         v2_replacement,
         v3_replacement,
         v4_replacement,
-      } = robotRegex;
-      return new Agent(
-        // family
-        family_replacement ? replaceMatches(family_replacement, res) : res[1],
-        // major
-        v1_replacement || res[2] || null,
-        // minor
-        v2_replacement || res[3] || null,
-        // patch
-        v3_replacement || res[4] || null,
-        // minor_patch
-        v4_replacement || res[5] || null,
-        // type
-        'robot',
-        // source
-        userAgent
-      );
+        type_replacement,
+      } = entry;
+
+      const res = regex.exec(userAgent);
+      if (res) {
+        debugUseragent(regex);
+        const family = parser.processFamily(
+          family_replacement ? replaceMatches(family_replacement, res) : res[1]
+        );
+
+        // Optimization: no need to replaceMatches in replacements
+        const major = v1_replacement || res[2] || null;
+        const minor = v2_replacement || res[3] || null;
+        const patch = v3_replacement || res[4] || null;
+        const minor_patch = v4_replacement || res[5] || null;
+
+        const type = type_replacement || null;
+
+        debugUseragent(`Result (${setName})`, {
+          family,
+          major,
+          minor,
+          patch,
+          minor_patch,
+        });
+
+        const agent = new Agent(
+          family,
+          major,
+          minor,
+          patch,
+          minor_patch,
+          userAgent
+        );
+
+        Object.defineProperty(agent, 'type', { value: type });
+
+        return agent;
+      }
     }
   }
 
-  for (const agentRegex of regexes.agent) {
-    const res = agentRegex.regex.exec(userAgent);
-    if (res) {
-      const {
-        family_replacement,
-        v1_replacement,
-        v2_replacement,
-        v3_replacement,
-        v4_replacement,
-      } = agentRegex;
-      // Optimization: no need to replaceMatches in replacements
-      return new Agent(
-        // family
-        family_replacement ? replaceMatches(family_replacement, res) : res[1],
-        // major
-        v1_replacement || res[2] || null,
-        // minor
-        v2_replacement || res[3] || null,
-        // patch
-        v3_replacement || res[4] || null,
-        // minor_patch
-        v4_replacement || res[5] || null,
-        // type
-        null,
-        // source
-        userAgent
-      );
-    }
-  }
+  debugUseragent('No result');
 
   // We might still be able to parse the os and device,
   // so make sure we supply it with the source
@@ -520,9 +566,12 @@ exports.fromJSON = function fromJSON(details) {
     details.major,
     details.minor,
     details.patch,
-    details.patch_minor,
-    details.type
+    details.patch_minor
   );
+
+  if (details.type) {
+    agent.type = details.type;
+  }
 
   if (details.os) {
     agent.os = new OperatingSystem(

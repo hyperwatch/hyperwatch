@@ -1,0 +1,354 @@
+{
+  "chrome": [
+    {
+      "regex": "(Datanyze)"
+    },
+    {
+      "regex": "\\(KHTML, like Gecko\\) ((?:Headless)?Chrome)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+) (?:Mobile )?Safari/537.36$"
+    },
+    {
+      "regex": "([\\w]{2,32}browser)/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?",
+      "regex_flag": "i"
+    },
+    {
+      "regex": "Chrome/\\d+\\.\\d+\\.\\d+\\.\\d+ (\\w+[\\w \\-\\.@]{0,50})/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)? (?:[\\w \\-\\.]* )?(?:Mobile )?Safari/"
+    },
+    {
+      "regex": "(\\w+[\\w\\-\\.@]{0,50})/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)? (?:Mobile )?Chrome/\\d+\\.\\d+\\.\\d+\\.\\d+ (?:Mobile )?Safari/"
+    },
+    {
+      "regex": "Safari\\/537.36 \\(?(\\w+[\\w \\-\\.@]{0,50})[\\/@](\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?\\)?"
+    },
+    {
+      "regex": "(\\w+[\\w\\-\\.@]{0,50})/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)? like Chrome/\\d+\\.\\d+\\.\\d+\\.\\d+ Safari/"
+    },
+    {
+      "regex": "(SE 2.X MetaSr) (\\d+)\\.(\\d+)",
+      "family_replacement": "Sogou Explorer"
+    }
+  ],
+  "chrome_electron": [
+    {
+      "regex": "(\\w+[\\w \\-\\.@]{0,50})/(\\d+)\\.(\\d+)\\.(\\d+)\\.?(\\d+)?[a-z0-9~\\-\\.]* Chrome/\\d+\\.\\d+\\.\\d+\\.\\d+ Electron/\\d+\\.\\d+\\.\\d+"
+    }
+  ],
+  "chrome_version": [
+    {
+      "regex": "\\[FB.*;(FBAV)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
+      "family_replacement": "Facebook"
+    },
+    {
+      "regex": "([\\w]{2,32}browser)/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?",
+      "regex_flag": "i"
+    },
+    {
+      "regex": "([\\w]{2,32}messenger)/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?",
+      "regex_flag": "i"
+    },
+    {
+      "regex": "([\\w]{2,32}app)/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?",
+      "regex_flag": "i"
+    },
+    {
+      "regex": "Chrome/\\d+\\.\\d+\\.\\d+\\.\\d+ (\\w+[\\w \\-\\.@]{0,50})\\/(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?.*Mobile Safari/537.36"
+    },
+    {
+      "regex": "Version/4.0 (\\w+[\\w \\-\\.@]{0,50})\\/(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)? Chrome/\\d+\\.\\d+\\.\\d+\\.\\d+"
+    },
+    {
+      "regex": "Safari/537.36 \\[([\\w \\-\\.@]{0,50})(?:\\/Android)?\\]$"
+    },
+    {
+      "regex": "Safari/537.36 (\\w+[\\w \\-\\.@]{0,50}\\w)[ \\/](\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?"
+    },
+    {
+      "regex": "Safari/537.36 \\w+[\\w\\-\\.@]{0,50}\\/(\\w+[\\w \\-\\.@]{0,50})\\/(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?"
+    },
+    {
+      "regex": "(Chrome)\\/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+) Safari/537.36",
+      "family_replacement": "Chrome WebView"
+    },
+    {
+      "regex": "(Chrome)\\/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+) Mobile Safari/537.36",
+      "family_replacement": "Chrome WebView"
+    }
+  ],
+  "chrome_old": [
+    {
+      "regex": "(OPR)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
+      "family_replacement": "Opera"
+    },
+    {
+      "regex": "(Chromium)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)"
+    },
+    {
+      "regex": "(Chrome)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)"
+    }
+  ],
+  "gecko": [
+    {
+      "regex": "Gecko\\/20100101 (Firefox)/(\\d+)\\.(\\d+)\\.?(\\d+)?$"
+    },
+    {
+      "regex": "Firefox\\/\\d+\\.\\d+\\.?\\d* (\\w+[\\w \\-\\.@]{0,50})\\/?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?"
+    },
+    {
+      "regex": "Gecko\\/20100101 (Thunderbird)/(\\d+)\\.(\\d+)\\.?(\\d+)?$"
+    },
+    {
+      "regex": "Thunderbird/\\d+\\.\\d+\\.?\\d* (\\w+[\\w \\-\\.@]{0,50})/(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?"
+    }
+  ],
+  "gecko_generic": [
+    {
+      "regex": "Gecko/\\d+\\.\\d+ Firefox/\\d+\\.\\d+ (QwantMobile)/(\\d+)\\.(\\d+)"
+    },
+    {
+      "regex": "Gecko/\\d+\\.\\d+ (Firefox)/(\\d+)\\.(\\d+)"
+    },
+    {
+      "regex": "(Firefox)/(\\d+)\\.(\\d+)\\.?(\\d+)?"
+    }
+  ],
+  "webkit": [
+    {
+      "regex": "([\\w]{2,32}browser)/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?",
+      "regex_flag": "i"
+    },
+    {
+      "regex": "\\(KHTML, like Gecko\\) (\\w+[\\w\\-\\.@]{0,50})\\/?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?$"
+    },
+    {
+      "regex": "(Android) (\\d+)\\.?(\\d+)?\\.?(\\d+)?; .* Version\\/\\d+\\.\\d+\\.?\\d*\\.?\\d* Mobile Safari",
+      "family_replacement": "Android WebView"
+    }
+  ],
+  "apple_webkit": [
+    {
+      "regex": "\\(KHTML, like Gecko\\) (Version)\\/(\\d+)\\.(\\d+)\\.?(\\d+)? Safari\\/\\d+\\.\\d+\\.?\\d*$",
+      "family_replacement": "Safari"
+    },
+    {
+      "regex": "(Version)\\/(\\d+)\\.(\\d+)\\.?(\\d+)? Safari\\/\\d+\\.\\d+\\.?\\d* Epiphany\\/\\d+\\.\\d+\\.?\\d*$",
+      "family_replacement": "Epiphany"
+    },
+    {
+      "regex": "Version\\/\\d+\\.\\d+\\.?\\d* Safari\\/\\d+\\.\\d+\\.?\\d* \\(?(\\w+[\\w \\-\\.@]{0,50})\\/(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?\\)?"
+    },
+    {
+      "regex": "([\\w]+[\\w \\-\\.@]{0,50})\\/(\\d+)\\.?(\\d+)?\\.?(\\d+)? Safari\\/\\d+\\.\\d+\\.?\\d*$"
+    },
+    {
+      "regex": "\\(KHTML, like Gecko\\) (\\w+[\\w\\-\\.@]{0,50})\\/?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?$"
+    },
+    {
+      "regex": "(AppleWebKit)\\/(\\d+)\\.(\\d+)\\.(\\d+) \\(KHTML, like Gecko\\)$",
+      "family_replacement": "macOS WebView"
+    }
+  ],
+  "apple_webkit_mobile": [
+    {
+      "regex": "\\(KHTML, like Gecko\\) (Version)\\/(\\d+)\\.(\\d+)\\.?(\\d+)? Mobile\\/[A-Z0-9]{0,6} Safari\\/\\d+\\.\\d+\\.?\\d*$",
+      "family_replacement": "Safari"
+    },
+    {
+      "regex": "FBAV/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)",
+      "family_replacement": "Facebook"
+    },
+    {
+      "regex": "\\[FB.*;",
+      "family_replacement": "Facebook"
+    },
+    {
+      "regex": "Mobile\\/[A-Z0-9]{0,6} (\\w+) (\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)\\.?(\\d+)?"
+    },
+    {
+      "regex": "Mobile\\/[A-Z0-9]{0,6} \\[([\\w \\-\\.@]{0,50})\\]$"
+    },
+    {
+      "regex": "Mobile\\/[A-Z0-9]{0,6} Safari\\/\\d+\\.\\d+\\.?\\d* ([\\w]+[\\w \\-\\.@]{0,50})\\/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?"
+    },
+    {
+      "regex": "Version\\/\\d+\\.\\d+\\.?\\d* ([\\w]+[\\w \\-\\.@]{0,50})\\/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)? Mobile\\/[A-Z0-9]{0,6}"
+    },
+    {
+      "regex": "(\\w+[\\w \\-\\.@]{0,50})/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)? \\w+[\\w \\-\\.@]{0,50}/\\d+\\.\\d+\\.\\d+\\.?\\d* Mobile\\/[A-Z0-9]{0,6} Safari\\/\\d+\\.\\d+\\.?\\d*$"
+    },
+    {
+      "regex": "(\\w+[\\w\\-\\.@]{0,50})\\/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?[ ]+Mobile\\/[A-Z0-9]{0,6} Safari\\/\\d+\\.\\d+\\.?\\d*$"
+    },
+    {
+      "regex": "Mobile\\/[A-Z0-9]{0,6} Version\\/\\d+\\.\\d+\\.?\\d* \\(?([\\w]+[\\w \\-\\.@]{0,50})[\\/@](\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?\\)? Safari\\/\\d+\\.\\d+\\.?\\d*$"
+    },
+    {
+      "regex": "([\\w]{2,32}app)/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?",
+      "regex_flag": "i"
+    },
+    {
+      "regex": "Mobile\\/[A-Z0-9]{0,6} (?:[\\w\\-\\.]* )?([\\w]+[\\w\\-\\.@]{0,50})\\/(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?"
+    },
+    {
+      "regex": "Mobile\\/[A-Z0-9]{0,6}$",
+      "family_replacement": "Safari WebView"
+    }
+  ],
+  "webkit_old": [
+    {
+      "regex": "(Android) (\\d+)\\.?(\\d+)?\\.?(\\d+)?; .* Version\\/\\d+\\.\\d+\\.?\\d*\\.?\\d* Mobile Safari",
+      "family_replacement": "Android WebView"
+    },
+    {
+      "regex": "(BlackBerry).+ AppleWebKit\\/\\d+\\.\\d+\\.?\\d*\\+ \\(KHTML, like Gecko\\) Version\\/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?",
+      "family_replacement": "BlackBerry WebKit"
+    },
+    {
+      "regex": "(AppleWebKit)\\/(\\d+)\\.(\\d+)\\.?(\\d+)?\\+ \\(KHTML, like Gecko\\) Version",
+      "family_replacement": "WebKit Nightly"
+    },
+    {
+      "regex": "(Version)\\/(\\d+)\\.(\\d+)\\.?(\\d+)? Mobile\\/[A-Z0-9]{0,6} Safari\\/\\d+\\.\\d+\\.?\\d*$",
+      "family_replacement": "Safari"
+    },
+    {
+      "regex": "(Version)\\/(\\d+)\\.(\\d+)\\.?(\\d+)? Safari\\/\\d+\\.\\d+\\.?\\d*$",
+      "family_replacement": "Safari"
+    },
+    {
+      "regex": "(\\w+[\\w \\-\\.@]{0,50})\\/(\\d+)\\.(\\d+)\\.?(\\d+)? Safari\\/\\d+\\.\\d+\\.?\\d*$"
+    },
+    {
+      "regex": "\\(KHTML, like Gecko\\) (\\w+[\\w \\-\\.@]{0,50}) Safari\\/\\d+\\.\\d+\\.?\\d*$"
+    }
+  ],
+  "generic": [
+    {
+      "regex": "^([\\w \\-\\.\\u0027]{3,32}) v?(\\d+)\\.?(\\d+)?\\.?(\\d+)?"
+    },
+    {
+      "regex": "(\\w+[\\w \\-\\.]{0,50})\\/?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?[\\w~\\-\\+]*; ?\\+?https?:\\/\\/[A-Za-z0-9\\-\\.\\/]{0,50}"
+    },
+    {
+      "regex": "^(\\w+[\\w \\-\\.:\\w]{0,50})/(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?"
+    },
+    {
+      "regex": "^(\\w+[\\w \\-\\.]{0,50})\\/?(\\d+)?\\.?(\\d+)? \\- \\(\\+?https?:\\/\\/[A-Za-z0-9\\-\\.\\/]{0,50}\\)"
+    },
+    {
+      "regex": "^(\\w+[\\w \\-\\.]{0,50}\\w+) (\\d+)\\.?(\\d+)? \\(\\+?https?:\\/\\/[A-Za-z0-9\\-\\.\\/]{0,50}\\)"
+    },
+    {
+      "regex": "^(\\w+[\\w \\-\\.]{0,50})\\/?(\\d+)?\\.?(\\d+)?;? \\([\\w ,;~@\\-\\+\\.\\:\\/]{0,128}\\)"
+    },
+    {
+      "regex": "^(\\w+[\\w \\-\\.]{0,50})$"
+    },
+    {
+      "regex": "^(Pingdom).com_bot_version_(\\d+)\\.(\\d+)",
+      "family_replacement": "PingdomBot"
+    },
+    {
+      "regex": "^https?:\\/\\/([\\w]+[\\w \\-\\.]{0,50})"
+    }
+  ],
+  "mozilla5_compatible_url": [
+    {
+      "regex": "compatible; ([\\w]+[\\w \\-\\.]{0,50})\\/?v?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?; [\\w \\-\\.]{0,50}; \\+?https?:\\/\\/[A-Za-z0-9\\-\\.\\/]{0,50}"
+    },
+    {
+      "regex": "compatible; ([\\w]+[\\w \\-\\.]{0,50})\\/(\\d+)\\.?(\\d+)?[a-z0-9~-]*; \\+?https?:\\/\\/[A-Za-z0-9\\-\\.\\/]{0,50}"
+    },
+    {
+      "regex": "compatible; (\\w+[\\w \\-\\.]{0,50}\\w+)\\/?v?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?;? ?\\+?https?:\\/\\/[A-Za-z0-9\\-\\.\\/]{0,50}"
+    },
+    {
+      "regex": "compatible; Linux x86_64; (\\w+[\\w \\-\\.\\/]{0,50})\\/(\\d+)\\.(\\d+); ?\\+?https?:\\/\\/[A-Za-z0-9\\-\\.\\/]{0,50}"
+    },
+    {
+      "regex": "compatible; (\\w+[\\w \\-\\.]{0,50}\\w+)\\/?v?(\\d+)?\\.?(\\d+)?\\.?(\\d+)? \\([\\w \\-\\.]{0,50}\\); ?\\+?https?:\\/\\/[A-Za-z0-9\\-\\.\\/]{0,50}"
+    },
+    {
+      "regex": "\\+https?:\\/\\/([\\w]+[\\w \\-\\.]{0,50})"
+    }
+  ],
+  "mozilla5_url": [
+    {
+      "regex": "(\\w+[\\w \\-\\.\\\\]{0,50})\\/?(\\d+)?\\.?(\\d+)?; ?\\+?https?:\\/\\/[A-Za-z0-9\\-\\.\\/]{0,128}"
+    }
+  ],
+  "mozilla5_compatible": [
+    {
+      "regex": "compatible; ([\\w]+[\\w \\-\\.[\\w]+]{0,50})\\/?\\)?\\/?(\\d+)?\\.?(\\d+)?"
+    },
+    {
+      "regex": "^(Mozilla)/(\\d+)\\.(\\d+) \\(compatible;?\\)$"
+    }
+  ],
+  "mozilla5": [
+    {
+      "regex": "Mozilla/5.0 ([\\w]+[\\w \\-\\.[\\w]+]{0,50})\\/(\\d+)\\.?(\\d+)?"
+    },
+    {
+      "regex": "^(Mozilla)/(\\d+)\\.(\\d+)$"
+    }
+  ],
+  "mozilla4_compatible": [
+    {
+      "regex": "compatible; ([\\w]+[\\w \\-\\.[\\w]+]{0,50}) (\\d+)\\.?(\\d+)?"
+    },
+    {
+      "regex": "^(Mozilla)/(\\d+)\\.(\\d+) \\(compatible;?\\)$"
+    }
+  ],
+  "mozilla4": [
+    {
+      "regex": "^(Mozilla)/(\\d+)\\.(\\d+)$"
+    }
+  ],
+  "trident": [
+    {
+      "regex": "(ZumBot)\\/?(\\d+)?\\.?(\\d+)?"
+    },
+    {
+      "regex": "Core\\/\\d+\\.\\d+\\.\\d+\\.\\d+ (QQBrowser)\\/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)"
+    },
+    {
+      "regex": "(Trident)/(7|8)\\.(0)",
+      "family_replacement": "IE",
+      "v1_replacement": "11"
+    },
+    {
+      "regex": "(Trident)/(6)\\.(0)",
+      "family_replacement": "IE",
+      "v1_replacement": "10"
+    },
+    {
+      "regex": "(Trident)/(5)\\.(0)",
+      "family_replacement": "IE",
+      "v1_replacement": "9"
+    },
+    {
+      "regex": "(Trident)/(4)\\.(0)",
+      "family_replacement": "IE",
+      "v1_replacement": "8"
+    }
+  ],
+  "msie": [
+    {
+      "regex": "(Opera) (\\d+)\\.(\\d+)"
+    },
+    {
+      "regex": "(MS Search) (\\d+)\\.(\\d+)"
+    },
+    {
+      "regex": "MS(IE) (\\d+)\\.(\\d+)"
+    }
+  ],
+  "opera": [
+    {
+      "regex": "(Opera Mini)\\/(\\d+)\\.?(\\d+)?\\.?(\\d+)?"
+    },
+    {
+      "regex": "(Opera)\\/\\d+\\.\\d+ .* Version\\/(\\d+)\\.(\\d+)"
+    }
+  ]
+}
