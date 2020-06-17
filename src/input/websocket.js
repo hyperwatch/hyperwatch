@@ -57,7 +57,11 @@ function create({
         client.terminate();
         clearInterval(keepAlive);
       } else {
-        client.ping();
+        try {
+          client.ping();
+        } catch (err) {
+          status(err, 'Websocket error');
+        }
         isAlive = false;
       }
     }, 10 * 1000);
