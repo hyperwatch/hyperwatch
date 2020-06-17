@@ -35,7 +35,7 @@ function augment(log) {
   return log;
 }
 
-const agent = (log, output) => {
+const agentFormat = (log, output) => {
   const agent = log.get('agent');
   if (agent && agent.get('family') && agent.get('family') !== 'Other') {
     const { family, major, minor } = agent.toJS();
@@ -54,7 +54,7 @@ const agent = (log, output) => {
   }
 };
 
-const os = (log) => {
+const osFormat = (log) => {
   const agentOs = log.getIn(['agent', 'os']);
   if (!agentOs) {
     return;
@@ -71,20 +71,22 @@ const os = (log) => {
 function load() {
   pipeline.getNode('main').map(augment).registerNode('main');
 
-  aggregator.defaultFormatter.insertFormat('agent', agent, {
+  aggregator.defaultFormatter.insertFormat('agent', agentFormat, {
     before: '15m',
     color: 'grey',
   });
-  aggregator.defaultFormatter.insertFormat('os', os, {
+  aggregator.defaultFormatter.insertFormat('os', osFormat, {
     after: 'agent',
     color: 'grey',
   });
 
-  logger.defaultFormatter.replaceFormat('agent', agent);
+  logger.defaultFormatter.replaceFormat('agent', agentFormat);
 }
 
 module.exports = {
   lookup,
   augment,
   load,
+  agentFormat,
+  osFormat,
 };

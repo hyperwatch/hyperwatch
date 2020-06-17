@@ -26,6 +26,8 @@ function get(module) {
       return require('./logs');
     case 'sparkline':
       return require('./sparkline');
+    case 'signature':
+      return require('./signature');
     case 'status':
       return require('./status');
     default:

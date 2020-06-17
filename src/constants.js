@@ -39,9 +39,13 @@ const constants = {
       active: false,
       priority: 600,
     },
+    signature: {
+      active: false,
+      priority: 610,
+    },
     identity: {
       active: false,
-      priority: 601,
+      priority: 620,
     },
     sparkline: {
       active: false,
