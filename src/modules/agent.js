@@ -17,6 +17,8 @@ function lookup(ua) {
 
   result = result.toJSON();
 
+  cache.set(ua, result);
+
   return result;
 }
 
@@ -33,28 +35,22 @@ function augment(log) {
   return log;
 }
 
-const agent = (log) => {
+const agent = (log, output) => {
   const agent = log.get('agent');
   if (agent && agent.get('family') && agent.get('family') !== 'Other') {
-    const { family, major, minor, patch, patch_minor } = agent.toJS();
-    const name = family
-      .replace('Mobile', '')
-      .replace(' iOS', '')
-      .replace('  ', ' ')
-      .trim();
-    if (patch_minor) {
-      return `${name}/${major}.${minor}.${patch}.${patch_minor}`;
-    } else if (patch) {
-      return `${name}/${major}.${minor}.${patch}`;
-    } else if (minor) {
-      return `${name}/${major}.${minor}`;
+    const { family, major, minor } = agent.toJS();
+    if (minor) {
+      return `${family}/${major}.${minor}`;
     } else if (major) {
-      return `${name}/${major}`;
+      return `${family}/${major}`;
     } else {
-      return `${name}`;
+      return `${family}`;
     }
   } else {
-    return log.getIn(['request', 'headers', 'user-agent'], '');
+    return log.getIn(
+      ['request', 'headers', 'user-agent'],
+      output === 'html' ? '<em>Empty</em>' : 'Empty'
+    );
   }
 };
 

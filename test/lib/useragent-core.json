@@ -1,0 +1,782 @@
+[
+  [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.61 Safari/537.36",
+    {
+      "family": "Chrome",
+      "major": "83",
+      "minor": "0",
+      "patch": "4103",
+      "patch_minor": "61"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) BeakerBrowser/0.8.10 Chrome/80.0.3987.141 Electron/8.1.1 Safari/537.36",
+    {
+      "family": "BeakerBrowser",
+      "major": "0",
+      "minor": "8",
+      "patch": "10",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/537.36 (KHTML, like Gecko) VSCode@FB/1.45.1591656041 Chrome/78.0.3904.130 Electron/7.3.0 Safari/537.36",
+    {
+      "family": "VSCode@FB",
+      "major": "1",
+      "minor": "45",
+      "patch": "1591656041",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (compatible)",
+    {
+      "family": "Mozilla",
+      "major": "5",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (compatible;)",
+    {
+      "family": "Mozilla",
+      "major": "5",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (compatible; +http://tweetedtimes.com)",
+    {
+      "family": "tweetedtimes.com",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "http.rb/4.0.0",
+    {
+      "family": "http.rb",
+      "major": "4",
+      "minor": "0",
+      "patch": "0",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (compatible; AndersPinkBot/1.1; +http://anderspink.com/bot.html)",
+    {
+      "family": "AndersPinkBot",
+      "major": "1",
+      "minor": "1",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 5.1.1; A37fw Build/LMY47V; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/80.0.3987.132 Mobile Safari/537.36 Line/10.6.1/IAB",
+    {
+      "family": "Line",
+      "major": "10",
+      "minor": "6",
+      "patch": "1",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/4.5 (compatible; HTTrack 3.0x; Windows 98)",
+    {
+      "family": "HTTrack",
+      "major": "3",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.2; en) Opera 9.50",
+    {
+      "family": "Opera",
+      "major": "9",
+      "minor": "50",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)",
+    {
+      "family": "Slackbot-LinkExpanding",
+      "major": "1",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/61.0.3163.100 Chrome/61.0.3163.100 Safari/537.36 PingdomPageSpeed/1.0 (pingbot/2.0; +http://www.pingdom.com/)",
+    {
+      "family": "pingbot",
+      "major": "2",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/11.2 Chrome/75.0.3770.143 Safari/537.36",
+    {
+      "family": "SamsungBrowser",
+      "major": "11",
+      "minor": "2",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/34.0.0.0 Safari/537.36",
+    {
+      "family": "Chrome WebView",
+      "major": "34",
+      "minor": "0",
+      "patch": "0",
+      "patch_minor": "0"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.13+ (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2",
+    {
+      "family": "WebKit Nightly",
+      "major": "537",
+      "minor": "13",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (compatible; MJ12bot/v1.4.8; http://mj12bot.com/)",
+    {
+      "family": "MJ12bot",
+      "major": "1",
+      "minor": "4",
+      "patch": "8",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 7.0; Redmi Note 4 Build/NRD90M; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/83.0.4103.101 Mobile Safari/537.36 [LinkedInApp]",
+    {
+      "family": "LinkedInApp",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (compatible; Linux x86_64; Mail.RU_Bot/2.0; +http://go.mail.ru/help/robots)",
+    {
+      "family": "Mail.RU Bot",
+      "major": "2",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (compatible; archive.org_bot +http://archive.org/details/archive.org_bot)",
+    {
+      "family": "archive.org bot",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (compatible; MetaJobBot; http://www.metajob.de/crawler)",
+    {
+      "family": "MetaJobBot",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (compatible; MagiBot/1.0.0; Matarael; +https://magi.com/bots)",
+    {
+      "family": "MagiBot",
+      "major": "1",
+      "minor": "0",
+      "patch": "0",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Opera/9.80 (MAUI Runtime; Opera Mini/4.4.33576/176.145; U; bn) Presto/2.12.423 Version/12.16",
+    {
+      "family": "Opera Mini",
+      "major": "4",
+      "minor": "4",
+      "patch": "33576",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/81.0.4044.92 Safari/537.36",
+    {
+      "family": "HeadlessChrome",
+      "major": "81",
+      "minor": "0",
+      "patch": "4044",
+      "patch_minor": "92"
+    }
+  ],
+  [
+    "Mozilla/5.0 (X11; Datanyze; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36",
+    {
+      "family": "Datanyze",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "XenForo/2.x (https://vocaverse.network)",
+    {
+      "family": "XenForo",
+      "major": "2",
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:49.0) Gecko/20100101 Firefox/49.0 (FlipboardProxy/1.2; +http://flipboard.com/browserproxy)",
+    {
+      "family": "FlipboardProxy",
+      "major": "1",
+      "minor": "2",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko Core/1.53.4620.400 QQBrowser/9.7.13014.400",
+    {
+      "family": "QQBrowser",
+      "major": "9",
+      "minor": "7",
+      "patch": "13014",
+      "patch_minor": "400"
+    }
+  ],
+  [
+    "Mozilla/5.0 (X11; U; Linux x86_64; en-US) AppleWebKit/534.13 (KHTML, like Gecko) Ubuntu/10.04 Chromium/9.0.595.0 Chrome/9.0.595.0 Safari/534.13",
+    {
+      "family": "Chromium",
+      "major": "9",
+      "minor": "0",
+      "patch": "595",
+      "patch_minor": "0"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 9; LM-X420 Build/PKQ1.190302.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/83.0.4103.106 Mobile Safari/537.36;webull_android;stocks-android",
+    {
+      "family": "Chrome WebView",
+      "major": "83",
+      "minor": "0",
+      "patch": "4103",
+      "patch_minor": "106"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 10; POT-LX1 Build/HUAWEIPOT-L01; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/83.0.4103.106 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/275.0.0.49.127;]",
+    {
+      "family": "Facebook",
+      "major": "275",
+      "minor": "0",
+      "patch": "0",
+      "patch_minor": "49"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 7.1.2; vivo X9 Build/N2G47H; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/77.0.3865.120 MQQBrowser/6.2 TBS/045224 Mobile Safari/537.36 CSDNApp/4.2.7(Android) AnalysysAgent/Hybrid",
+    {
+      "family": "QQBrowser",
+      "major": "6",
+      "minor": "2",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 8.1.0; SM-J260M Build/M1AJB; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 SamsungBrowser/7.2 Chrome/81.0.4044.138 Mobile Safari/537.36",
+    {
+      "family": "SamsungBrowser",
+      "major": "7",
+      "minor": "2",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 9; vivo 1906 Build/PKQ1.190616.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.84 Mobile Safari/537.36 VivoBrowser/6.0.3.2",
+    {
+      "family": "VivoBrowser",
+      "major": "6",
+      "minor": "0",
+      "patch": "3",
+      "patch_minor": "2"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 10; SM-G977N Build/QP1A.190711.020; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/80.0.3987.163 Whale/1.0.0.0 Crosswalk/25.80.14.7 Mobile Safari/537.36 NAVER(inapp; search; 710; 10.23.5)",
+    {
+      "family": "Whale",
+      "major": "1",
+      "minor": "0",
+      "patch": "0",
+      "patch_minor": "0"
+    }
+  ],
+  [
+    "Mozilla/5.0 (compatible; Linux x86_64; Mail.RU_Bot/Img/2.0; +http://go.mail.ru/help/robots)",
+    {
+      "family": "Mail.RU Bot Img",
+      "major": "2",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 10; Redmi Note 7) AppleWebKit/537.36 (KHTML, like Gecko) coc_coc_browser/83.0.316 Mobile Chrome/77.0.3865.316 Mobile Safari/537.36",
+    {
+      "family": "Coc Coc Browser",
+      "major": "83",
+      "minor": "0",
+      "patch": "316",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3029.110 Amigo/68.0.3029.110 MRCHROME SOC Safari/647.36",
+    {
+      "family": "Amigo",
+      "major": "68",
+      "minor": "0",
+      "patch": "3029",
+      "patch_minor": "110"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; arm_64; Android 10; JSN-L21) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 YaBrowser/20.4.4.76.00 SA/1 Mobile Safari/537.36",
+    {
+      "family": "Yandex Browser",
+      "major": "20",
+      "minor": "4",
+      "patch": "4",
+      "patch_minor": "76"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.162 Safari/537.36 Edg/80.0.361.109",
+    {
+      "family": "Edge",
+      "major": "80",
+      "minor": "0",
+      "patch": "361",
+      "patch_minor": "109"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 10; Mi 9T) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.116 Mobile Safari/537.36 EdgA/45.04.4.4995",
+    {
+      "family": "Edge",
+      "major": "45",
+      "minor": "04",
+      "patch": "4",
+      "patch_minor": "4995"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.125 Safari/537.36 OPR/25.0.1614.71",
+    {
+      "family": "Opera",
+      "major": "25",
+      "minor": "0",
+      "patch": "1614",
+      "patch_minor": "71"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Whale/2.7.100.20 Safari/537.36",
+    {
+      "family": "Whale",
+      "major": "2",
+      "minor": "7",
+      "patch": "100",
+      "patch_minor": "20"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.90 Safari/537.36 Vivaldi/1.91.867.38",
+    {
+      "family": "Vivaldi",
+      "major": "1",
+      "minor": "91",
+      "patch": "867",
+      "patch_minor": "38"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 9; Lenovo L38041 Build/PKQ1.190127.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/64.0.3282.137 Mobile Safari/537.36 MobileLenovoBrowser/8.5.2",
+    {
+      "family": "MobileLenovoBrowser",
+      "major": "8",
+      "minor": "5",
+      "patch": "2",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; U; Android 1.0; en-us; dream) AppleWebKit/525.10+ (KHTML, like Gecko) Version/3.0.4 Mobile Safari/523.12.2",
+    {
+      "family": "Android WebView",
+      "major": "1",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 9; JSN-AL00a Build/HONORJSN-AL00a; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/78.0.3904.62 XWEB/2468 MMWEBSDK/200502 Mobile Safari/537.36 MMWEBID/9928 MicroMessenger/7.0.15.1680(0x27000F3C) Process/tools WeChat/arm32 NetType/WIFI Language/zh_CN ABI/arm64",
+    {
+      "family": "WeChat",
+      "major": "7",
+      "minor": "0",
+      "patch": "15",
+      "patch_minor": "1680"
+    }
+  ],
+  [
+    "Mozilla/5.0 (iPhone; CPU OS 13_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/26.0  Mobile/15E148 Safari/605.1.15",
+    {
+      "family": "Firefox",
+      "major": "26",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 DuckDuckGo/7",
+    {
+      "family": "DuckDuckGo",
+      "major": "7",
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 YJApp-IOS jp.co.yahoo.ipn.appli/4.16.17",
+    {
+      "family": "Yahoo Japan",
+      "major": "4",
+      "minor": "16",
+      "patch": "17",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.81 YisouSpider/5.0 Safari/537.36",
+    {
+      "family": "YisouSpider",
+      "major": "5",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 9; ONEPLUS A5010 Build/PKQ1.180716.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/83.0.4103.106 Mobile Safari/537.36 [Pinterest/Android]",
+    {
+      "family": "Pinterest",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "AHC/2.1",
+    {
+      "family": "AHC",
+      "major": "2",
+      "minor": "1",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36 OPR/68.0.3618.165 (Edition Yx)",
+    {
+      "family": "Opera",
+      "major": "68",
+      "minor": "0",
+      "patch": "3618",
+      "patch_minor": "165"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0 Safari/605.1.15 DuckDuckGo/7",
+    {
+      "family": "DuckDuckGo",
+      "major": "7",
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.21 (KHTML, like Gecko) wpif Safari/537.21",
+    {
+      "family": "wpif",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Code-Insiders/1.47.0-insider Chrome/78.0.3904.130 Electron/7.3.1 Safari/537.36",
+    {
+      "family": "Code-Insiders",
+      "major": "1",
+      "minor": "47",
+      "patch": "0",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Version/13.1 (Ecosia ios@4.0.17.833) Safari/604.1",
+    {
+      "family": "Ecosia",
+      "major": "4",
+      "minor": "0",
+      "patch": "17",
+      "patch_minor": "833"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 6.2; Win64; x64) AppleWebKit/605.1 (KHTML, like Gecko) JavaFX/10 Safari/605.1",
+    {
+      "family": "JavaFX",
+      "major": "10",
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 146.0.0.21.122 (iPhone12,1; iOS 13_5_1; en_US; en-US; scale=2.00; 828x1792; 220223664)",
+    {
+      "family": "Instagram",
+      "major": "146",
+      "minor": "0",
+      "patch": "0",
+      "patch_minor": "21"
+    }
+  ],
+  [
+    "Mediatoolkitbot (complaints@mediatoolkit.com)",
+    {
+      "family": "Mediatoolkitbot",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "arquivo-web-crawler (compatible; heritrix/3.4.0-20200304 +http://arquivo.pt)",
+    {
+      "family": "arquivo-web-crawler",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "AppEngine-Google; (+http://code.google.com/appengine; appid: s~geekurself)",
+    {
+      "family": "AppEngine-Google",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Friendica 'Red Hot Poker' 2020.03-1338; https://social.isurf.ca",
+    {
+      "family": "Friendica 'Red Hot Poker'",
+      "major": "2020",
+      "minor": "03",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 10; GLK-AL00 Build/HUAWEIGLK-AL00; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/76.0.3809.89 Mobile Safari/537.36 T7/11.12 SP-engine/2.20.0 baiduboxapp/11.24.0.10 (Baidu; P1 10) NABar/1.0",
+    {
+      "family": "baiduboxapp",
+      "major": "11",
+      "minor": "24",
+      "patch": "0",
+      "patch_minor": "10"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_5) AppleWebKit/605.1.15 (KHTML, like Gecko)",
+    {
+      "family": "macOS WebView",
+      "major": "605",
+      "minor": "1",
+      "patch": "15",
+      "patch_minor": null
+    }
+  ],
+  [
+    "http://seewithkids.com/bot",
+    {
+      "family": "seewithkids.com",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 8.1.0; COR-AL10 Build/HUAWEICOR-AL10) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Mobile Safari/537.36",
+    {
+      "family": "Android WebView",
+      "major": "8",
+      "minor": "1",
+      "patch": "0",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 4.0.3; KFTT) AppleWebKit/537.36 (KHTML, like Gecko) Silk/73.7.5 like Chrome/73.0.3683.90 Safari/537.36",
+    {
+      "family": "Silk",
+      "major": "73",
+      "minor": "7",
+      "patch": "5",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/4.0 (compatible;)",
+    {
+      "family": "Mozilla",
+      "major": "4",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (iPad; CPU OS 13_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0 EdgiOS/45.3.19 Mobile/15E148 Safari/605.1.15",
+    {
+      "family": "Edge",
+      "major": "45",
+      "minor": "3",
+      "patch": "19",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 13_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 SP-engine/2.20.0 main%2F1.0 baiduboxapp/11.24.0.18 (Baidu; P2 13.5.1) NABar/1.0",
+    {
+      "family": "baiduboxapp",
+      "major": "11",
+      "minor": "24",
+      "patch": "0",
+      "patch_minor": "18"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 10.0; ZumBot/1.0; WOW64;Trident/7.0;rv:11.0) Chrome/50.0.2661.94 (KHTML, like Gecko)",
+    {
+      "family": "ZumBot",
+      "major": "1",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Safari/537.36 OppoBrowser/20.5.0.9",
+    {
+      "family": "OppoBrowser",
+      "major": "20",
+      "minor": "5",
+      "patch": "0",
+      "patch_minor": "9"
+    }
+  ],
+  [
+    "Mozilla/5.0 (BlackBerry; U; BlackBerry 9860; en-US) AppleWebKit/534.11+ (KHTML, like Gecko) Version/7.0.0.254 Mobile Safari/534.11+",
+    {
+      "family": "BlackBerry WebKit",
+      "major": "7",
+      "minor": "0",
+      "patch": "0",
+      "patch_minor": "254"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 9; CMR-W09 Build/HUAWEICMR-W09) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Mobile Safari/537.36",
+    {
+      "family": "Android WebView",
+      "major": "9",
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (X11; Linux x86_64; rv:20.0; OCA\\Mail\\Vendor\\Favicon; +https://github.com/ArthurHoaro/favicon) Gecko/20100101 Firefox/32.0",
+    {
+      "family": "OCA\\Mail\\Vendor\\Favicon",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (compatible; SpiderLing (a SPIDER for LINGustic research); +http://nlp.fi.muni.cz/projects/biwec/)",
+    {
+      "family": "SpiderLing",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ]
+]

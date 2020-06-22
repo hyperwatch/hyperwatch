@@ -1,0 +1,35 @@
+[
+  {
+    "regex": "(360Spider)"
+  },
+  {
+    "regex": "(AppEngine-Google)"
+  },
+  {
+    "regex": "(BingPreview)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Dash)\\/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Google Favicon)"
+  },
+  {
+    "regex": "(GoogleImageProxy)"
+  },
+  {
+    "regex": "(Google Web Preview)"
+  },
+  {
+    "regex": "(SkypeUriPreview)"
+  },
+  {
+    "regex": "via (Fastmail)"
+  },
+  {
+    "regex": "(Whale)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(WordPress\\.com mShots)"
+  }
+]
