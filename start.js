@@ -2,10 +2,6 @@ const path = require('path');
 
 const hyperwatch = require('./hyperwatch');
 
-// Load (will load modules)
-
-hyperwatch.load();
-
 // Load configuration
 
 if (process.argv[2]) {

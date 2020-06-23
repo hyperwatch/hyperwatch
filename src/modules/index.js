@@ -1,4 +1,8 @@
+const debug = require('debug');
+
 const constants = require('../constants');
+
+const debugModules = debug('hyperwatch:modules');
 
 function getModule(module) {
   switch (module) {
@@ -25,7 +29,8 @@ function getModule(module) {
     case 'status':
       return require('./status');
     default:
-      throw new Error(`Unknown module '${module}'`);
+      debugModules(`Unknown module '${module}'`);
+      return;
   }
 }
 
@@ -40,6 +45,7 @@ function load() {
   for (const { key } of activeModules()) {
     const module = getModule(key);
     if (module && module.load) {
+      debugModules(`Loading module '${key}'`);
       module.load();
     }
   }
@@ -49,6 +55,7 @@ function beforeStart() {
   for (const { key } of activeModules()) {
     const module = getModule(key);
     if (module && module.beforeStart) {
+      debugModules(`Executing 'beforeStart' for module '${key}'`);
       module.beforeStart();
     }
   }

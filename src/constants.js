@@ -8,7 +8,7 @@ const constants = {
       priority: 100,
     },
     logs: {
-      active: true,
+      active: false,
       priority: 200,
     },
     cloudflare: {
