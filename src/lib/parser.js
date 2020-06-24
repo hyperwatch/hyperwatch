@@ -196,6 +196,7 @@ const familyMapping = {
   'Chrome Mobile WebView': 'Chrome WebView',
   'Mobile Safari': 'Safari',
   'Mobile Safari UI WKWebView': 'Safari WebView',
+  'UC Browser': 'UCBrowser',
 };
 
 function processFamily(family) {

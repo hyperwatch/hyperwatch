@@ -778,5 +778,85 @@
       "patch": null,
       "patch_minor": null
     }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 6.0; rv:2.0) Gecko/20100101 Firefox/4.0 Opera 12.14",
+    {
+      "family": "Opera",
+      "major": "12",
+      "minor": "14",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (compatible; MSIE 7.0; Windows NT 6.0; en-US)",
+    {
+      "family": "IE",
+      "major": "7",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Kaspersky Lab CFR link resolver cfradmins@kaspersky.com",
+    {
+      "family": "Kaspersky Lab CFR link resolver",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)",
+    {
+      "family": "Slackbot-LinkExpanding",
+      "major": "1",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "ltx71 - (http://ltx71.com/)",
+    {
+      "family": "ltx71",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) coc_coc_browser/86.0.172 Chrome/80.0.3987.172 Safari/537.36",
+    {
+      "family": "Coc Coc Browser",
+      "major": "86",
+      "minor": "0",
+      "patch": "172",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 11_4 like Mac OS X) AppleWebKit/604.1.34 (KHTML, like Gecko) coc_coc_browser/83.0.218 CriOS/77.0.3865.218 Mobile/15E148 Safari/604.1",
+    {
+      "family": "Coc Coc Browser",
+      "major": "83",
+      "minor": "0",
+      "patch": "218",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Whale/2.7.100.20 Safari/537.36",
+    {
+      "family": "Whale",
+      "major": "2",
+      "minor": "7",
+      "patch": "100",
+      "patch_minor": "20"
+    }
   ]
 ]

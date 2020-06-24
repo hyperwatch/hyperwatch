@@ -4,7 +4,17 @@ user_agent_parsers:
 
   - regex: (AppEngine-Google)
 
+  # Example: BaiduHD/5.4.0.0 Mobile/10A406 Safari/8536.25
+  - regex: '(BaiduHD)\/(\d+)\.(\d+)\.(\d+)\.(\d+)'
+
   - regex: '(BingPreview)/(\d+)\.(\d+)'
+
+  # Example: Chrome/77.0.4000.0 Iron Safari/537.36
+  - regex: '(Chrome)/(\d+)\.(\d+)\.(\d+)[\d.]* Iron[^/]'
+    family_replacement: 'Iron'
+
+  #  Version/6.0 Mobile/10A5376e Safari/8536.25 Crowsnest/0.5 (+http://www.crowsnest.tv/)
+  - regex: '(Crowsnest)\/(\d+)\.(\d+)'
 
   # Example: AppleWebKit/605.1.15 (KHTML, like Gecko) Dash/4.6.7 Xcode/8.3.3
   - regex: '(Dash)\/(\d+)\.(\d+)\.(\d+)'
@@ -17,10 +27,25 @@ user_agent_parsers:
 
   - regex: '(Google Web Preview)'
 
+  # Google Plus
+  - regex: 'Google.*/\+/web/snippet'
+    family_replacement: 'GooglePlusBot'
+
+  # Example: KHTML/4.9.1 (like Gecko) Konqueror/4.9
+  - regex: '(Konqueror)\/(\d+)\.(\d+)'
+
+  - regex: 'LBBROWSER'
+    family_replacement: 'Liebao Browser'
+
+  # Example: Version/4.0 Mobile Safari/534.30 Opera News/1.0
+  - regex: '(Opera News)\/(\d+)\.(\d+)'
+
+  - regex: '(Rival IQ)'
+
   - regex: '(SkypeUriPreview)'
 
   - regex: 'via (Fastmail)'
 
-  - regex: '(Whale)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
-
   - regex: '(WordPress\.com mShots)'
+
+  - regex: '^(ZhihuHybrid)'

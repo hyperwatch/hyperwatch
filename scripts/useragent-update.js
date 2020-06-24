@@ -15,6 +15,12 @@ fetch(
       regexesYaml
     );
 
+    const regexesFirstYaml = fs
+      .readFileSync(
+        path.resolve(__dirname, '..', 'src', 'data', 'regexes-first.yml')
+      )
+      .toString();
+
     const regexesExtraYaml = fs
       .readFileSync(
         path.resolve(__dirname, '..', 'src', 'data', 'regexes-extra.yml')
@@ -23,6 +29,12 @@ fetch(
 
     const regexes = yaml.eval(regexesYaml);
     const regexesExtra = yaml.eval(regexesExtraYaml);
+    const regexesFirst = yaml.eval(regexesFirstYaml);
+
+    fs.writeFileSync(
+      path.resolve(__dirname, '..', 'src', 'data', 'regexes-first.json'),
+      JSON.stringify(regexesFirst.user_agent_parsers, null, 2)
+    );
 
     fs.writeFileSync(
       path.resolve(__dirname, '..', 'src', 'data', 'regexes-extra.json'),

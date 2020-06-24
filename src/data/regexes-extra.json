@@ -6,7 +6,17 @@
     "regex": "(AppEngine-Google)"
   },
   {
+    "regex": "(BaiduHD)\\/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(BingPreview)/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Chrome)/(\\d+)\\.(\\d+)\\.(\\d+)[\\d.]* Iron[^/]",
+    "family_replacement": "Iron"
+  },
+  {
+    "regex": "(Crowsnest)\\/(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(Dash)\\/(\\d+)\\.(\\d+)\\.(\\d+)"
@@ -21,15 +31,32 @@
     "regex": "(Google Web Preview)"
   },
   {
+    "regex": "Google.*/\\+/web/snippet",
+    "family_replacement": "GooglePlusBot"
+  },
+  {
+    "regex": "(Konqueror)\\/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "LBBROWSER",
+    "family_replacement": "Liebao Browser"
+  },
+  {
+    "regex": "(Opera News)\\/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(Rival IQ)"
+  },
+  {
     "regex": "(SkypeUriPreview)"
   },
   {
     "regex": "via (Fastmail)"
   },
   {
-    "regex": "(Whale)/(\\d+)\\.(\\d+)\\.(\\d+)\\.(\\d+)"
+    "regex": "(WordPress\\.com mShots)"
   },
   {
-    "regex": "(WordPress\\.com mShots)"
+    "regex": "^(ZhihuHybrid)"
   }
 ]
