@@ -4,6 +4,7 @@ const agentRegexes = require('./regexes-agent');
 const coreRegexes = require('./regexes-core');
 const deviceRegexes = require('./regexes-device');
 const extraRegexes = require('./regexes-extra');
+const firstRegexes = require('./regexes-first');
 const osRegexes = require('./regexes-os');
 
 function compileRegex(entry) {
@@ -16,5 +17,6 @@ module.exports = {
   device: deviceRegexes.map(compileRegex),
   os: osRegexes.map(compileRegex),
   extra: extraRegexes.map(compileRegex),
+  first: firstRegexes.map(compileRegex),
   core: mapValues(coreRegexes, (regexes) => regexes.map(compileRegex)),
 };

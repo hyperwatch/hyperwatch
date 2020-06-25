@@ -477,6 +477,7 @@ exports.parse = function parse(
   const regexSets = {};
 
   if (enableCore) {
+    regexSets['hyperwatch-first'] = regexes.first;
     const result = parser.parse(userAgent);
     if (result.meta) {
       debugUseragent(result.meta);
