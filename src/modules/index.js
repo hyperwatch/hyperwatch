@@ -4,7 +4,7 @@ const constants = require('../constants');
 
 const debugModules = debug('hyperwatch:modules');
 
-function getModule(module) {
+function get(module) {
   switch (module) {
     case 'address':
       return require('./address');
@@ -43,7 +43,7 @@ function activeModules() {
 
 function load() {
   for (const { key } of activeModules()) {
-    const module = getModule(key);
+    const module = get(key);
     if (module && module.load) {
       debugModules(`Loading module '${key}'`);
       module.load();
@@ -53,7 +53,7 @@ function load() {
 
 function beforeStart() {
   for (const { key } of activeModules()) {
-    const module = getModule(key);
+    const module = get(key);
     if (module && module.beforeStart) {
       debugModules(`Executing 'beforeStart' for module '${key}'`);
       module.beforeStart();
@@ -62,6 +62,7 @@ function beforeStart() {
 }
 
 module.exports = {
+  get,
   load,
   beforeStart,
 };
