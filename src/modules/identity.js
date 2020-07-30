@@ -233,6 +233,9 @@ function augment(log) {
     if (hostname.endsWith('.crawl.sm.cn')) {
       return log.set('identity', 'Shenma');
     }
+    if (hostname.endsWith('.hx.spiderfoot.net')) {
+      return log.set('identity', 'SpiderFoot');
+    }
   }
 
   return log;

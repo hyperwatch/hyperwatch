@@ -1,10 +1,4 @@
 {
-  "first": [
-    {
-      "regex": "([\\w]{2,32}browser)\\/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?",
-      "regex_flag": "i"
-    }
-  ],
   "chrome": [
     {
       "regex": "(Datanyze)"
@@ -186,7 +180,7 @@
       "family_replacement": "Android WebView"
     },
     {
-      "regex": "(BlackBerry).+ AppleWebKit\\/\\d+\\.\\d+\\.?\\d*\\+ \\(KHTML, like Gecko\\) Version\\/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?",
+      "regex": "(BlackBerry|BB10).+ AppleWebKit\\/\\d+\\.\\d+\\.?\\d*\\+ \\(KHTML, like Gecko\\) Version\\/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?",
       "family_replacement": "BlackBerry WebKit"
     },
     {
