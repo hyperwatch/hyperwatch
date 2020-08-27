@@ -1,10 +1,3 @@
-first:
-  # Generic Browser
-  # Example: Chrome/53.0.2785.116 Safari/537.36 QBCore/4.0.1301.400 QQBrowser/9.0.2524.400
-  # Example: Chrome/70.0.3538.25 Safari/537.36 Core/1.70.3703.400 SLBrowser/10.0.3856.400
-  - regex: '([\w]{2,32}browser)\/(\d+)\.(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?'
-    regex_flag: 'i'
-
 chrome:
   # Non standard pattern, needs to be first
   # Example: Mozilla/5.0 (X11; Datanyze; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.181 Safari/537.36
@@ -196,7 +189,7 @@ webkit_old:
     family_replacement: 'Android WebView'
 
   # Example: Mozilla/5.0 (BlackBerry; U; BlackBerry 9860; en-US) AppleWebKit/534.11+ (KHTML, like Gecko) Version/7.0.0.254 Mobile Safari/534.11+
-  - regex: '(BlackBerry).+ AppleWebKit\/\d+\.\d+\.?\d*\+ \(KHTML, like Gecko\) Version\/(\d+)\.(\d+)\.?(\d+)?\.?(\d+)?'
+  - regex: '(BlackBerry|BB10).+ AppleWebKit\/\d+\.\d+\.?\d*\+ \(KHTML, like Gecko\) Version\/(\d+)\.(\d+)\.?(\d+)?\.?(\d+)?'
     family_replacement: 'BlackBerry WebKit'
 
   # Example: AppleWebKit/537.13+ (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2

@@ -3,6 +3,9 @@
     "regex": "(360Spider)"
   },
   {
+    "regex": "(apimon\\.de)"
+  },
+  {
     "regex": "(AppEngine-Google)"
   },
   {
@@ -12,14 +15,23 @@
     "regex": "(BingPreview)/(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "(brokenlinkcheck\\.com)/(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(Chrome)/(\\d+)\\.(\\d+)\\.(\\d+)[\\d.]* Iron[^/]",
     "family_replacement": "Iron"
+  },
+  {
+    "regex": "(Chrome-Lighthouse)"
   },
   {
     "regex": "(Crowsnest)\\/(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(Dash)\\/(\\d+)\\.(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(DarcyRipper)"
   },
   {
     "regex": "(Google Favicon)"
@@ -45,6 +57,9 @@
     "regex": "(Opera News)\\/(\\d+)\\.(\\d+)"
   },
   {
+    "regex": "([\\w \\-\\.@]{0,50})/Nutch\\-(\\d+)\\.(\\d+)"
+  },
+  {
     "regex": "(Rival IQ)"
   },
   {
@@ -52,6 +67,9 @@
   },
   {
     "regex": "via (Fastmail)"
+  },
+  {
+    "regex": "^(Winds)\\:"
   },
   {
     "regex": "(WordPress\\.com mShots)"
