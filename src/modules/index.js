@@ -65,4 +65,5 @@ module.exports = {
   get,
   load,
   beforeStart,
+  activeModules,
 };
