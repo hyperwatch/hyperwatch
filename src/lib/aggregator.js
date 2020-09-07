@@ -1,10 +1,8 @@
-const crypto = require('crypto');
-
 const { Map, Set, is } = require('immutable');
 
 const { Formatter, address, identity } = require('../lib/formatter');
 const { Speed } = require('../lib/speed');
-const { aggregateSpeed } = require('../lib/util');
+const { aggregateSpeed, md5 } = require('../lib/util');
 
 const defaultFormatter = new Formatter();
 defaultFormatter.setFormats([
@@ -26,6 +24,7 @@ const defaultEnricher = (entry, log) => {
     'hostname',
     'agent',
     'language',
+    'signature',
   ]) {
     if (log.has(field) && !is(log.get(field), entry.get(field))) {
       entry = entry.set(field, log.get(field));
@@ -80,7 +79,7 @@ class Aggregator {
 
   processLog(log) {
     const identifier = this.identifier(log);
-    const id = crypto.createHash('md5').update(identifier).digest('hex');
+    const id = md5(identifier);
 
     if (!this.entries.has(id)) {
       this.entries = this.entries

@@ -96,7 +96,7 @@ class Formatter {
 
     if (after || before) {
       const index = this.formats.findIndex(([k]) => k == (after || before));
-      if (index) {
+      if (index !== -1) {
         this.formats.splice(after ? index + 1 : index, 0, [key, fn]);
 
         return this;

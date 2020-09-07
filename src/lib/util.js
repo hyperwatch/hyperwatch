@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+
 const { fromJS } = require('immutable');
 
 // Number of seconds since Unix epoch
@@ -58,3 +60,5 @@ exports.formatTable = (data) => {
 
   return `<table>\n${headings}\n${rows}\n</table>`;
 };
+
+exports.md5 = (string) => crypto.createHash('md5').update(string).digest('hex');
