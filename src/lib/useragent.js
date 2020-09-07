@@ -537,7 +537,9 @@ exports.parse = function parse(
           userAgent
         );
 
-        Object.defineProperty(agent, 'type', { value: type });
+        if (type) {
+          Object.defineProperty(agent, 'type', { value: type });
+        }
 
         return agent;
       }
