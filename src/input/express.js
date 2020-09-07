@@ -14,15 +14,18 @@ function create({ name = 'Express Middleware', app } = {}) {
     },
     middleware: function () {
       return function (req, res, next) {
+        req.rawLog = createLog(req, res);
         req.startAt = new Date();
         res.on('finish', () => {
           const { success, reject } = this;
           req.endAt = new Date();
           try {
             const executionTime = req.endAt - req.startAt;
-            const log = createLog(req, res).set('executionTime', executionTime);
+            req.rawLog = req.rawLog
+              .setIn(['response', 'status'], res.statusCode)
+              .set('executionTime', executionTime);
             if (success) {
-              success(log);
+              success(req.rawLog);
             }
           } catch (err) {
             if (reject) {
