@@ -139,6 +139,11 @@ function augment(log) {
       return hostname && hostname.endsWith('.linkedin.com')
         ? log.set('identity', 'LinkedIn')
         : log;
+    case 'Linespider':
+      // https://en.wikipedia.org/wiki/Line_(software)
+      return hostname && hostname.endsWith('.search.line-apps.com')
+        ? log.set('identity', 'Line')
+        : log;
     case 'YahooMailProxy':
       return hostname && hostname.endsWith('.yahoo.net')
         ? log.set('identity', 'Yahoo')
