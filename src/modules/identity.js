@@ -152,6 +152,11 @@ function augment(log) {
       return hostname && hostname.endsWith('.crawl.sm.cn')
         ? log.set('identity', 'Shenma')
         : log;
+    case 'Barkrowler':
+      // https://babbar.tech/
+      return hostname && hostname.endsWith('.babbar.eu')
+        ? log.set('identity', 'Babbar')
+        : log;
 
     // Per hostname + CIDR
     case 'Twitterbot':
