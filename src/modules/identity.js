@@ -157,6 +157,14 @@ function augment(log) {
       return hostname && hostname.endsWith('.babbar.eu')
         ? log.set('identity', 'Babbar')
         : log;
+    case 'bnf.fr bot':
+      return hostname && hostname.endsWith('.bnf.fr')
+        ? log.set('identity', 'BnF.fr')
+        : log;
+    case 'BluechipBacklinks':
+      return hostname && hostname.endsWith('.bluechipbacklinks.com')
+        ? log.set('identity', 'Bluechip Backlinks')
+        : log;
 
     // Per hostname + CIDR
     case 'Twitterbot':
@@ -246,6 +254,10 @@ function augment(log) {
     if (hostname.endsWith('.hx.spiderfoot.net')) {
       return log.set('identity', 'SpiderFoot');
     }
+    if (hostname.endsWith('.us.archive.org')) {
+      return log.set('identity', 'Archive.org');
+    }
+  }
   }
 
   return log;
