@@ -1,6 +1,7 @@
 user_agent_parsers:
-  # Generic Browser
+  # Generic Browser/Spider/Crawler/App/Messenger
   # Example: Chrome/53.0.2785.116 Safari/537.36 QBCore/4.0.1301.400 QQBrowser/9.0.2524.400
   # Example: Chrome/70.0.3538.25 Safari/537.36 Core/1.70.3703.400 SLBrowser/10.0.3856.400
-  - regex: '([\w]{2,32}browser)\/(\d+)\.(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?'
+  # Example: CriOS/56.0.2924.75 Mobile/14E5239e YisouSpider/5.0 Safari/602.1:
+  - regex: '([\w]{2,32}(?:browser|app|crawler|spider|messenger))\/(\d+)\.(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?'
     regex_flag: 'i'

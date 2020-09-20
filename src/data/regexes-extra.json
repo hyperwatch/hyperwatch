@@ -43,6 +43,9 @@
     "regex": "(Google Web Preview)"
   },
   {
+    "regex": "(Chrome Image Compression Service)"
+  },
+  {
     "regex": "Google.*/\\+/web/snippet",
     "family_replacement": "GooglePlusBot"
   },
@@ -61,6 +64,12 @@
   },
   {
     "regex": "(Rival IQ)"
+  },
+  {
+    "regex": "(SketchUp)\\/(\\d+)\\.(\\d+)"
+  },
+  {
+    "regex": "(SketchUp Pro)\\/(\\d+)\\.(\\d+)"
   },
   {
     "regex": "(SkypeUriPreview)"

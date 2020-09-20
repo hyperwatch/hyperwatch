@@ -37,6 +37,8 @@ user_agent_parsers:
 
   - regex: '(Google Web Preview)'
 
+  - regex: '(Chrome Image Compression Service)'
+
   # Google Plus
   - regex: 'Google.*/\+/web/snippet'
     family_replacement: 'GooglePlusBot'
@@ -54,6 +56,12 @@ user_agent_parsers:
   - regex: '([\w \-\.@]{0,50})/Nutch\-(\d+)\.(\d+)'
 
   - regex: '(Rival IQ)'
+
+  # Example: Chrome/52.0.2743.24 SketchUp/17.2 (Mac) Safari/537.36'
+  - regex: '(SketchUp)\/(\d+)\.(\d+)'
+
+  # Example: Chrome/64.0.3282.119 SketchUp Pro/20.2 (Mac) Safari/537.36
+  - regex: '(SketchUp Pro)\/(\d+)\.(\d+)'
 
   - regex: '(SkypeUriPreview)'
 
