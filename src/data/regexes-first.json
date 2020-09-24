@@ -1,6 +1,6 @@
 [
   {
-    "regex": "([\\w]{2,32}(?:browser|app|crawler|spider))\\/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?",
+    "regex": "([\\w]{2,32}(?:browser|app|crawler|spider|messenger))\\/(\\d+)\\.(\\d+)\\.?(\\d+)?\\.?(\\d+)?\\.?(\\d+)?",
     "regex_flag": "i"
   }
 ]
