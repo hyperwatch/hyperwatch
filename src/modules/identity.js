@@ -9,6 +9,7 @@ function augment(log) {
   const hostname = log.getIn(['address', 'hostname']);
   const address =
     log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
+  const signature = log.getIn(['signature', 'id']);
 
   switch (family) {
     // Per hostname
@@ -46,9 +47,10 @@ function augment(log) {
         ? log.set('identity', 'Yandex')
         : log;
     case 'SemrushBot':
-      return hostname && hostname.endsWith('.semrush.com')
-        ? log.set('identity', 'Semrush')
-        : log;
+      if (hostname && hostname.endsWith('.semrush.com')) {
+        return log.set('identity', 'Semrush');
+      }
+      break;
     case 'PingdomBot':
       return hostname && hostname.endsWith('.pingdom.com')
         ? log.set('identity', 'Pingdom')
@@ -100,6 +102,7 @@ function augment(log) {
         ? log.set('identity', 'Uptime Robot')
         : log;
     case 'Coc Coc Bot':
+    case 'Coc Coc Bot Web':
     case 'Coc Coc Bot Image':
       return hostname && hostname.endsWith('.coccoc.com')
         ? log.set('identity', 'Coc Coc')
@@ -111,9 +114,10 @@ function augment(log) {
         ? log.set('identity', 'DuckDuckGo')
         : log;
     case 'MJ12bot':
-      return hostname && hostname.endsWith('.mj12bot.com')
-        ? log.set('identity', 'Majestic')
-        : log;
+      if (hostname && hostname.endsWith('.mj12bot.com')) {
+        return log.set('identity', 'Majestic');
+      }
+      break;
     case 'Yahoo':
       return hostname && hostname.endsWith('.crawl.yahoo.net')
         ? log.set('identity', family)
@@ -128,6 +132,7 @@ function augment(log) {
         : log;
     case 'Mail.RU Bot':
     case 'Mail.RU Bot Img':
+    case 'Mail.RU Bot Fast':
       return hostname && hostname.endsWith('.go.mail.ru')
         ? log.set('identity', 'Mail.RU')
         : log;
@@ -164,6 +169,10 @@ function augment(log) {
     case 'BluechipBacklinks':
       return hostname && hostname.endsWith('.bluechipbacklinks.com')
         ? log.set('identity', 'Bluechip Backlinks')
+        : log;
+    case 'arquivo-web-crawler':
+      return hostname && hostname.endsWith('.arquivo.pt')
+        ? log.set('identity', 'Arquivo')
         : log;
 
     // Per hostname + CIDR
@@ -235,6 +244,10 @@ function augment(log) {
       return hostname && hostname.endsWith('.your-server.de')
         ? log.set('identity', 'Ubermetrics')
         : log;
+    case 'Seekport Crawler':
+      return hostname && hostname.endsWith('.clients.your-server.de')
+        ? log.set('identity', 'Seekport')
+        : log;
   }
 
   // Hostname only
@@ -256,6 +269,19 @@ function augment(log) {
     }
     if (hostname.endsWith('.us.archive.org')) {
       return log.set('identity', 'Archive.org');
+    }
+  }
+
+  // Signature
+  if (signature && !log.has('identity')) {
+    if (signature === '6877bffcee5eb4b80f4f974d7697e809') {
+      return log.set('identity', 'SpiderFoot');
+    }
+    if (signature === '3d36aa5118581a33dd2704f3b0c22a0b') {
+      return log.set('identity', 'Majestic');
+    }
+    if (signature === '75e08e387505289898138bab5c6ee557') {
+      return log.set('identity', 'Semrush');
     }
   }
 
