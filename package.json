@@ -43,6 +43,7 @@
     "lodash": "^4.17.20",
     "lru-cache": "^6.0.0",
     "micro-strptime": "^0.2.3",
+    "node-fetch": "^2.6.1",
     "proxy-addr": "^2.0.6",
     "rc": "^1.2.8",
     "syslog-parse": "^1.3.1",
