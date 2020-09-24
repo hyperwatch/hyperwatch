@@ -29,7 +29,7 @@ function parseMozilla5(ua) {
     return parseAppleWebkit(ua);
   } else if (ua.includes('Gecko/20100101')) {
     return parseGeckoModern(ua);
-  } else if (ua.includes('Gecko/')) {
+  } else if (ua.includes('Gecko/') || ua.includes('Goanna/')) {
     return parseGeckoGeneric(ua);
   } else {
     return parseGenericMozilla5(ua);
@@ -167,6 +167,7 @@ const familyMapping = {
   'baidu.sogo.uc.UCBrowser': 'UCBrowser',
   'coc coc browser': 'Coc Coc Browser',
   'coccocbot-image': 'Coc Coc Bot Image',
+  'coccocbot-web': 'Coc Coc Bot Web',
   'Ecosia android': 'Ecosia',
   'Ecosia ios': 'Ecosia',
   'jp.co.yahoo.ipn.appli': 'Yahoo Japan',

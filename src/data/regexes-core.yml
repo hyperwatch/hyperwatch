@@ -20,7 +20,7 @@ chrome:
   # Example: Chrome/69.0.3497.128 Mobile Safari/537.36 (Ecosia android@69.0.3497.128)
   - regex: 'Safari\/537.36 \(?(\w+[\w \-\.@]{0,50})[\/@](\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?\)?'
 
-  # Exanple: Silk/73.7.5 like Chrome/73.0.3683.90 Safari/537.36
+  # Example: Silk/73.7.5 like Chrome/73.0.3683.90 Safari/537.36
   - regex: '(\w+[\w\-\.@]{0,50})/(\d+)\.(\d+)\.?(\d+)?\.?(\d+)? like Chrome/\d+\.\d+\.\d+\.\d+ Safari/'
 
   # Sogou Explorer
@@ -37,19 +37,15 @@ chrome_version:
   - regex: '\[FB.*;(FBAV)/(\d+)\.(\d+)\.(\d+)\.(\d+)'
     family_replacement: 'Facebook'
 
-  # Generic: messenger
-  - regex: '([\w]{2,32}messenger)/(\d+)\.(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?'
-    regex_flag: 'i'
-
-  # Generic: app
-  - regex: '([\w]{2,32}app)/(\d+)\.(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?'
-    regex_flag: 'i'
-
   # Example: Version/4.0 Chrome/77.0.3865.120 MQQBrowser/6.2 TBS/045224 Mobile Safari/537.36 CSDNApp/4.2.7(Android) AnalysysAgent/Hybrid
   - regex: 'Chrome/\d+\.\d+\.\d+\.\d+ (\w+[\w \-\.@]{0,50})\/(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?.*Mobile Safari/537.36'
 
   # Example: Version/4.0 SamsungBrowser/7.2 Chrome/81.0.4044.138 Mobile Safari/537.36
   - regex: 'Version/4.0 (\w+[\w \-\.@]{0,50})\/(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)? Chrome/\d+\.\d+\.\d+\.\d+'
+
+  # Example: Version/4.0 Chrome/85.0.4183.101 DuckDuckGo/5 Safari/537.3
+  # Example: Version/4.0 Chrome/85.0.4183.101 Mobile DuckDuckGo/5 Safari/537.36
+  - regex: 'Version/4.0 Chrome/\d+\.\d+\.\d+\.\d+ (?:Mobile )?(\w+[\w \-\.@]{0,50})\/(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)? Safari/537.36'
 
   # Example: Version/4.0 Chrome/83.0.4103.101 Mobile Safari/537.36 [LinkedInApp]
   # Example: Version/4.0 Chrome/83.0.4103.106 Mobile Safari/537.36 [Pinterest/Android]
@@ -84,7 +80,7 @@ gecko:
 
   # Firefox Derivative
   # Example: Gecko/20100101 Goanna/3.4 Firefox/52.9 PaleMoon/27.9.0
-  - regex: 'Firefox\/\d+\.\d+\.?\d* (\w+[\w\-\.@]{0,50})[\/ ]?(\d+)?\.?(\d+)?\.?(\d+)?\.?(\d+)?'
+  - regex: 'Firefox\/\d+\.\d+\.?\d* ([A-Za-z]+[\w\-\.@]{1,50})[\/ ]?(\d+)?\.?(\d+)?\.?(\d+)?\.?(\d+)?'
 
   # Canonical Thunderbird
   # Example: Gecko/20100101 Thunderbird/68.8.0
@@ -101,7 +97,11 @@ gecko_generic:
   - regex: 'Gecko/\d+\.\d+ (Firefox)/(\d+)\.(\d+)'
 
   # Example: Gecko/20050919 Firefox/1.0.7
-  - regex: '(Firefox)/(\d+)\.(\d+)\.?(\d+)?'
+  # Example: Gecko/20070817 IceWeasel/2.0.0.6-g3
+  - regex: 'Gecko\/\d+ ([A-Za-z]+[\w\-\.@]{1,50})[\/ ]?(\d+)?\.?(\d+)?\.?(\d+)?\.?(\d+)?'
+
+  # Example: Goanna/20180518 PaleMoon/27.9.2
+  - regex: 'Goanna\/\d+ ([A-Za-z]+[\w\-\.@]{1,50})[\/ ]?(\d+)?\.?(\d+)?\.?(\d+)?\.?(\d+)?'
 
 webkit:
   # Example: Mozilla/5.0 (linux) AppleWebKit/537.36 (KHTML, like Gecko) jsdom/16.2.2
@@ -123,7 +123,10 @@ apple_webkit:
     family_replacement: 'Epiphany'
 
   # Example: Version/12.0 Safari/605.1.15 DuckDuckGo/7
-  - regex: 'Version\/\d+\.\d+\.?\d* Safari\/\d+\.\d+\.?\d* \(?(\w+[\w \-\.@]{0,50})\/(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?\)?'
+  - regex: 'Version\/\d+\.\d+\.?\d* Safari\/\d+\.\d+\.?\d* \(?([A-Za-z]+[\w \-\.@]{0,50})\/(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?\)?'
+
+  # Example: Version/14.0 DuckDuckGo/7 Safari/605.1.15
+  - regex: 'Version\/\d+\.\d+\.?\d* \(?([A-Za-z]+[\w \-\.@]{0,50})\/(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?\)? Safari\/\d+\.\d+\.?\d*'
 
   # Example: PhantomJS/2.1.1 Safari/538.1
   - regex: '([\w]+[\w \-\.@]{0,50})\/(\d+)\.?(\d+)?\.?(\d+)? Safari\/\d+\.\d+\.?\d*$'
@@ -168,11 +171,6 @@ apple_webkit_mobile:
 
   # Example: Mobile/15E148 Version/13.1 (Ecosia ios@4.0.17.833) Safari/604.1
   - regex: 'Mobile\/[A-Z0-9]{0,6} Version\/\d+\.\d+\.?\d* \(?([\w]+[\w \-\.@]{0,50})[\/@](\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?\)? Safari\/\d+\.\d+\.?\d*$'
-
-  # Generic: app
-  # Example: Mobile/15E148 SP-engine/2.20.0 main%2F1.0 baiduboxapp/11.24.0.18 (Baidu; P2 13.5.1) NABar/1.0
-  - regex: '([\w]{2,32}app)/(\d+)\.(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?'
-    regex_flag: 'i'
 
   # Example: Mobile/15E148 DuckDuckGo/7
   # Example: Mobile/15E148 YJApp-IOS jp.co.yahoo.ipn.appli/4.16.17
@@ -220,10 +218,14 @@ generic:
 
   # Example: http.rb/4.4.1 (Mastodon/3.1.4; +https://psyopshop.com/)
   # Example: http.rb/4.3.0 (Mastodon/3.1.1+glitch; +https://efdn.club/)
-  - regex: '(\w+[\w \-\.]{0,50})\/?(\d+)?\.?(\d+)?\.?(\d+)?[\w~\-\+]*; ?\+?https?:\/\/[A-Za-z0-9\-\.\/]{0,50}'
+  - regex: '(\w+[\w \-\.]{0,50})\/(\d+)?\.?(\d+)?\.?(\d+)?[\w~\-\+\. ]*; ?\+?https?:\/\/[A-Za-z0-9\-\.\/]{0,50}'
 
   # Example: node-fetch/1.0
-  - regex: '^(\w+[\w \-\.:\w]{0,50})\/(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?'
+  # Example: Recon-ng/v4
+  - regex: '^(\w+[\w \-\.:\w]{0,50})\/v?(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?'
+
+  # Example: mattermost-5.26.0
+  - regex: '^(\w+[\w \-\.:\w]{0,50})\-v?(\d+)\.?(\d+)?\.?(\d+)?\.?(\d+)?'
 
   # Example: ltx71 - (http://ltx71.com/)
   - regex: '^(\w+[\w \-\.]{0,50})\/?(\d+)?\.?(\d+)? \- \(\+?https?:\/\/[A-Za-z0-9\-\.\/]{0,50}\)'
@@ -240,6 +242,9 @@ generic:
   # Example: Pingdom.com_bot_version_1.4_(http://www.pingdom.com/)
   - regex: '^(Pingdom).com_bot_version_(\d+)\.(\d+)'
     family_replacement: 'PingdomBot'
+
+  # Example: colly - https://github.com/gocolly/colly/v2
+  - regex: '^^(\w+[\w \-\.]{0,50}) \- https?:\/\/[\w]+[\w \-\.]{0,50}'
 
   # Example: http://seewithkids.com/bot
   - regex: '^https?:\/\/([\w]+[\w \-\.]{0,50})'
@@ -294,6 +299,9 @@ mozilla5:
 mozilla4_compatible:
   # Example: Mozilla/4.5 (compatible; HTTrack 3.0x; Windows 98)
   - regex: 'compatible; ([\w]+[\w \-\.[\w]+]{0,50}) (\d+)\.?(\d+)?'
+
+  # Example: Mozilla/4.0 (compatible; Win32; WinHttp.WinHttpRequest.5)
+  - regex: 'compatible; Win32; ([\w]+[\w \-\.[\w]+]{0,50})\.(\d+)\)'
 
   # Example: Mozilla/4.0 (compatible)
   - regex: '^(Mozilla)/(\d+)\.(\d+) \(compatible;?\)$'

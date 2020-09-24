@@ -858,5 +858,85 @@
       "patch": "100",
       "patch_minor": "20"
     }
+  ],
+  [
+    "Mozilla/5.0 (X11; Linux x86_64; rv:52.9) Gecko/20100101 Goanna/3.4 Firefox/52.9 PaleMoon/27.9.2",
+    {
+      "family": "PaleMoon",
+      "major": "27",
+      "minor": "9",
+      "patch": "2",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (X11; U; Linux i686 (x86_64); en-US; rv:1.8.1.6) Gecko/20070817 IceWeasel/2.0.0.6-g3",
+    {
+      "family": "IceWeasel",
+      "major": "2",
+      "minor": "0",
+      "patch": "0",
+      "patch_minor": "6"
+    }
+  ],
+  [
+    "Mozilla/5.0 (Linux; Android 11) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/85.0.4183.101 Mobile DuckDuckGo/5 Safari/537.36",
+    {
+      "family": "DuckDuckGo",
+      "major": "5",
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "colly - https://github.com/gocolly/colly/v2",
+    {
+      "family": "colly",
+      "major": null,
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 DuckDuckGo/7 Safari/605.1.15",
+    {
+      "family": "DuckDuckGo",
+      "major": "7",
+      "minor": null,
+      "patch": null,
+      "patch_minor": null
+    }
+  ],
+  [
+    "mattermost-5.26.0",
+    {
+      "family": "mattermost",
+      "major": "5",
+      "minor": "26",
+      "patch": "0",
+      "patch_minor": null
+    }
+  ],
+  [
+    "http.rb/4.4.1 (Mastodon/3.2.0 at 6bf07206 on ruby-2.7.1; +https://mastodon.zunda.ninja/)",
+    {
+      "family": "Mastodon",
+      "major": "3",
+      "minor": "2",
+      "patch": "0",
+      "patch_minor": null
+    }
+  ],
+  [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) CriOS/56.0.2924.75 Mobile/14E5239e YisouSpider/5.0 Safari/602.1",
+    {
+      "family": "YisouSpider",
+      "major": "5",
+      "minor": "0",
+      "patch": null,
+      "patch_minor": null
+    }
   ]
 ]
