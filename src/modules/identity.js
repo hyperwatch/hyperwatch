@@ -258,7 +258,6 @@ function augment(log) {
       return log.set('identity', 'Archive.org');
     }
   }
-  }
 
   return log;
 }
