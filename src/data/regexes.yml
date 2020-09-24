@@ -749,7 +749,6 @@ user_agent_parsers:
   - regex: '(BonEcho)/(\d+)\.(\d+)\.?([ab]?\d+|)'
     family_replacement: 'Bon Echo'
 
-
     # topbuzz on IOS
   - regex: '(TopBuzz) com.alex.NewsMaster/(\d+).(\d+).(\d+)'
     family_replacement: 'TopBuzz'
