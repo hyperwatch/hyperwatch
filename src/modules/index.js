@@ -40,24 +40,22 @@ function activeModules() {
   return Object.keys(constants.modules)
     .map((key) => Object.assign({ key }, constants.modules[key]))
     .sort((a, b) => a.priority - b.priority)
-    .filter((m) => m.active === true);
+    .filter((m) => m.active === true)
+    .map((m) => get(m.key))
+    .filter((m) => m);
 }
 
 function load() {
-  for (const { key } of activeModules()) {
-    const module = get(key);
+  for (const module of activeModules()) {
     if (module && module.load) {
-      debugModules(`Loading module '${key}'`);
       module.load();
     }
   }
 }
 
 function beforeStart() {
-  for (const { key } of activeModules()) {
-    const module = get(key);
+  for (const module of activeModules()) {
     if (module && module.beforeStart) {
-      debugModules(`Executing 'beforeStart' for module '${key}'`);
       module.beforeStart();
     }
   }
