@@ -232,6 +232,10 @@ function augment(log) {
         hostname.endsWith('.eu-central-1.compute.amazonaws.com')
         ? log.set('identity', 'Cliqz')
         : log;
+    case 'CCBot':
+      return hostname && hostname.endsWith('.compute-1.amazonaws.com')
+        ? log.set('identity', 'Common Crawl')
+        : log;
 
     // GCE
     case 'VelenPublicWebCrawler':
