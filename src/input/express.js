@@ -1,4 +1,5 @@
 const { createLog } = require('../lib/util');
+const modules = require('../modules');
 
 function create({ name = 'Express Middleware', app } = {}) {
   return {
@@ -14,18 +15,29 @@ function create({ name = 'Express Middleware', app } = {}) {
     },
     middleware: function () {
       return function (req, res, next) {
-        req.rawLog = createLog(req, res);
-        req.startAt = new Date();
+        req.hyperwatch = req.hyperwatch || {};
+        req.hyperwatch.rawLog = createLog(req, res);
+        req.hyperwatch.startedAt = new Date();
+
+        req.hyperwatch.getAugmentedLog = async ({ fast = false } = {}) => {
+          let log = req.hyperwatch.rawLog;
+          for (const module of modules.activeModules()) {
+            if (module && module.augment) {
+              log = await module.augment(log, { fast });
+            }
+          }
+          return log;
+        };
+
         res.on('finish', () => {
           const { success, reject } = this;
-          req.endAt = new Date();
           try {
-            const executionTime = req.endAt - req.startAt;
-            req.rawLog = req.rawLog
+            const executionTime = new Date() - req.hyperwatch.startedAt;
+            req.hyperwatch.rawLog = req.hyperwatch.rawLog
               .setIn(['response', 'status'], res.statusCode)
               .set('executionTime', executionTime);
             if (success) {
-              success(req.rawLog);
+              success(req.hyperwatch.rawLog);
             }
           } catch (err) {
             if (reject) {
