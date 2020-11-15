@@ -1,50 +1,16 @@
-const fs = require('fs');
-const path = require('path');
-
+const useragent = require('@hyperwatch/useragent');
 const { fromJS } = require('immutable');
 const lruCache = require('lru-cache');
 
 const aggregator = require('../lib/aggregator');
 const logger = require('../lib/logger');
 const pipeline = require('../lib/pipeline');
-const useragent = require('../lib/useragent');
 
 const cache = new lruCache({ max: 1000 });
-
-const uas = {};
-
-const alphabeticalSort = (a, b) =>
-  a.toLowerCase().localeCompare(b.toLowerCase());
-
-const prettyJsonStringify = (value) => JSON.stringify(value, null, 2);
-
-function store(ua) {
-  const date = new Date().toISOString().slice(0, 10);
-  const filename = path.join(__dirname, '../../data/ua', `${date}.json`);
-  if (uas[date] === undefined) {
-    try {
-      uas[date] = require(filename);
-    } catch (err) {
-      uas[date] = [];
-    }
-  }
-
-  if (!uas[date].includes(ua)) {
-    uas[date].push(ua);
-    fs.writeFileSync(
-      filename,
-      prettyJsonStringify(uas[date].sort(alphabeticalSort))
-    );
-  }
-}
 
 function lookup(ua) {
   if (cache.has(ua)) {
     return cache.get(ua);
-  }
-
-  if (process.env.HYPERWATCH_AGENT_STORE) {
-    store(ua);
   }
 
   let result = useragent.parse(ua);
