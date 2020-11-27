@@ -1,19 +1,17 @@
 const dnsbl = require('dnsbl');
-const lruCache = require('lru-cache');
 
 const aggregator = require('../lib/aggregator');
+const cache = require('../lib/cache');
 const pipeline = require('../lib/pipeline');
 
-const cache = new lruCache({ max: 1000 });
-
-const xblLookup = async (ip) => {
-  if (cache.has(`xbl-${ip}`)) {
+async function xblLookup(ip) {
+  if (await cache.has(`xbl-${ip}`)) {
     return cache.get(`xbl-${ip}`);
   }
   const result = await dnsbl.lookup(ip, 'xbl.spamhaus.org');
   cache.set(`xbl-${ip}`, result);
   return result;
-};
+}
 
 async function augment(log) {
   const ip =

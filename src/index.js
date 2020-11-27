@@ -8,7 +8,7 @@ const lib = require('./lib');
 const modules = require('./modules');
 const plugins = require('./plugins');
 
-const { pipeline, util } = lib;
+const { cache, pipeline, util } = lib;
 
 let initialized = false;
 
@@ -37,6 +37,7 @@ function stop() {
 
 module.exports = {
   app,
+  cache,
   constants,
   format,
   input,

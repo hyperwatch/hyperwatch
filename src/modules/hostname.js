@@ -1,11 +1,9 @@
 const dns = require('dns').promises;
 
 const debug = require('debug')('hyperwatch:hostname');
-const lruCache = require('lru-cache');
 
+const cache = require('../lib/cache');
 const pipeline = require('../lib/pipeline');
-
-const cache = new lruCache({ max: 1000 });
 
 if (process.env.HYPERWATCH_DNS_SERVER) {
   dns.setServers([process.env.HYPERWATCH_DNS_SERVER]);
@@ -24,7 +22,7 @@ function isValid(hostname) {
 }
 
 async function lookup(ip, { fast = false } = {}) {
-  if (cache.has(ip)) {
+  if (await cache.has(ip)) {
     return cache.get(ip);
   }
 
