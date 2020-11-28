@@ -1,15 +1,13 @@
 const useragent = require('@hyperwatch/useragent');
 const { fromJS } = require('immutable');
-const lruCache = require('lru-cache');
 
 const aggregator = require('../lib/aggregator');
+const cache = require('../lib/cache');
 const logger = require('../lib/logger');
 const pipeline = require('../lib/pipeline');
 
-const cache = new lruCache({ max: 1000 });
-
-function lookup(ua) {
-  if (cache.has(ua)) {
+async function lookup(ua) {
+  if (await cache.has(ua)) {
     return cache.get(ua);
   }
 
@@ -22,11 +20,11 @@ function lookup(ua) {
   return result;
 }
 
-function augment(log) {
+async function augment(log) {
   const userAgentString = log.getIn(['request', 'headers', 'user-agent']);
 
   if (userAgentString) {
-    const agent = lookup(userAgentString);
+    const agent = await lookup(userAgentString);
     if (agent) {
       log = log.set('agent', fromJS(agent));
     }
