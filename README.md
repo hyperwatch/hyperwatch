@@ -1,4 +1,4 @@
-[![NPM version](https://img.shields.io/npm/v/@hyperwatch/hyperwatch)](https://www.npmjs.com/package/@hyperwatch/hyperwatch) [![Build Status](https://github.com/znarf/hyperwatch/workflows/CI/badge.svg)](https://github.com/znarf/hyperwatch/actions?query=workflow%3ACI) [![Dependency Status](https://david-dm.org/znarf/hyperwatch.svg)](https://david-dm.org/znarf/hyperwatch)
+[![NPM version](https://img.shields.io/npm/v/@hyperwatch/hyperwatch)](https://www.npmjs.com/package/@hyperwatch/hyperwatch) [![Build Status](https://github.com/hyperwatch/hyperwatch/workflows/CI/badge.svg)](https://github.com/hyperwatch/hyperwatch/actions?query=workflow%3ACI)
 
 Hyperwatch is a flexible access log processor that helps operators analyze HTTP traffic reaching their infrastructure.
 
@@ -12,10 +12,12 @@ Hyperwatch is built on a real-time stream processor handling logs from inputs of
 
 ## Install
 
-Make sure you have Node.js version >= 11.14. We recommend using [nvm](https://github.com/creationix/nvm): `nvm install && nvm use`.
+Make sure you have Node.js version >= 11.14.
+
+We recommend using [nvm](https://github.com/creationix/nvm): `nvm install && nvm use`.
 
 ```bash
-git clone https://github.com/znarf/hyperwatch.git
+git clone https://github.com/hyperwatch/hyperwatch.git
 cd hyperwatch
 npm install
 ```

@@ -19,7 +19,7 @@ nvm install node
 During the beta phase, let's use Git and clone the public repository:
 
 ```bash
-git clone https://github.com/znarf/hyperwatch.git
+git clone https://github.com/hyperwatch/hyperwatch.git
 cd hyperwatch
 npm install
 ```
