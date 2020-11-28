@@ -11,7 +11,7 @@
     "type": "git",
     "url": "https://github.com/znarf/hyperwatch.git"
   },
-  "version": "3.7.3",
+  "version": "3.8.0",
   "main": "hyperwatch.js",
   "bin": {
     "hyperwatch": "./bin/hyperwatch"
@@ -27,18 +27,18 @@
     "prettier:write": "npm run prettier -- --write"
   },
   "dependencies": {
-    "@hyperwatch/useragent": "^3.7.2",
+    "@hyperwatch/useragent": "^3.7.4",
     "accept-language-parser": "^1.5.0",
-    "ajv": "^6.12.5",
+    "ajv": "^6.12.6",
     "chalk": "^4.1.0",
     "country-code-emoji": "^1.0.0",
-    "debug": "^4.2.0",
+    "debug": "^4.3.1",
     "dnsbl": "^3.2.0",
     "express": "^4.17.1",
     "express-ws": "^4.0.0",
     "geoip-lite": "^1.4.2",
     "immutable": "^4.0.0-rc.12",
-    "ip-cidr": "^2.1.0",
+    "ip-cidr": "^2.1.1",
     "lodash": "^4.17.20",
     "lru-cache": "^6.0.0",
     "micro-strptime": "^0.2.3",
@@ -46,18 +46,18 @@
     "rc": "^1.2.8",
     "syslog-parse": "^1.3.1",
     "tail": "^2.0.4",
-    "uuid": "^8.3.0",
-    "ws": "^7.3.1"
+    "uuid": "^8.3.1",
+    "ws": "^7.4.0"
   },
   "devDependencies": {
-    "depcheck": "^1.2.0",
-    "eslint": "^7.10.0",
+    "depcheck": "^1.3.1",
+    "eslint": "^7.14.0",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
     "husky": "^4.3.0",
-    "lint-staged": "^10.4.0",
-    "mocha": "^8.1.3",
-    "prettier": "^2.1.2",
+    "lint-staged": "^10.5.2",
+    "mocha": "^8.2.1",
+    "prettier": "^2.2.1",
     "prettier-package-json": "^2.1.3"
   },
   "engines": {
