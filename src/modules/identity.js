@@ -252,6 +252,10 @@ function augment(log) {
       return hostname && hostname.endsWith('.clients.your-server.de')
         ? log.set('identity', 'Seekport')
         : log;
+    case 'MegaIndex.ru':
+      return hostname && hostname.endsWith('.clients.your-server.de')
+        ? log.set('identity', 'MegaIndex.ru')
+        : log;
   }
 
   // Hostname only
