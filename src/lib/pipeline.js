@@ -9,7 +9,8 @@
  *
  * This modules provides functions to build a pipeline, a tree of stream processors.
  */
-const Ajv = require('ajv');
+const Ajv = require('ajv').default;
+const addFormats = require('ajv-formats').default;
 const { Map } = require('immutable');
 
 const schema = require('../format/log-schema.json');
@@ -18,6 +19,8 @@ const monitoring = require('./monitoring');
 const { complement } = require('./util');
 
 const validator = new Ajv();
+addFormats(validator);
+
 const validate = validator.compile(schema);
 
 function errorLog(log, severity = 'warn') {
