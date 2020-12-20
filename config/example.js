@@ -1,151 +1,177 @@
-const hyperWatch = require('../hyperwatch');
+const exampleConfig = function (hyperwatch) {
+  const { pipeline, input, format, logger } = hyperwatch;
 
-const { pipeline, input, format, plugins } = hyperWatch;
+  /* Init Hyperwatch (will load modules) */
 
-/* Input configuration
-====================== */
+  hyperwatch.init();
 
-/* Syslog inputs
----------------- */
+  /* Input configuration */
+  /* =================== */
 
-/* Syslog input in Nginx 'combined' format */
+  /* Syslog inputs */
+  /* ------------- */
 
-const syslogNginxCombinedInput = input.syslog.create({
-  name: 'Syslog (nginx combined format)',
-  port: 1514,
-  parse: format.nginx.parser({ format: format.nginx.formats.combined }),
-});
+  /* Syslog input in Nginx 'combined' format */
 
-pipeline.registerInput(syslogNginxCombinedInput);
+  const syslogNginxCombinedInput = input.syslog.create({
+    name: 'Syslog (nginx combined format)',
+    port: 1514,
+    parse: format.nginx.parser({ format: format.nginx.formats.combined }),
+  });
 
-/* Syslog input in Nginx 'access_watch' format */
+  pipeline.registerInput(syslogNginxCombinedInput);
 
-const syslogNginxAccessWatchInput = input.syslog.create({
-  name: 'Syslog (nginx access_watch format)',
-  port: 1515,
-  parse: format.nginx.parser({ format: format.nginx.formats.accessWatch }),
-});
+  /* Syslog input in Nginx 'hyperwatch_combined' format */
 
-pipeline.registerInput(syslogNginxAccessWatchInput);
+  const syslogNginxHyperwatchCombinedInput = input.syslog.create({
+    name: 'Syslog (nginx hyperwatch_combined format)',
+    port: 1515,
+    parse: format.nginx.parser({
+      format: format.nginx.formats.hyperwatchCombined,
+    }),
+  });
 
-/* Syslog input in Hyperwatch JSON format */
+  pipeline.registerInput(syslogNginxHyperwatchCombinedInput);
 
-const syslogInput = input.syslog.create({
-  name: 'Syslog (JSON standard format)',
-  port: 1516,
-});
+  /* Syslog input in Hyperwatch JSON format */
 
-pipeline.registerInput(syslogInput);
+  const syslogInput = input.syslog.create({
+    name: 'Syslog (JSON standard format)',
+    port: 1516,
+  });
 
-/* Syslog input in Apache 'combined' format */
+  pipeline.registerInput(syslogInput);
 
-// const syslogApacheCombinedInput = input.syslog.create({
-//   port: 1517,
-//   parse: format.apache.parser({
-//     format: format.apache.formats.combined
-//   })
-// })
+  /* Syslog input in Apache 'combined' format */
 
-// pipeline.registerInput(syslogApacheCombinedInput)
+  const syslogApacheCombinedInput = input.syslog.create({
+    name: 'Syslog (apache combined format)',
+    port: 1517,
+    parse: format.apache.parser({
+      format: format.apache.formats.combined,
+    }),
+  });
 
-/* Syslog input in Apache 'access_watch_combined' format */
+  pipeline.registerInput(syslogApacheCombinedInput);
 
-// const syslogApacheAccessWatchCombinedInput = input.syslog.create({
-//   port: 1518,
-//   parse: format.apache.parser({
-//     format: format.apache.formats.accessWatchCombined
-//   })
-// })
+  /* Syslog input in Apache 'hyperwatch_combined' format */
 
-// pipeline.registerInput(syslogApacheAccessWatchCombinedInput)
+  const syslogApacheHyperwatchCombinedInput = input.syslog.create({
+    name: 'Syslog (apache hyperwatch_combined format)',
+    port: 1518,
+    parse: format.apache.parser({
+      format: format.apache.formats.hyperwatchCombined,
+    }),
+  });
 
-/* HTTP inputs
--------------- */
+  pipeline.registerInput(syslogApacheHyperwatchCombinedInput);
 
-/* HTTP input in Hyperwatch JSON format */
+  /* HTTP inputs */
+  /* ----------- */
 
-const httpInput = input.http.create({
-  name: 'HTTP server (JSON standard format)',
-  path: '/input/log',
-});
+  /* HTTP input in Hyperwatch JSON format */
 
-pipeline.registerInput(httpInput);
+  const httpInput = input.http.create({
+    name: 'HTTP server (JSON standard format)',
+    path: '/input/log',
+  });
 
-/* WebSocket inputs
-------------------- */
+  pipeline.registerInput(httpInput);
 
-/* WebSocket server input in Hyperwatch JSON format (listening for logs) */
+  /* WebSocket inputs */
+  /* ---------------- */
 
-// const webSocketServerInput = input.websocket.create({
-//   name: 'WebSocket server (JSON standard format)',
-//   type: 'server',
-//   path: '/input/log'
-// })
+  /* WebSocket server input in Hyperwatch JSON format (listening for logs) */
 
-// pipeline.registerInput(webSocketServerInput)
+  const webSocketServerInput = input.websocket.create({
+    name: 'WebSocket server (JSON standard format)',
+    type: 'server',
+    path: '/input/log',
+  });
 
-/* WebSocket client input in Hyperwatch JSON format (subscribing to logs) */
+  pipeline.registerInput(webSocketServerInput);
 
-// const websocketClientInput = input.websocket.create({
-//   address: 'ws://HOST:PORT/logs'
-// })
+  /* WebSocket client input in Hyperwatch JSON format (subscribing to logs) */
 
-// pipeline.registerInput(websocketClientInput)
+  // const websocketClientInput = input.websocket.create({
+  //   name: 'WebSocket client (JSON standard format)',
+  //   address: 'ws://HOST:PORT/logs',
+  // });
 
-/* File inputs
--------------- */
+  // pipeline.registerInput(websocketClientInput);
 
-/* File input in Nginx 'combined' format */
+  /* File inputs */
+  /* ----------- */
 
-// const fileNginxCombinedInput = input.file.create({
-//   path: '/var/log/nginx/access.log',
-//   parse: format.nginx.parser({
-//     format: format.nginx.formats.combined
-//   })
-// })
+  /* File input in Nginx 'combined' format */
 
-// pipeline.registerInput(fileNginxCombinedInput)
+  // const fileNginxCombinedInput = input.file.create({
+  //   name: 'File input (nginx combined format)',
+  //   path: '/var/log/nginx/access.log',
+  //   parse: format.nginx.parser({
+  //     format: format.nginx.formats.combined,
+  //   }),
+  // });
 
-/* File input in Nginx 'access_watch' format */
+  // pipeline.registerInput(fileNginxCombinedInput);
 
-// const fileNginxAccessWatchInput = input.file.create({
-//   path: '/var/log/nginx/access_watch.log',
-//   parse: format.nginx.parser({
-//     format: format.nginx.formats.accessWatch
-//   })
-// })
+  /* File input in Nginx 'hyperwatch' format */
 
-// pipeline.registerInput(fileNginxAccessWatchInput)
+  // const fileNginxHyperwatchCombinedInput = input.file.create({
+  //   name: 'File input (nginx hyperwatch_combined format)',
+  //   path: '/var/log/nginx/hyperwatch.log',
+  //   parse: format.nginx.parser({
+  //     format: format.nginx.formats.hyperwatchCombined,
+  //   }),
+  // });
 
-/*
-Pipeline configuration
-======================
-*/
+  // pipeline.registerInput(fileNginxHyperwatchCombinedInput);
 
-const { proxy } = plugins;
+  /* File input in Apache 'combined' format */
 
-const stream = pipeline
+  // const fileApacheCombinedInput = input.file.create({
+  //   name: 'File input (nginx combined format)',
+  //   path: '/var/log/apache2/access.log',
+  //   parse: format.nginx.parser({
+  //     format: format.nginx.formats.combined,
+  //   }),
+  // });
 
-  /* Filter requests */
+  // pipeline.registerInput(fileApacheCombinedInput);
 
-  // .filter(log => log.getIn(['request', 'host']) === 'example.com')
+  /* File input in Apache 'hyperwatch' format */
 
-  /* Detect the public IP address if it's behind a proxy */
+  // const fileApacheHyperwatchCombinedInput = input.file.create({
+  //   name: 'File input (nginx hyperwatch_combined format)',
+  //   path: '/var/log/apache2/hyperwatch.log',
+  //   parse: format.nginx.parser({
+  //     format: format.apache.formats.hyperwatchCombined,
+  //   }),
+  // });
 
-  .map((log) =>
-    log.set(
-      'address',
-      proxy.detectAddress(
-        log.getIn(['request', 'address']),
-        log.getIn(['request', 'headers'])
-      )
-    )
-  )
+  // pipeline.registerInput(fileApacheHyperwatchCombinedInput);
 
-  /* Output to the console as JS object */
+  /* Pipeline configuration */
+  /* ====================== */
 
-  .map((log) => console.log(log.toJS()));
-
-module.exports = {
-  stream,
+  pipeline
+    .getNode('main')
+    .map((log) => console.log(logger.defaultFormatter.format(log, 'console')));
 };
+
+if (require.main === module) {
+  let hyperwatch;
+
+  try {
+    hyperwatch = require('../hyperwatch');
+  } catch (e) {
+    // eslint-disable-next-line node/no-missing-require
+    hyperwatch = require('@hyperwatch/hyperwatch');
+  }
+
+  exampleConfig(hyperwatch);
+
+  hyperwatch.start();
+}
+
+module.exports = exampleConfig;

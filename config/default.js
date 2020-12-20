@@ -1,61 +1,88 @@
-const hyperWatch = require('../hyperwatch');
+const defaultConfig = function (hyperwatch) {
+  const { pipeline, input, format, logger } = hyperwatch;
 
-const { pipeline, input, format } = hyperWatch;
+  /* Init Hyperwatch (will load modules) */
 
-/* Input configuration
-====================== */
+  hyperwatch.init();
 
-/* Syslog inputs
----------------- */
+  /* Input configuration */
+  /* =================== */
 
-/* Syslog input in Nginx 'combined' format */
+  /* Syslog inputs */
+  /* ------------- */
 
-const syslogNginxCombinedInput = input.syslog.create({
-  name: 'Syslog (nginx combined format)',
-  port: 1514,
-  parse: format.nginx.parser({ format: format.nginx.formats.combined }),
-});
+  /* Syslog input in Nginx 'combined' format */
 
-pipeline.registerInput(syslogNginxCombinedInput);
+  const syslogNginxCombinedInput = input.syslog.create({
+    name: 'Syslog (nginx combined format)',
+    port: 1514,
+    parse: format.nginx.parser({ format: format.nginx.formats.combined }),
+  });
 
-/* Syslog input in Nginx 'access_watch' format */
+  pipeline.registerInput(syslogNginxCombinedInput);
 
-const syslogNginxAccessWatchInput = input.syslog.create({
-  name: 'Syslog (nginx access_watch format)',
-  port: 1515,
-  parse: format.nginx.parser({ format: format.nginx.formats.accessWatch }),
-});
+  /* Syslog input in Nginx 'hyperwatch_combined' format */
 
-pipeline.registerInput(syslogNginxAccessWatchInput);
+  const syslogNginxHyperwatchCombinedInput = input.syslog.create({
+    name: 'Syslog (nginx hyperwatch_combined format)',
+    port: 1515,
+    parse: format.nginx.parser({
+      format: format.nginx.formats.hyperwatchCombined,
+    }),
+  });
 
-/* Syslog input in Hyperwatch JSON format */
+  pipeline.registerInput(syslogNginxHyperwatchCombinedInput);
 
-const syslogInput = input.syslog.create({
-  name: 'Syslog (JSON standard format)',
-  port: 1516,
-});
+  /* Syslog input in Hyperwatch JSON format */
 
-pipeline.registerInput(syslogInput);
+  const syslogInput = input.syslog.create({
+    name: 'Syslog (JSON standard format)',
+    port: 1516,
+  });
 
-/* HTTP inputs
--------------- */
+  pipeline.registerInput(syslogInput);
 
-/* HTTP input in Hyperwatch JSON format */
+  /* HTTP inputs */
+  /* ----------- */
 
-const httpInput = input.http.create({
-  name: 'HTTP server (JSON standard format)',
-  path: '/input/log',
-});
+  /* HTTP input in Hyperwatch JSON format */
 
-pipeline.registerInput(httpInput);
+  const httpInput = input.http.create({
+    name: 'HTTP server (JSON standard format)',
+    path: '/input/log',
+  });
 
-const webSocketServerInput = input.websocket.create({
-  name: 'WebSocket server (JSON standard format)',
-  type: 'server',
-  path: '/input/log',
-});
+  pipeline.registerInput(httpInput);
 
-pipeline.registerInput(webSocketServerInput);
+  const webSocketServerInput = input.websocket.create({
+    name: 'WebSocket server (JSON standard format)',
+    type: 'server',
+    path: '/input/log',
+  });
 
-// Output to the console as JS object
-pipeline.map((log) => console.log(log.toJS()));
+  pipeline.registerInput(webSocketServerInput);
+
+  /* Pipeline configuration */
+  /* ====================== */
+
+  pipeline
+    .getNode('main')
+    .map((log) => console.log(logger.defaultFormatter.format(log, 'console')));
+};
+
+if (require.main === module) {
+  let hyperwatch;
+
+  try {
+    hyperwatch = require('../hyperwatch');
+  } catch (e) {
+    // eslint-disable-next-line node/no-missing-require
+    hyperwatch = require('@hyperwatch/hyperwatch');
+  }
+
+  defaultConfig(hyperwatch);
+
+  hyperwatch.start();
+}
+
+module.exports = defaultConfig;

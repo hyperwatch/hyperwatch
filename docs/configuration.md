@@ -14,7 +14,7 @@ Here is an example of how this file can look like :
 }
 ```
 
-This example would make the app be served on the 4000 port and ask the metrics to be garbage collected if they are more than one hour old.
+This example would make the app be served on the 4000 port.
 
 You can find below the list of all configurable constants:
 

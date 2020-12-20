@@ -28,6 +28,9 @@ const request = (log) => {
 };
 
 const executionTime = (log, output) => {
+  if (!log.get('executionTime')) {
+    return;
+  }
   return log.get('executionTime') <= 100
     ? colorize('green', `${log.get('executionTime')}ms`, output)
     : log.get('executionTime') >= 1000
