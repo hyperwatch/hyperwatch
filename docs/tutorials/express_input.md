@@ -16,7 +16,15 @@ As a prerequirement, you'll need Node.js &gt;= 7. Use nvm if you're in trouble.
 nvm install node
 ```
 
-During the beta phase, let's use Git and clone the public repository:
+#### Install from npm
+
+```bash
+npm install -g @hyperwatch/hyperwatch
+```
+
+#### Install from Git
+
+Alternatively, for developement purpose, you can use Git and clone the public repository:
 
 ```bash
 git clone https://github.com/hyperwatch/hyperwatch.git
@@ -28,22 +36,24 @@ npm install
 
 In our suggested configuration, Hyperwatch will be listening for access logs using the Websocket protocol.
 
-All communications between your Node/Express application and Hyperwatch will be happening in clear, so please only use that setup in your internal network. If on the public internet, we're advising to use the Websocket Secure protocol (wss) which is straightforward but out of the scope of this tutorial.
+All communications between your Node/Express application and Hyperwatch will be happening in clear, please only use that setup on your internal network. If on the public internet, we're advising to use the Websocket Secure protocol (wss) which is straightforward but out of the scope of this tutorial.
 
-Now, you can create your own configuration in `./config/config.js`:
+Now, you can create your own configuration in `express_websocket_example.js`:
 
 ```javascript
-const hyperWatch = require('../hyperwatch');
+module.exports = function (hyperwatch) {
+  const { pipeline, input } = hyperwatch;
 
-const { pipeline, input } = hyperWatch;
+  hyperwatch.init();
 
-const webSocketServerInput = input.websocket.create({
-  name: 'WebSocket server (JSON standard format)',
-  type: 'server',
-  path: '/input/log',
-});
+  const webSocketServerInput = input.websocket.create({
+    name: 'WebSocket server (JSON standard format)',
+    type: 'server',
+    path: '/input/log',
+  });
 
-pipeline.registerInput(webSocketServerInput);
+  pipeline.registerInput(webSocketServerInput);
+};
 ```
 
 ### Configure Node/Express
@@ -51,18 +61,18 @@ pipeline.registerInput(webSocketServerInput);
 Now, install the Hyperwatch Express Logger middleware in your Node application:
 
 ```bash
-npm install --save access-watch-express-logger
+npm install --save @hyperwatch/express-logger
 ```
 
 Then simply configure it like any other middlewares:
 
 ```javascript
 const express = require('express');
-const accessWatchExpressLogger = require('access-watch-express-logger');
+const hyperwatchExpressLogger = require('@hyperwatch/express-logger');
 
 const app = express();
 
-app.use(accessWatchExpressLogger('websocket', 'ws://localhost:3000/input/log'));
+app.use(hyperwatchExpressLogger('websocket', 'ws://localhost:3000/input/log'));
 ```
 
 In this example, there are 3 important things:
@@ -78,10 +88,10 @@ Note: The Hyperwatch middleware is also capable of logging using the HTTP(s) or 
 
 ### Start Hyperwatch
 
-Ok, now go back to where Hyperwatch is installed and start it.
+Ok, now go back to where you wrote the config.
 
 ```bash
-npm start config/config.js
+hyperwatch express_websocket_example.js
 ```
 
 ### Browse the interface

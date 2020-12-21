@@ -1,6 +1,8 @@
 .env
 .hyperwatchrc
 config
+!config/apache_syslog_example.js
 !config/default.js
 !config/example.js
+!config/express_websocket_example.js
 node_modules

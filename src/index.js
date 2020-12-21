@@ -8,13 +8,13 @@ const lib = require('./lib');
 const modules = require('./modules');
 const plugins = require('./plugins');
 
-const { cache, pipeline, util } = lib;
+const { cache, logger, pipeline, util } = lib;
 
 let initialized = false;
 
 function init(config = {}) {
   if (initialized) {
-    console.warn(`Can't init, Hyperwatch was already initialized`);
+    console.warn(`Can't init, Hyperwatch was already initialized.`);
     return;
   }
   merge(constants, config);
@@ -42,6 +42,7 @@ module.exports = {
   format,
   input,
   lib,
+  logger,
   modules,
   pipeline,
   plugins,

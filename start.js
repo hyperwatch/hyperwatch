@@ -4,10 +4,14 @@ const hyperwatch = require('./hyperwatch');
 
 // Load configuration
 
+let config;
 if (process.argv[2]) {
-  require(path.resolve(process.cwd(), process.argv[2]));
+  config = require(path.resolve(process.cwd(), process.argv[2]));
 } else {
-  require(path.resolve(__dirname, './config/default'));
+  config = require(path.resolve(__dirname, './config/default'));
+}
+if (config) {
+  config(hyperwatch);
 }
 
 // Start

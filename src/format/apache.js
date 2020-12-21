@@ -94,7 +94,7 @@ function parser({ format }) {
 
 const formats = {
   combined: '%h %l %u %t "%r" %>s %b "%{Referer}i" "%{User-agent}i"',
-  accessWatchCombined:
+  hyperwatchCombined:
     '%h %l %u %t "%r" %>s %b "%{Referer}i" "%{User-agent}i" "%{Accept}i" "%{Accept-Charset}i" "%{Accept-Encoding}i" "%{Accept-Language}i" "%{Connection}i" "%{Dnt}i" "%{From}i" "%{Host}i"',
 };
 
