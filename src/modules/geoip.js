@@ -1,4 +1,4 @@
-const countryCodeEmoji = require('country-code-emoji');
+const { default: flag } = require('country-code-emoji');
 const geoip = require('geoip-lite');
 const { fromJS } = require('immutable');
 
@@ -30,7 +30,7 @@ const city = (log) => {
 const country = (log, output) => {
   const cc = log.getIn(['geoip', 'country']);
   if (cc) {
-    return output === 'html' ? `${countryCodeEmoji(cc)} ${cc}` : cc;
+    return output === 'html' ? `${flag(cc)} ${cc}` : cc;
   }
 };
 
