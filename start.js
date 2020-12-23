@@ -1,5 +1,7 @@
 const path = require('path');
 
+const { isFunction } = require('lodash');
+
 const hyperwatch = require('./hyperwatch');
 
 // Load configuration
@@ -10,7 +12,7 @@ if (process.argv[2]) {
 } else {
   config = require(path.resolve(__dirname, './config/default'));
 }
-if (config) {
+if (isFunction(config)) {
   config(hyperwatch);
 }
 
