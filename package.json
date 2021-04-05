@@ -30,7 +30,7 @@
     "@hyperwatch/useragent": "^3.7.4",
     "accept-language-parser": "^1.5.0",
     "ajv": "^7.0.1",
-    "ajv-formats": "^1.5.1",
+    "ajv-formats": "^2.0.2",
     "chalk": "^4.1.0",
     "country-code-emoji": "^2.1.0",
     "debug": "^4.3.1",
