@@ -36,7 +36,7 @@
     "debug": "^4.3.1",
     "dnsbl": "^3.2.0",
     "express": "^4.17.1",
-    "express-ws": "^4.0.0",
+    "express-ws": "^5.0.2",
     "geoip-lite": "^1.4.2",
     "immutable": "^4.0.0-rc.12",
     "ip-cidr": "^2.1.1",
