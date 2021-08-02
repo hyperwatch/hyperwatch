@@ -236,6 +236,11 @@ function augment(log) {
       return hostname && hostname.endsWith('.compute-1.amazonaws.com')
         ? log.set('identity', 'Common Crawl')
         : log;
+    case 'TransferWise-Webhook':
+      return hostname &&
+        hostname.endsWith('.eu-central-1.compute.amazonaws.com')
+        ? log.set('identity', 'Wise')
+        : log;
 
     // GCE
     case 'VelenPublicWebCrawler':
