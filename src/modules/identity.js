@@ -74,7 +74,7 @@ function augment(log) {
         ? log.set('identity', 'WebMeUp')
         : log;
     case 'PetalBot':
-      return hostname && hostname.endsWith('.aspiegel.com')
+      return hostname && hostname.endsWith('.petalsearch.com')
         ? log.set('identity', family)
         : log;
     case 'AhrefsBot':
