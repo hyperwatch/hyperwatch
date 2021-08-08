@@ -74,7 +74,7 @@ function augment(log) {
         ? log.set('identity', 'WebMeUp')
         : log;
     case 'PetalBot':
-      return hostname && hostname.endsWith('.aspiegel.com')
+      return hostname && hostname.endsWith('.petalsearch.com')
         ? log.set('identity', family)
         : log;
     case 'AhrefsBot':
@@ -235,6 +235,11 @@ function augment(log) {
     case 'CCBot':
       return hostname && hostname.endsWith('.compute-1.amazonaws.com')
         ? log.set('identity', 'Common Crawl')
+        : log;
+    case 'TransferWise-Webhook':
+      return hostname &&
+        hostname.endsWith('.eu-central-1.compute.amazonaws.com')
+        ? log.set('identity', 'Wise')
         : log;
 
     // GCE
