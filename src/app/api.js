@@ -12,6 +12,7 @@ const script = fs.readFileSync(path.join(__dirname, '..', 'script.js'));
 
 const app = express();
 
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 app.streamToHttp = (

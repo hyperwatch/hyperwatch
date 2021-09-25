@@ -1,7 +1,7 @@
 const useragent = require('@hyperwatch/useragent');
 const { fromJS } = require('immutable');
 
-const aggregator = require('../lib/aggregator');
+const { defaultFormatter } = require('../lib/aggregator');
 const cache = require('../lib/cache');
 const logger = require('../lib/logger');
 const pipeline = require('../lib/pipeline');
@@ -69,11 +69,11 @@ const osFormat = (log) => {
 function load() {
   pipeline.getNode('main').map(augment).registerNode('main');
 
-  aggregator.defaultFormatter.insertFormat('agent', agentFormat, {
+  defaultFormatter.insertFormat('agent', agentFormat, {
     before: '15m',
     color: 'grey',
   });
-  aggregator.defaultFormatter.insertFormat('os', osFormat, {
+  defaultFormatter.insertFormat('os', osFormat, {
     after: 'agent',
     color: 'grey',
   });
