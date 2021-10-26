@@ -56,7 +56,7 @@
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
     "husky": "^4.3.5",
-    "lint-staged": "^10.5.3",
+    "lint-staged": "^11.2.6",
     "mocha": "^9.0.2",
     "prettier": "^2.2.1",
     "prettier-package-json": "^2.1.3"
