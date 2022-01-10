@@ -310,11 +310,11 @@ const identifier = (log) =>
   log.getIn(['address', 'value']) ||
   log.getIn(['request', 'address']);
 
-function load() {
+function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 }
 
-function beforeStart() {
+function start() {
   const aggregator = new Aggregator();
 
   aggregator.setIdentifier(identifier);
@@ -326,6 +326,6 @@ function beforeStart() {
 
 module.exports = {
   augment,
-  load,
-  beforeStart,
+  init,
+  start,
 };

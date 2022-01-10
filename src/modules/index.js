@@ -45,25 +45,25 @@ function activeModules() {
     .filter((m) => m);
 }
 
-function load() {
+function init() {
   for (const module of activeModules()) {
-    if (module && module.load) {
-      module.load();
+    if (module && module.init) {
+      module.init();
     }
   }
 }
 
-function beforeStart() {
+function start() {
   for (const module of activeModules()) {
-    if (module && module.beforeStart) {
-      module.beforeStart();
+    if (module && module.start) {
+      module.start();
     }
   }
 }
 
 module.exports = {
   get,
-  load,
-  beforeStart,
+  init,
+  start,
   activeModules,
 };

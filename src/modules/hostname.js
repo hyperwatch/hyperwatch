@@ -78,12 +78,12 @@ async function augment(log, { fast = false } = {}) {
   return log;
 }
 
-function load() {
+function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 }
 
 module.exports = {
   lookup,
   augment,
-  load,
+  init,
 };

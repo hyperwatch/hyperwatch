@@ -18,7 +18,7 @@ function init(config = {}) {
     return;
   }
   merge(constants, config);
-  modules.load();
+  modules.init();
   initialized = true;
 }
 
@@ -27,7 +27,7 @@ function start() {
     console.warn(`Can't start, Hyperwatch was not initialized.`);
     return;
   }
-  modules.beforeStart();
+  modules.start();
   return Promise.all([app.start(), pipeline.start()]);
 }
 

@@ -33,7 +33,7 @@ const xblFormat = (log, output) => {
   }
 };
 
-function load() {
+function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 
   aggregator.defaultFormatter.insertFormat('xbl', xblFormat, {
@@ -44,5 +44,5 @@ function load() {
 
 module.exports = {
   augment,
-  load,
+  init,
 };
