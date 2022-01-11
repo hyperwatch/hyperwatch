@@ -2,7 +2,7 @@ const { api, websocket } = require('../app');
 const { defaultFormatter } = require('../lib/logger');
 const pipeline = require('../lib/pipeline');
 
-function beforeStart() {
+function start() {
   for (const [name, stream] of Object.entries(pipeline.nodes)) {
     websocket.streamToWebsocket(`/logs/${name}`, stream, {
       name: `WebSocket (${name} logs)`,
@@ -16,4 +16,4 @@ function beforeStart() {
   }
 }
 
-module.exports = { beforeStart };
+module.exports = { start };

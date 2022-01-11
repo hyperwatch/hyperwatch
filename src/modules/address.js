@@ -11,11 +11,11 @@ function fill(log) {
   return log;
 }
 
-function load() {
+function init() {
   pipeline.getNode('main').map(fill).registerNode('main');
 }
 
-function beforeStart() {
+function start() {
   const aggregator = new Aggregator();
 
   aggregator.setIdentifier(identifier);
@@ -26,6 +26,6 @@ function beforeStart() {
 }
 
 module.exports = {
-  load,
-  beforeStart,
+  init,
+  start,
 };

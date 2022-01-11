@@ -29,7 +29,7 @@ const language = (log) => {
   }
 };
 
-function load() {
+function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 
   aggregator.defaultFormatter.insertFormat('language', language, {
@@ -40,5 +40,5 @@ function load() {
 
 module.exports = {
   augment,
-  load,
+  init,
 };

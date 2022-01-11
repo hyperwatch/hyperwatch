@@ -22,7 +22,7 @@ function mapper(entry, format) {
   };
 }
 
-function beforeStart() {
+function start() {
   api.get('/status(.:format(txt|json))?', (req, res) => {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
@@ -48,4 +48,4 @@ function beforeStart() {
   });
 }
 
-module.exports = { beforeStart };
+module.exports = { start };

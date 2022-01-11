@@ -66,7 +66,7 @@ const osFormat = (log) => {
   return agentOs.get('family');
 };
 
-function load() {
+function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 
   aggregator.defaultFormatter.insertFormat('agent', agentFormat, {
@@ -84,7 +84,7 @@ function load() {
 module.exports = {
   lookup,
   augment,
-  load,
+  init,
   agentFormat,
   osFormat,
 };

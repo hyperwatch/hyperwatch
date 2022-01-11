@@ -56,11 +56,11 @@ function augment(log) {
   return log;
 }
 
-function load() {
+function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 }
 
-function beforeStart() {
+function start() {
   const aggregator = new Aggregator();
 
   aggregator.setIdentifier((log) => log.getIn(['signature', 'id']));
@@ -127,6 +127,6 @@ function beforeStart() {
 }
 
 module.exports = {
-  load,
-  beforeStart,
+  init,
+  start,
 };
