@@ -41,7 +41,7 @@
     "immutable": "^4.0.0-rc.12",
     "ip-cidr": "^3.0.3",
     "lodash": "^4.17.20",
-    "lru-cache": "^6.0.0",
+    "lru-cache": "^7.10.2",
     "micro-strptime": "^0.2.3",
     "proxy-addr": "^2.0.6",
     "rc": "^1.2.8",
