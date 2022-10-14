@@ -12,7 +12,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [12.x, 14.x, 15.x]
+        node-version: [12.x, 14.x, 15.x, 16.x]
 
     steps:
       - uses: actions/checkout@v2
@@ -20,7 +20,7 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - run: npm ci
+      - run: npm install
       - run: npm test
 
   lint:
@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - run: npm ci
+      - run: npm install
       - run: npm run lint
 
   prettier:
@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - run: npm ci
+      - run: npm install
       - run: npm run prettier:check
 
   depcheck:
@@ -44,5 +44,5 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - run: npm ci
+      - run: npm install
       - run: npm run depcheck
