@@ -1,5 +1,6 @@
 {
   "name": "@hyperwatch/hyperwatch",
+  "version": "3.9.0",
   "description": "Open Source HTTP Traffic Manager",
   "license": "Apache-2.0",
   "author": "François Hodierne <francois@hodierne.net>",
@@ -11,7 +12,6 @@
     "type": "git",
     "url": "https://github.com/hyperwatch/hyperwatch.git"
   },
-  "version": "3.8.2",
   "main": "hyperwatch.js",
   "bin": {
     "hyperwatch": "./bin/hyperwatch"
@@ -27,7 +27,7 @@
     "prettier:write": "npm run prettier -- --write"
   },
   "dependencies": {
-    "@hyperwatch/useragent": "^3.7.4",
+    "@hyperwatch/useragent": "^3.9.0",
     "accept-language-parser": "^1.5.0",
     "ajv": "^8.6.2",
     "ajv-formats": "^2.1.0",
