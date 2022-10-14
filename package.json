@@ -31,7 +31,7 @@
     "accept-language-parser": "^1.5.0",
     "ajv": "^8.6.2",
     "ajv-formats": "^2.1.0",
-    "chalk": "^4.1.0",
+    "chalk": "^5.1.2",
     "country-code-emoji": "^2.1.0",
     "debug": "^4.3.1",
     "dnsbl": "^3.2.0",
