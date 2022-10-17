@@ -178,6 +178,14 @@ function augment(log) {
       return hostname && hostname.endsWith('.007ac9.net')
         ? log.set('identity', 'Seekport')
         : log;
+    case 'Neevabot':
+      return hostname && hostname.endsWith('.neevabot.com')
+        ? log.set('identity', 'Neevabot')
+        : log;
+    case 'DataForSeoBot':
+      return hostname && hostname.endsWith('.dataforseo.com')
+        ? log.set('identity', 'DataForSeo')
+        : log;
 
     // Per hostname + CIDR
     case 'Twitterbot':
