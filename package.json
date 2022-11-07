@@ -34,7 +34,7 @@
     "chalk": "^4.1.0",
     "country-code-emoji": "^2.3.0",
     "debug": "^4.3.4",
-    "dnsbl": "^3.2.0",
+    "dnsbl": "^4.0.0",
     "express": "^4.18.2",
     "express-ws": "^5.0.2",
     "geoip-lite": "^1.4.6",
