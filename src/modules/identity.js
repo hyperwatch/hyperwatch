@@ -191,6 +191,10 @@ function augment(log) {
       return hostname && hostname.endsWith('.qwant.com')
         ? log.set('identity', 'Qwant')
         : log;
+    case 'InfoTigerBot':
+      return hostname && hostname.endsWith('.infotiger.com')
+        ? log.set('identity', 'InfoTiger')
+        : log;
 
     // Per hostname + CIDR
     case 'Twitterbot':
