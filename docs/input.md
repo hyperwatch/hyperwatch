@@ -152,10 +152,10 @@ Hyperwatch is distributed with two Nginx formats.
 - The default `combined` format:
   `'$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent"'`
 
-- the `access_watch_combined` format that extracts important HTTP headers from the request:
+- the `hyperwatch_combined` format that extracts important HTTP headers from the request:
   `'$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$http_accept" "$http_accept_charset" "$http_accept_encoding" "$http_accept_language" "$http_connection" "$http_dnt" "$http_from" "$http_host"'`.
 
-If possible, we recommend you to use the `access_watch_combined` format to take full advantage of the Hyperwatch data augmentation in the pipeline.
+If possible, we recommend you to use the `hyperwatch_combined` format to take full advantage of the Hyperwatch data augmentation in the pipeline.
 
 ### Apache
 
@@ -176,10 +176,10 @@ Hyperwatch is distributed with two Apache formats.
 - The default `combined` format:
   `'%h %l %u %t "%r" %>s %b "%{Referer}i" "%{User-agent}i"'`
 
-- the `access_watch_combined` format that extracts important HTTP headers from the request:
+- the `hyperwatch_combined` format that extracts important HTTP headers from the request:
   `'%h %l %u %t "%r" %>s %b "%{Referer}i" "%{User-agent}i" "%{Accept}i" "%{Accept-Charset}i" "%{Accept-Encoding}i" "%{Accept-Language}i" "%{Connection}i" "%{Dnt}i" "%{From}i" "%{Host}i"'`.
 
-If possible, we recommend you to use the `access_watch_combined` format to take full advantage of the Hyperwatch data augmentation in the pipeline.
+If possible, we recommend you to use the `hyperwatch_combined` format to take full advantage of the Hyperwatch data augmentation in the pipeline.
 
 ### Custom
 
@@ -225,8 +225,8 @@ npm start config/custom
 For more detailed log processing, it is recommended to use the _Hyperwatch combined_ log format:
 
 ```
-log_format access_watch_combined '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$http_accept" "$http_accept_charset" "$http_accept_encoding" "$http_accept_language" "$http_connection" "$http_dnt" "$http_from" "$http_host" "$http_x_forwarded_for"'
-access_log /logs/access.log access_watch_combined;
+log_format hyperwatch_combined '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$http_accept" "$http_accept_charset" "$http_accept_encoding" "$http_accept_language" "$http_connection" "$http_dnt" "$http_from" "$http_host"'
+access_log /logs/access.log hyperwatch_combined;
 ```
 
 With the following configuration for Hyperwatch:
@@ -234,7 +234,7 @@ With the following configuration for Hyperwatch:
 ```
 const defaultInput = input.file.create({
   path: '/logs/access.log',
-  parse: format.nginx.parser({format: format.nginx.formats.accessWatchCombined})
+  parse: format.nginx.parser({format: format.nginx.formats.hyperwatch_combined})
 })
 ```
 
@@ -243,8 +243,8 @@ const defaultInput = input.file.create({
 If behind a proxy, you might want to also report the `HTTP_X_FORWARDED_FOR` header to allow Hyperwatch to properly detect the client IP address.
 
 ```
-log_format access_watch_combined_with_x_forwarded_for '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$http_accept" "$http_accept_charset" "$http_accept_encoding" "$http_accept_language" "$http_connection" "$http_dnt" "$http_from" "$http_host" "$http_x_forwarded_for"'
-access_log /logs/access.log access_watch_combined_with_x_forwarded_for;
+log_format hyperwatch_combined_with_x_forwarded_for '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$http_accept" "$http_accept_charset" "$http_accept_encoding" "$http_accept_language" "$http_connection" "$http_dnt" "$http_from" "$http_host" "$http_x_forwarded_for"'
+access_log /logs/access.log hyperwatch_combined_with_x_forwarded_for;
 ```
 
 With the following configuration for Hyperwatch:
