@@ -1,10 +1,10 @@
-const lruCache = require('lru-cache');
+const { LRUCache } = require('lru-cache');
 
 const lruProvider = (options) => {
-  const lruInstance = new lruCache(options);
+  const lruInstance = new LRUCache(options);
   return {
     clear: async () => lruInstance.reset(),
-    del: async (key) => lruInstance.del(key),
+    delete: async (key) => lruInstance.delete(key),
     get: async (key) => lruInstance.get(key),
     has: async (key) => lruInstance.has(key),
     set: async (key, value, ttlInSeconds) =>
