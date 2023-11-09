@@ -308,6 +308,9 @@ function augment(log) {
     if (hostname.endsWith('.us.archive.org')) {
       return log.set('identity', 'Archive.org');
     }
+    if (hostname.endsWith('.qwant.com')) {
+      return log.set('identity', 'Qwant');
+    }
   }
 
   // Signature
