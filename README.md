@@ -12,7 +12,7 @@ Hyperwatch is built on a real-time stream processor handling logs from inputs of
 
 ## Install
 
-Make sure you have Node.js version >= 11.14.
+Make sure you have Node.js version >= 14.
 
 We recommend using [nvm](https://github.com/creationix/nvm): `nvm install && nvm use`.
 

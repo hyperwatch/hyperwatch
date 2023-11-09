@@ -1,6 +1,6 @@
 {
   "name": "@hyperwatch/hyperwatch",
-  "version": "3.9.4",
+  "version": "4.0.0",
   "description": "Open Source HTTP Traffic Manager",
   "license": "Apache-2.0",
   "author": "François Hodierne <francois@hodierne.net>",
@@ -41,7 +41,7 @@
     "immutable": "^4.1.0",
     "ip-cidr": "^3.0.10",
     "lodash": "^4.17.21",
-    "lru-cache": "^6.0.0",
+    "lru-cache": "^10.0.1",
     "micro-strptime": "^0.2.3",
     "proxy-addr": "^2.0.7",
     "rc": "^1.2.8",
@@ -63,7 +63,7 @@
     "prettier-package-json": "^2.7.0"
   },
   "engines": {
-    "node": ">=12.0"
+    "node": ">=14.0"
   },
   "depcheck": {
     "ignores": [
