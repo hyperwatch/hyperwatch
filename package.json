@@ -1,6 +1,6 @@
 {
   "name": "@hyperwatch/hyperwatch",
-  "version": "3.9.4",
+  "version": "4.0.0",
   "description": "Open Source HTTP Traffic Manager",
   "license": "Apache-2.0",
   "author": "François Hodierne <francois@hodierne.net>",
@@ -63,7 +63,7 @@
     "prettier-package-json": "^2.7.0"
   },
   "engines": {
-    "node": ">=12.0"
+    "node": ">=14.0"
   },
   "depcheck": {
     "ignores": [
