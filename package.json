@@ -45,7 +45,7 @@
     "micro-strptime": "^0.2.3",
     "proxy-addr": "^2.0.7",
     "rc": "^1.2.8",
-    "syslog-parse": "^1.3.1",
+    "syslog-parse": "^2.0.0",
     "tail": "^2.2.6",
     "uuid": "^9.0.1",
     "ws": "^8.14.2"
