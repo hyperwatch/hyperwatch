@@ -39,7 +39,7 @@
     "express-ws": "^5.0.2",
     "geoip-lite": "^1.4.8",
     "immutable": "^4.3.4",
-    "ip-cidr": "^3.1.0",
+    "ip-cidr": "^4.0.0",
     "lodash": "^4.17.21",
     "lru-cache": "^10.0.1",
     "micro-strptime": "^0.2.3",
