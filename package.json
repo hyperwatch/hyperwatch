@@ -1,6 +1,6 @@
 {
   "name": "@hyperwatch/hyperwatch",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "description": "Open Source HTTP Traffic Manager",
   "license": "Apache-2.0",
   "author": "François Hodierne <francois@hodierne.net>",
