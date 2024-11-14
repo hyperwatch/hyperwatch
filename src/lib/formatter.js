@@ -34,8 +34,8 @@ const executionTime = (log, output) => {
   return log.get('executionTime') <= 100
     ? colorize('green', `${log.get('executionTime')}ms`, output)
     : log.get('executionTime') >= 1000
-    ? colorize('red', `${log.get('executionTime')}ms`, output)
-    : colorize('yellow', `${log.get('executionTime')}ms`, output);
+      ? colorize('red', `${log.get('executionTime')}ms`, output)
+      : colorize('yellow', `${log.get('executionTime')}ms`, output);
 };
 
 const identity = (log) => log.getIn(['identity'], '');
