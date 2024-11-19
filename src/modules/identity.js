@@ -247,6 +247,10 @@ function augment(log) {
           new IPCIDR('4.227.36.0/25').contains(address))
         ? log.set('identity', 'OpenAI GPTBot')
         : log;
+    case 'meta-externalagent':
+      return address && new IPCIDR('2a03:2880:f800::/48').contains(address)
+        ? log.set('identity', 'Meta External Agent')
+        : log;
 
     // EC2
     case 'Raven':
