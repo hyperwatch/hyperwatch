@@ -229,6 +229,24 @@ function augment(log) {
       return address && new IPCIDR('203.133.160.0/19').contains(address)
         ? log.set('identity', family)
         : log;
+    case 'OAI-SearchBot':
+      // https://openai.com/searchbot.json
+      return address &&
+        (new IPCIDR('20.42.10.176/28').contains(address) ||
+          new IPCIDR('172.203.190.128/28').contains(address) ||
+          new IPCIDR('51.8.102.0/24').contains(address))
+        ? log.set('identity', 'OpenAI SearchBot')
+        : log;
+    case 'GPTBot':
+      // https://openai.com/gptbot.json
+      return address &&
+        (new IPCIDR('52.230.152.0/24').contains(address) ||
+          new IPCIDR('52.233.106.0/24').contains(address) ||
+          new IPCIDR('20.171.206.0/24').contains(address) ||
+          new IPCIDR('20.171.207.0/24').contains(address) ||
+          new IPCIDR('4.227.36.0/25').contains(address))
+        ? log.set('identity', 'OpenAI GPTBot')
+        : log;
 
     // EC2
     case 'Raven':
