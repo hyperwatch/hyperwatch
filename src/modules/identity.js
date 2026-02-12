@@ -69,6 +69,7 @@ function augment(log) {
       return hostname && hostname.endsWith('.mojeek.com')
         ? log.set('identity', 'Mojeek')
         : log;
+    case 'AwarioBot':
     case 'BLEXBot':
       return hostname && hostname.endsWith('.webmeup.com')
         ? log.set('identity', 'WebMeUp')
@@ -89,10 +90,7 @@ function augment(log) {
       return hostname && hostname.endsWith('.naver.com')
         ? log.set('identity', 'Naver')
         : log;
-    case 'FacebookBot':
-      return hostname && hostname.endsWith('.fbsv.net')
-        ? log.set('identity', 'Facebook')
-        : log;
+
     case 'Stripe':
       return hostname && hostname.endsWith('.stripe.com')
         ? log.set('identity', family)
@@ -199,6 +197,10 @@ function augment(log) {
       return hostname && hostname.endsWith('.crawl.amazonbot.amazon')
         ? log.set('identity', 'Amazonbot')
         : log;
+    case 'SERankingBacklinksBot':
+      return hostname && hostname.endsWith('.blex.seranking.com')
+        ? log.set('identity', 'SE Ranking')
+        : log;
 
     // Per hostname + CIDR
     case 'Twitterbot':
@@ -210,6 +212,17 @@ function augment(log) {
       return (hostname && hostname.endsWith('.seznam.cz')) ||
         (address && new IPCIDR('2a02:598::/32').contains(address))
         ? log.set('identity', 'Seznam')
+        : log;
+    case 'FacebookBot':
+      return hostname &&
+        (hostname.endsWith('.fbsv.net') ||
+          new IPCIDR('2a03:2880:10ff::/48').contains(address) ||
+          new IPCIDR('2a03:2880:11ff::/48').contains(address) ||
+          new IPCIDR('2a03:2880:22ff::/48').contains(address) ||
+          new IPCIDR('2a03:2880:30ff::/48').contains(address) ||
+          new IPCIDR('2a03:2880:31ff::/48').contains(address) ||
+          new IPCIDR('2a03:2880:32ff::/48').contains(address))
+        ? log.set('identity', 'Facebook')
         : log;
 
     // Per CIDR
@@ -248,8 +261,12 @@ function augment(log) {
         ? log.set('identity', 'OpenAI GPTBot')
         : log;
     case 'meta-externalagent':
-      return address && new IPCIDR('2a03:2880:f800::/48').contains(address)
-        ? log.set('identity', 'Meta External Agent')
+    case 'meta-webindexer':
+      return address &&
+        (new IPCIDR('2a03:2880:f800::/48').contains(address) ||
+          new IPCIDR('2a06:98c0:3600::/48').contains(address) ||
+          new IPCIDR('2a03:2880:f802::/48').contains(address))
+        ? log.set('identity', 'Meta')
         : log;
 
     // EC2
