@@ -87,7 +87,7 @@ body { display: flex; flex-direction: column-reverse; }
 };
 
 app.registerAggregator = (name, aggregator) => {
-  app.get(`/${name}.:format(json)?`, (req, res) => {
+  app.get(`/${name}{.:format}`, (req, res) => {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
     const limit = req.query.limit || 100;
@@ -117,7 +117,7 @@ app.registerAggregator = (name, aggregator) => {
     }
   });
 
-  app.get(`/${name}/:identifier.:format(json)?`, (req, res) => {
+  app.get(`/${name}/:identifier{.:format}`, (req, res) => {
     const entry = aggregator.get(req.params.identifier);
     if (!entry) {
       res.status(404).send('Not Found');

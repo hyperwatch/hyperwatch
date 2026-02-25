@@ -1,7 +1,7 @@
 const { fromJS } = require('immutable');
 const WebSocket = require('ws');
 
-const app = require('../app/websocket');
+const wsServer = require('../app/ws-server');
 
 const defaultParse = (s) => fromJS(JSON.parse(s));
 
@@ -83,7 +83,7 @@ function create({
   };
 
   const setupWebSocketServer = ({ status, success, reject }) => {
-    app.ws(path, (ws) => {
+    wsServer.ws(path, (ws) => {
       ws.on('message', (message) => {
         if (sample !== 1 && Math.random() > sample) {
           return;
