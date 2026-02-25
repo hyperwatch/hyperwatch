@@ -1,4 +1,4 @@
-const IPCIDR = require('ip-cidr');
+const IPCIDR = require('ip-cidr').default;
 
 const api = require('../app/api');
 const { Aggregator } = require('../lib/aggregator');
@@ -6,30 +6,12 @@ const pipeline = require('../lib/pipeline');
 
 // Bot IP lists for identity verification
 // Run `node scripts/fetch-openai-ips.js` to update OpenAI lists
-const botIpLists = {
-  amazonbot: require('../data/amazonbot-ips.json').map(
-    (cidr) => new IPCIDR(cidr)
-  ),
-  'amzn-searchbot': require('../data/amzn-searchbot-ips.json').map(
-    (cidr) => new IPCIDR(cidr)
-  ),
-  'amzn-user': require('../data/amzn-user-ips.json').map(
-    (cidr) => new IPCIDR(cidr)
-  ),
-  'chatgpt-user': require('../data/chatgpt-user-ips.json').map(
-    (cidr) => new IPCIDR(cidr)
-  ),
-  gptbot: require('../data/gptbot-ips.json').map((cidr) => new IPCIDR(cidr)),
-  'oai-searchbot': require('../data/oai-searchbot-ips.json').map(
-    (cidr) => new IPCIDR(cidr)
-  ),
-};
-
-function matchBotIpList(name, address) {
-  const list = botIpLists[name];
-  if (!list || !address) return false;
-  return list.some((cidr) => cidr.contains(address));
-}
+const amazonBotIps = require('../data/amazonbot-ips.json');
+const amazonSearchBotIps = require('../data/amzn-searchbot-ips.json');
+const amazonUserIps = require('../data/amzn-user-ips.json');
+const chatgptUserIps = require('../data/chatgpt-user-ips.json');
+const gptbotIps = require('../data/gptbot-ips.json');
+const oaiSearchbotIps = require('../data/oai-searchbot-ips.json');
 
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
@@ -226,18 +208,18 @@ function augment(log) {
         : log;
     case 'Amazonbot':
       return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
-        matchBotIpList('amazonbot', address)
+        amazonBotIps.some((cidr) => new IPCIDR(cidr).contains(address))
         ? log.set('identity', 'Amazonbot')
         : log;
     case 'Amzn-SearchBot':
       return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
-        matchBotIpList('amzn-searchbot', address)
-        ? log.set('identity', 'Amzn-SearchBot')
+        amazonSearchBotIps.some((cidr) => new IPCIDR(cidr).contains(address))
+        ? log.set('identity', 'Amazon SearchBot')
         : log;
     case 'Amzn-User':
       return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
-        matchBotIpList('amzn-user', address)
-        ? log.set('identity', 'Amzn-User')
+        amazonUserIps.some((cidr) => new IPCIDR(cidr).contains(address))
+        ? log.set('identity', 'Amazon User')
         : log;
     case 'SERankingBacklinksBot':
       return hostname && hostname.endsWith('.blex.seranking.com')
@@ -283,16 +265,16 @@ function augment(log) {
         ? log.set('identity', family)
         : log;
     case 'OAI-SearchBot':
-      return matchBotIpList('oai-searchbot', address)
+      return oaiSearchbotIps.some((cidr) => new IPCIDR(cidr).contains(address))
         ? log.set('identity', 'OpenAI SearchBot')
         : log;
     case 'GPTBot':
-      return matchBotIpList('gptbot', address)
+      return gptbotIps.some((cidr) => new IPCIDR(cidr).contains(address))
         ? log.set('identity', 'OpenAI GPTBot')
         : log;
     case 'ChatGPT-User':
       // https://openai.com/chatgpt-user.json
-      return matchBotIpList('chatgpt-user', address)
+      return chatgptUserIps.some((cidr) => new IPCIDR(cidr).contains(address))
         ? log.set('identity', 'ChatGPT')
         : log;
     case 'meta-externalagent':
