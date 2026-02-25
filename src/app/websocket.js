@@ -1,6 +1,7 @@
+const crypto = require('crypto');
+
 const express = require('express');
 const expressWs = require('express-ws');
-const uuid = require('uuid');
 
 const monitoring = require('../lib/monitoring');
 
@@ -36,7 +37,7 @@ app.streamToWebsocket = (
   updateMonitoringStatus();
 
   app.ws(endpoint, (client, req) => {
-    const clientId = req.query.clientId || uuid.v4();
+    const clientId = req.query.clientId || crypto.randomUUID();
     if (clients[clientId]) {
       console.log(`Client '${clientId}' is already connected. Terminating.`);
       client.terminate();
