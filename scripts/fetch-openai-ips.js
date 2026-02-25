@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 const fs = require('fs');
 const path = require('path');
 
@@ -24,7 +22,7 @@ async function fetchAndStore({ name, url }) {
     return cidr.includes('/') ? cidr : `${cidr}/32`;
   });
   const filePath = path.join(dataDir, `${name}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(cidrs, null, 2) + '\n');
+  fs.writeFileSync(filePath, `${JSON.stringify(cidrs, null, 2)}\n`);
   console.log(`${name}: ${cidrs.length} CIDRs`);
 }
 
