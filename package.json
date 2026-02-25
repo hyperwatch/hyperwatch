@@ -64,7 +64,7 @@
     "prettier-package-json": "^2.8.0"
   },
   "engines": {
-    "node": ">=18.12"
+    "node": ">=20"
   },
   "depcheck": {
     "ignores": [
