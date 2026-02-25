@@ -3,10 +3,9 @@
 const assert = require('assert');
 
 const chalk = require('chalk');
+const { Map } = require('immutable');
 
 const { colorize, executionTime } = require('../../src/lib/formatter');
-
-const { Map } = require('immutable');
 
 describe('chalk integration', () => {
   let originalLevel;
