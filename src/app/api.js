@@ -1,8 +1,8 @@
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
 const express = require('express');
-const uuid = require('uuid');
 
 const monitoring = require('../lib/monitoring');
 const { formatTable } = require('../lib/util');
@@ -47,7 +47,7 @@ app.streamToHttp = (
   updateMonitoringStatus();
 
   app.get(endpoint, (req, res) => {
-    const requestId = uuid.v4();
+    const requestId = crypto.randomUUID();
     requests[requestId] = [req, res];
     updateMonitoringStatus();
 
