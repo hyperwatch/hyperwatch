@@ -11,7 +11,7 @@ const amazonSearchBotIps = require('../data/amzn-searchbot-ips.json');
 const amazonUserIps = require('../data/amzn-user-ips.json');
 const chatgptUserIps = require('../data/chatgpt-user-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
-const oaiSearchbotIps = require('../data/oai-searchbot-ips.json');
+const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
 
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
@@ -265,7 +265,9 @@ function augment(log) {
         ? log.set('identity', family)
         : log;
     case 'OAI-SearchBot':
-      return oaiSearchbotIps.some((cidr) => new IPCIDR(cidr).contains(address))
+      return openaiSearchbotIps.some((cidr) =>
+        new IPCIDR(cidr).contains(address)
+      )
         ? log.set('identity', 'OpenAI SearchBot')
         : log;
     case 'GPTBot':

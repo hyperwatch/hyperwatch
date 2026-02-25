@@ -7,7 +7,7 @@ const sources = [
   // OpenAI
   { name: 'chatgpt-user-ips', url: 'https://openai.com/chatgpt-user.json' },
   { name: 'gptbot-ips', url: 'https://openai.com/gptbot.json' },
-  { name: 'oai-searchbot-ips', url: 'https://openai.com/searchbot.json' },
+  { name: 'openai-searchbot-ips', url: 'https://openai.com/searchbot.json' },
 ];
 
 async function fetchAndStore({ name, url }) {
