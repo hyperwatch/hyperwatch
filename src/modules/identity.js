@@ -1,9 +1,6 @@
 const IPCIDR = require('ip-cidr').default;
 
 const api = require('../app/api');
-const { Aggregator } = require('../lib/aggregator');
-const pipeline = require('../lib/pipeline');
-
 // Bot IP lists for identity verification
 // Run `node scripts/fetch-openai-ips.js` to update OpenAI lists
 const amazonBotIps = require('../data/amazonbot-ips.json');
@@ -12,6 +9,8 @@ const amazonUserIps = require('../data/amzn-user-ips.json');
 const chatgptUserIps = require('../data/chatgpt-user-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
 const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
+const { Aggregator } = require('../lib/aggregator');
+const pipeline = require('../lib/pipeline');
 
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
