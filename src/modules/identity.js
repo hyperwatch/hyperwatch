@@ -189,10 +189,6 @@ function augment(log) {
       return hostname && hostname.endsWith('.neevabot.com')
         ? log.set('identity', 'Neevabot')
         : log;
-    case 'RootCrawl-Crawler':
-      return hostname && hostname.endsWith('.rootcrawl.org')
-        ? log.set('identity', 'RootCrawl')
-        : log;
     case 'DataForSeoBot':
       return hostname && hostname.endsWith('.dataforseo.com')
         ? log.set('identity', 'DataForSeo')
@@ -346,10 +342,6 @@ function augment(log) {
     case 'MegaIndex.ru':
       return hostname && hostname.endsWith('.clients.your-server.de')
         ? log.set('identity', 'MegaIndex.ru')
-        : log;
-    case 'ev-crawler':
-      return hostname && hostname.endsWith('.headline.com')
-        ? log.set('identity', 'Headline')
         : log;
   }
 
