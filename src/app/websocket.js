@@ -1,15 +1,12 @@
 const crypto = require('crypto');
 
-const express = require('express');
-const expressWs = require('express-ws');
-
 const constants = require('../constants');
 const monitoring = require('../lib/monitoring');
+const wsServer = require('./ws-server');
 
-const app = express();
-expressWs(app);
+const websocket = {};
 
-app.streamToWebsocket = (
+websocket.streamToWebsocket = (
   endpoint,
   stream,
   { name = `WebSocket: ${endpoint}`, monitoringEnabled = false } = {}
@@ -37,7 +34,7 @@ app.streamToWebsocket = (
   };
   updateMonitoringStatus();
 
-  app.ws(endpoint, (client, req) => {
+  wsServer.ws(endpoint, (client, req) => {
     const clientId = req.query.clientId || crypto.randomUUID();
     if (clients[clientId]) {
       console.log(`Client '${clientId}' is already connected. Terminating.`);
@@ -88,4 +85,4 @@ app.streamToWebsocket = (
   }, constants.heartbeatInterval || 30000);
 };
 
-module.exports = app;
+module.exports = websocket;
