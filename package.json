@@ -20,6 +20,7 @@
     "depcheck": "depcheck",
     "lint": "eslint '**/*.js'",
     "lint:fix": "eslint '**/*.js' --fix",
+    "prepare": "husky",
     "prettier": "prettier \"**/*.@(js|json|md|yml)\"",
     "prettier:check": "npm run prettier -- --list-different",
     "prettier:write": "npm run prettier -- --write",
@@ -55,25 +56,20 @@
     "eslint": "^8.53.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-node": "^11.1.0",
-    "husky": "^4.3.5",
-    "lint-staged": "^10.5.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "mocha": "^10.2.0",
     "node-fetch": "^2.0.0",
     "prettier": "^3.5.3",
     "prettier-package-json": "^2.8.0"
   },
   "engines": {
-    "node": ">=14.0"
+    "node": ">=18.12"
   },
   "depcheck": {
     "ignores": [
       "prettier-package-json"
     ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
   },
   "lint-staged": {
     "*.{js,json,md,yml}": [
