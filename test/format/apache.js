@@ -1,5 +1,3 @@
-/* eslint-env mocha */
-
 const assert = require('assert');
 
 const apache = require('../../src/format/apache.js');
