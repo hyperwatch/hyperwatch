@@ -1,5 +1,3 @@
-/* eslint-env mocha */
-
 const assert = require('assert');
 
 const { Speed } = require('../../src/lib/speed');
