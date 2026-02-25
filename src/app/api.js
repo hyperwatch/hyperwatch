@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
+const { stringify } = require('csv-stringify/sync');
 const express = require('express');
 
 const monitoring = require('../lib/monitoring');
@@ -87,7 +88,7 @@ body { display: flex; flex-direction: column-reverse; }
 };
 
 app.registerAggregator = (name, aggregator) => {
-  app.get(`/${name}.:format(json)?`, (req, res) => {
+  app.get(`/${name}.:format(json|csv)?`, (req, res) => {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
     const limit = req.query.limit || 100;
@@ -96,11 +97,19 @@ app.registerAggregator = (name, aggregator) => {
     const data = aggregator.getData({
       sort,
       limit,
-      format,
+      format: format === 'csv' ? 'json' : format,
       raw,
     });
 
-    if (format === 'json') {
+    if (format === 'csv') {
+      const rows = data.toJS();
+      const columns = Object.keys(rows[0] || {}).filter(
+        (k) => k !== 'activity'
+      );
+      const csv = stringify(rows, { header: true, columns });
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.send(csv);
+    } else if (format === 'json') {
       res.send(data);
     } else {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
