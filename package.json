@@ -40,7 +40,7 @@
     "express-ws": "^5.0.2",
     "geoip-lite": "^1.4.10",
     "immutable": "^4.3.4",
-    "ip-cidr": "^3.1.0",
+    "ip-cidr": "^4.0.2",
     "lodash": "^4.17.21",
     "lru-cache": "^10.0.1",
     "micro-strptime": "^0.2.3",
@@ -59,7 +59,6 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "mocha": "^10.2.0",
-    "node-fetch": "^2.0.0",
     "prettier": "^3.5.3",
     "prettier-package-json": "^2.8.0"
   },

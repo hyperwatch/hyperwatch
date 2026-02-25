@@ -1,6 +1,14 @@
-const IPCIDR = require('ip-cidr');
+const IPCIDR = require('ip-cidr').default;
 
 const api = require('../app/api');
+// Bot IP lists for identity verification
+// Run `node scripts/fetch-openai-ips.js` to update OpenAI lists
+const amazonBotIps = require('../data/amazonbot-ips.json');
+const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
+const amazonUserIps = require('../data/amazon-user-ips.json');
+const chatgptUserIps = require('../data/chatgpt-user-ips.json');
+const gptbotIps = require('../data/gptbot-ips.json');
+const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
 const { Aggregator } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
 
@@ -198,8 +206,19 @@ function augment(log) {
         ? log.set('identity', 'InfoTiger')
         : log;
     case 'Amazonbot':
-      return hostname && hostname.endsWith('.crawl.amazonbot.amazon')
+      return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
+        amazonBotIps.some((cidr) => new IPCIDR(cidr).contains(address))
         ? log.set('identity', 'Amazonbot')
+        : log;
+    case 'Amzn-SearchBot':
+      return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
+        amazonSearchBotIps.some((cidr) => new IPCIDR(cidr).contains(address))
+        ? log.set('identity', 'Amazon SearchBot')
+        : log;
+    case 'Amzn-User':
+      return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
+        amazonUserIps.some((cidr) => new IPCIDR(cidr).contains(address))
+        ? log.set('identity', 'Amazon User')
         : log;
     case 'SERankingBacklinksBot':
       return hostname && hostname.endsWith('.blex.seranking.com')
@@ -218,14 +237,8 @@ function augment(log) {
         ? log.set('identity', 'Seznam')
         : log;
     case 'FacebookBot':
-      return hostname &&
-        (hostname.endsWith('.fbsv.net') ||
-          new IPCIDR('2a03:2880:10ff::/48').contains(address) ||
-          new IPCIDR('2a03:2880:11ff::/48').contains(address) ||
-          new IPCIDR('2a03:2880:22ff::/48').contains(address) ||
-          new IPCIDR('2a03:2880:30ff::/48').contains(address) ||
-          new IPCIDR('2a03:2880:31ff::/48').contains(address) ||
-          new IPCIDR('2a03:2880:32ff::/48').contains(address))
+      return (hostname && hostname.endsWith('.fbsv.net')) ||
+        (address && new IPCIDR('2a03:2880::/29').contains(address))
         ? log.set('identity', 'Facebook')
         : log;
 
@@ -238,6 +251,10 @@ function augment(log) {
       return address && new IPCIDR('216.244.64.0/19').contains(address)
         ? log.set('identity', 'Moz')
         : log;
+    case 'AliyunSecBot':
+      return address && new IPCIDR('8.217.0.0/16').contains(address)
+        ? log.set('identity', family)
+        : log;
     case '360Spider':
       return address && new IPCIDR('42.236.10.0/24').contains(address)
         ? log.set('identity', family)
@@ -247,29 +264,25 @@ function augment(log) {
         ? log.set('identity', family)
         : log;
     case 'OAI-SearchBot':
-      // https://openai.com/searchbot.json
-      return address &&
-        (new IPCIDR('20.42.10.176/28').contains(address) ||
-          new IPCIDR('172.203.190.128/28').contains(address) ||
-          new IPCIDR('51.8.102.0/24').contains(address))
+      return openaiSearchbotIps.some((cidr) =>
+        new IPCIDR(cidr).contains(address)
+      )
         ? log.set('identity', 'OpenAI SearchBot')
         : log;
     case 'GPTBot':
-      // https://openai.com/gptbot.json
-      return address &&
-        (new IPCIDR('52.230.152.0/24').contains(address) ||
-          new IPCIDR('52.233.106.0/24').contains(address) ||
-          new IPCIDR('20.171.206.0/24').contains(address) ||
-          new IPCIDR('20.171.207.0/24').contains(address) ||
-          new IPCIDR('4.227.36.0/25').contains(address))
+      return gptbotIps.some((cidr) => new IPCIDR(cidr).contains(address))
         ? log.set('identity', 'OpenAI GPTBot')
+        : log;
+    case 'ChatGPT-User':
+      // https://openai.com/chatgpt-user.json
+      return chatgptUserIps.some((cidr) => new IPCIDR(cidr).contains(address))
+        ? log.set('identity', 'ChatGPT')
         : log;
     case 'meta-externalagent':
     case 'meta-webindexer':
       return address &&
-        (new IPCIDR('2a03:2880:f800::/48').contains(address) ||
-          new IPCIDR('2a06:98c0:3600::/48').contains(address) ||
-          new IPCIDR('2a03:2880:f802::/48').contains(address))
+        (new IPCIDR('2a03:2880::/29').contains(address) ||
+          new IPCIDR('2a06:98c0:3600::/48').contains(address))
         ? log.set('identity', 'Meta')
         : log;
 
