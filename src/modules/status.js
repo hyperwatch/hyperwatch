@@ -3,20 +3,20 @@ const monitoring = require('../lib/monitoring');
 const { formatTable } = require('../lib/util');
 const stylesheet = require('../stylesheet');
 
-const aggregateSpeed = (entry, path) =>
+const aggregateCount = (entry, path) =>
   entry.hasIn(path) ? entry.getIn(path).reduce((p, c) => p + c, 0) : null;
 
 function mapper(entry, format) {
   return {
     name: entry.get('name'),
     type: entry.get('type'),
-    '15m':
-      aggregateSpeed(entry, ['speeds', 'processed', 'per_minute']) ||
-      aggregateSpeed(entry, ['speeds', 'accepted', 'per_minute']) ||
+    count15m:
+      aggregateCount(entry, ['speeds', 'processed', 'per_minute']) ||
+      aggregateCount(entry, ['speeds', 'accepted', 'per_minute']) ||
       (format !== 'json' ? '' : null),
-    '24h':
-      aggregateSpeed(entry, ['speeds', 'processed', 'per_hour']) ||
-      aggregateSpeed(entry, ['speeds', 'accepted', 'per_hour']) ||
+    count24h:
+      aggregateCount(entry, ['speeds', 'processed', 'per_hour']) ||
+      aggregateCount(entry, ['speeds', 'accepted', 'per_hour']) ||
       (format !== 'json' ? '' : null),
     status: entry.get('status'),
   };

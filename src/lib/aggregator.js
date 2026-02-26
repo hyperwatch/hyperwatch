@@ -2,7 +2,12 @@ const { Map, Set, is } = require('immutable');
 
 const { Formatter, address, identity } = require('../lib/formatter');
 const { Speed } = require('../lib/speed');
-const { aggregateSpeed, md5 } = require('../lib/util');
+const {
+  aggregateCount,
+  aggregateSum,
+  formatDuration,
+  md5,
+} = require('../lib/util');
 
 const defaultFormatter = new Formatter();
 defaultFormatter.setFormats([
@@ -10,8 +15,11 @@ defaultFormatter.setFormats([
 
   ['address', address],
 
-  ['15m', (entry) => aggregateSpeed(entry, 'per_minute')],
-  ['24h', (entry) => aggregateSpeed(entry, 'per_hour')],
+  ['count15m', (entry) => aggregateCount(entry, 'per_minute')],
+  ['count24h', (entry) => aggregateCount(entry, 'per_hour')],
+
+  ['execTime15m', (entry) => formatDuration(aggregateSum(entry, 'per_minute'))],
+  ['execTime24h', (entry) => formatDuration(aggregateSum(entry, 'per_hour'))],
 ]);
 
 const defaultEnricher = (entry, log) => {
@@ -42,9 +50,11 @@ const defaultIdentifier = (log) => {
 };
 
 const defaultSorters = {
-  '15m': (entry) => aggregateSpeed(entry, 'per_minute'),
-  '24h': (entry) => aggregateSpeed(entry, 'per_hour'),
+  count15m: (entry) => aggregateCount(entry, 'per_minute'),
+  count24h: (entry) => aggregateCount(entry, 'per_hour'),
   latest: (entry) => entry.getIn(['speed', 'per_minute']).latest,
+  execTime15m: (entry) => aggregateSum(entry, 'per_minute'),
+  execTime24h: (entry) => aggregateSum(entry, 'per_hour'),
 };
 
 class Aggregator {
@@ -80,17 +90,29 @@ class Aggregator {
   processLog(log) {
     const identifier = this.identifier(log);
     const id = md5(identifier);
+    const rawExecTime = Number(log.get('executionTime'));
+    const executionTime = Number.isFinite(rawExecTime) ? rawExecTime : 0;
 
     if (!this.entries.has(id)) {
       this.entries = this.entries
         .setIn([id, 'id'], id)
         .setIn([id, 'identifier'], identifier)
-        .setIn([id, 'speed', 'per_minute'], new Speed(60, 15).hit())
-        .setIn([id, 'speed', 'per_hour'], new Speed(3600, 24).hit());
+        .setIn(
+          [id, 'speed', 'per_minute'],
+          new Speed(60, 15).hit(undefined, executionTime)
+        )
+        .setIn(
+          [id, 'speed', 'per_hour'],
+          new Speed(3600, 24).hit(undefined, executionTime)
+        );
     } else {
       this.entries = this.entries
-        .updateIn([id, 'speed', 'per_minute'], (speed) => speed.hit())
-        .updateIn([id, 'speed', 'per_hour'], (speed) => speed.hit());
+        .updateIn([id, 'speed', 'per_minute'], (speed) =>
+          speed.hit(undefined, executionTime)
+        )
+        .updateIn([id, 'speed', 'per_hour'], (speed) =>
+          speed.hit(undefined, executionTime)
+        );
     }
 
     this.entries = this.entries.updateIn([id], (entry) =>
@@ -106,7 +128,7 @@ class Aggregator {
 
   getData({ raw, sort, format, limit }) {
     if (!sort || !this.sorters[sort]) {
-      sort = '15m';
+      sort = 'count15m';
     }
 
     const rawData = this.entries

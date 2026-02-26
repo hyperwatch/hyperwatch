@@ -70,7 +70,7 @@ function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 
   aggregator.defaultFormatter.insertFormat('agent', agentFormat, {
-    before: '15m',
+    before: 'count15m',
     color: 'grey',
   });
   aggregator.defaultFormatter.insertFormat('os', osFormat, {

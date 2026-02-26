@@ -34,11 +34,27 @@ exports.createLog = (req, res) => {
   });
 };
 
-exports.aggregateSpeed = (entry, key) =>
+exports.aggregateCount = (entry, key) =>
   entry
     .getIn(['speed', key])
     .compute()
     .reduce((p, c) => p + c, 0);
+
+exports.aggregateSum = (entry, key) =>
+  entry
+    .getIn(['speed', key])
+    .computeSum()
+    .reduce((p, c) => p + c, 0);
+
+exports.formatDuration = (ms) => {
+  const totalSeconds = ms / 1000;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes > 0) {
+    return seconds > 0 ? `${minutes}m${seconds.toFixed(1)}s` : `${minutes}m`;
+  }
+  return `${seconds.toFixed(1)}s`;
+};
 
 exports.formatTable = (data) => {
   if (!data || data.length === 0) {
