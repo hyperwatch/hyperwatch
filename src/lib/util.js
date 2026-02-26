@@ -49,11 +49,11 @@ exports.aggregateSum = (entry, key) =>
 exports.formatDuration = (ms) => {
   const totalSeconds = ms / 1000;
   const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
+  const seconds = Math.round(totalSeconds % 60);
   if (minutes > 0) {
-    return seconds > 0 ? `${minutes}m${seconds.toFixed(1)}s` : `${minutes}m`;
+    return seconds > 0 ? `${minutes}m${seconds}s` : `${minutes}m`;
   }
-  return `${seconds.toFixed(1)}s`;
+  return `${totalSeconds.toFixed(1)}s`;
 };
 
 exports.formatTable = (data) => {
