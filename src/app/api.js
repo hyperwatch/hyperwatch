@@ -108,6 +108,10 @@ app.registerAggregator = (name, aggregator) => {
       );
       const csv = stringify(rows, { header: true, columns });
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${name}.csv"`
+      );
       res.send(csv);
     } else if (format === 'json') {
       res.send(data);
