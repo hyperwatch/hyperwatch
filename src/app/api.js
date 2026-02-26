@@ -91,7 +91,7 @@ app.registerAggregator = (name, aggregator) => {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
     const limit = req.query.limit || 100;
-    const sort = req.query.sort || '15m';
+    const sort = req.query.sort || 'count15m';
 
     const data = aggregator.getData({
       sort,

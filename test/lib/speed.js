@@ -28,4 +28,44 @@ describe('Speed', () => {
     s.hit(t - 1 * windowSize);
     assert.deepStrictEqual(s.compute().toJS(), [0, 1, 0, 2, 0]);
   });
+
+  it('tracks sums per time window', () => {
+    const windowSize = 10;
+    const size = 5;
+    const s = new Speed(windowSize, size);
+    const t = now();
+    s.hit(t - 3 * windowSize, 100);
+    s.hit(t - 3 * windowSize, 250);
+    s.hit(t - 1 * windowSize, 50);
+    assert.deepStrictEqual(s.computeSum().toJS(), [0, 50, 0, 350]);
+  });
+
+  it('garbage collects old sums', () => {
+    const windowSize = 10;
+    const size = 5;
+    const s = new Speed(windowSize, size);
+    const t = now();
+    s.hit(t - 7 * windowSize, 999);
+    s.hit(t - 6 * windowSize, 888);
+    s.hit(t - 5 * windowSize, 777);
+    s.hit(t - 3 * windowSize, 100);
+    s.hit(t - 3 * windowSize, 200);
+    s.hit(t - 1 * windowSize, 50);
+    assert.deepStrictEqual(s.computeSum().toJS(), [0, 50, 0, 300, 0]);
+  });
+
+  it('returns zero sums for windows with no value', () => {
+    const windowSize = 10;
+    const size = 5;
+    const s = new Speed(windowSize, size);
+    const t = now();
+    s.hit(t - 3 * windowSize);
+    s.hit(t - 1 * windowSize, 50);
+    assert.deepStrictEqual(s.computeSum().toJS(), [0, 50, 0, 0]);
+  });
+
+  it('returns empty list for computeSum with no hits', () => {
+    const s = new Speed(10, 5);
+    assert.deepStrictEqual(s.computeSum().toJS(), []);
+  });
 });

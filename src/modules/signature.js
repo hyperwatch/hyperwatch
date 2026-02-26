@@ -4,7 +4,12 @@ const api = require('../app/api');
 const { Aggregator } = require('../lib/aggregator');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
-const { aggregateSpeed, md5 } = require('../lib/util');
+const {
+  aggregateCount,
+  aggregateSum,
+  formatDuration,
+  md5,
+} = require('../lib/util');
 
 const { agentFormat } = require('./agent');
 
@@ -91,12 +96,18 @@ function start() {
       },
     ],
 
-    ['15m', (entry) => aggregateSpeed(entry, 'per_minute')],
-    ['24h', (entry) => aggregateSpeed(entry, 'per_hour')],
+    ['count15m', (entry) => aggregateCount(entry, 'per_minute')],
+    ['count24h', (entry) => aggregateCount(entry, 'per_hour')],
+
+    [
+      'execTime15m',
+      (entry) => formatDuration(aggregateSum(entry, 'per_minute')),
+    ],
+    ['execTime24h', (entry) => formatDuration(aggregateSum(entry, 'per_hour'))],
   ]);
 
   signatureFormatter.insertFormat('agent', agentFormat, {
-    before: '15m',
+    before: 'count15m',
     color: 'grey',
   });
 
