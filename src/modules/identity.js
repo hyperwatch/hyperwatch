@@ -3,9 +3,9 @@ const IPCIDR = require('ip-cidr').default;
 const api = require('../app/api');
 // Bot IP lists for identity verification
 // Run `node scripts/fetch-openai-ips.js` to update OpenAI lists
-const amazonBotIps = require('../data/amazonbot-ips.json');
 const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
 const amazonUserIps = require('../data/amazon-user-ips.json');
+const amazonBotIps = require('../data/amazonbot-ips.json');
 const chatgptUserIps = require('../data/chatgpt-user-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
 const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
