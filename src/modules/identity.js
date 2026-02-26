@@ -192,6 +192,10 @@ function augment(log) {
       return hostname && hostname.endsWith('.rootcrawl.org')
         ? log.set('identity', 'RootCrawl')
         : log;
+    case 'bl.uk ldfc bot':
+      return hostname && hostname.endsWith('.bl.uk')
+        ? log.set('identity', 'British Library')
+        : log;
     case 'DataForSeoBot':
       return hostname && hostname.endsWith('.dataforseo.com')
         ? log.set('identity', 'DataForSeo')
