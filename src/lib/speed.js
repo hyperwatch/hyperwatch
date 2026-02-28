@@ -67,6 +67,26 @@ class Speed {
       })
       .filter((v) => v !== undefined);
   }
+
+  toJSON() {
+    return {
+      windowSize: this.windowSize,
+      size: this.size,
+      counters: this.counters.toObject(),
+      sums: this.sums.toObject(),
+      started: this.started,
+      latest: this.latest,
+    };
+  }
+
+  static fromJSON(data) {
+    const speed = new Speed(data.windowSize, data.size);
+    speed.counters = Map(data.counters);
+    speed.sums = Map(data.sums);
+    speed.started = data.started;
+    speed.latest = data.latest;
+    return speed;
+  }
 }
 
 module.exports = {

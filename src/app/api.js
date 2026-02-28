@@ -6,6 +6,7 @@ const { stringify } = require('csv-stringify/sync');
 const express = require('express');
 
 const monitoring = require('../lib/monitoring');
+const persistence = require('../lib/persistence');
 const { formatTable } = require('../lib/util');
 const stylesheet = require('../stylesheet');
 
@@ -88,6 +89,7 @@ body { display: flex; flex-direction: column-reverse; }
 };
 
 app.registerAggregator = (name, aggregator) => {
+  persistence.register(name, aggregator);
   app.get(`/${name}.:format(json|csv)?`, (req, res) => {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
