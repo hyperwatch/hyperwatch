@@ -100,8 +100,9 @@ function augment(log) {
         : log;
 
     case 'Stripe':
+    case 'Stripebot':
       return hostname && hostname.endsWith('.stripe.com')
-        ? log.set('identity', family)
+        ? log.set('identity', 'Stripe')
         : log;
     case 'UptimeRobot':
       return hostname && hostname.endsWith('.uptimerobot.com')
@@ -330,11 +331,27 @@ function augment(log) {
       return hostname && hostname.endsWith('.us-east-2.compute.amazonaws.com')
         ? log.set('identity', 'Claude')
         : log;
+    case 'PerplexityBot':
+      return hostname && hostname.endsWith('.compute-1.amazonaws.com')
+        ? log.set('identity', 'Perplexity')
+        : log;
 
     // GCE
+    case 'Aranet-SearchBot':
+      return hostname && hostname.endsWith('.googleusercontent.com')
+        ? log.set('identity', 'Aranet')
+        : log;
+    case 'Discordbot':
+      return hostname && hostname.endsWith('.googleusercontent.com')
+        ? log.set('identity', 'Discord')
+        : log;
     case 'VelenPublicWebCrawler':
       return hostname && hostname.endsWith('.googleusercontent.com')
         ? log.set('identity', 'Velen')
+        : log;
+    case 'SleepBot':
+      return hostname && hostname.endsWith('.googleusercontent.com')
+        ? log.set('identity', 'SleepBot')
         : log;
 
     // Hetzner
