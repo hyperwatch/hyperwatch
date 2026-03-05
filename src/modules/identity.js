@@ -134,7 +134,9 @@ function augment(log) {
         ? log.set('identity', 'Sirportly')
         : log;
     case 'Bytespider':
-      return hostname && hostname.endsWith('.crawl.bytedance.com')
+      return hostname &&
+        (hostname.endsWith('.crawl.bytedance.com') ||
+          hostname.endsWith('.ap-southeast-1.compute.amazonaws.com'))
         ? log.set('identity', family)
         : log;
     case 'Mail.RU Bot':
@@ -370,6 +372,14 @@ function augment(log) {
     case 'ev-crawler':
       return hostname && hostname.endsWith('.headline.com')
         ? log.set('identity', 'Headline')
+        : log;
+    case 'SentryUptimeBot':
+      return hostname && hostname.endsWith('.googleusercontent.com')
+        ? log.set('identity', 'Sentry')
+        : log;
+    case 'FlipboardProxy':
+      return hostname && hostname.endsWith('.flipboard.com')
+        ? log.set('identity', 'Flipboard')
         : log;
   }
 
