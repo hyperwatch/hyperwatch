@@ -139,6 +139,12 @@ function augment(log) {
           hostname.endsWith('.ap-southeast-1.compute.amazonaws.com'))
         ? log.set('identity', family)
         : log;
+    case 'TikTokSpider':
+      return hostname &&
+        (hostname.endsWith('.crawl.bytedance.com') ||
+          hostname.endsWith('.ap-southeast-1.compute.amazonaws.com'))
+        ? log.set('identity', 'TikTok')
+        : log;
     case 'Mail.RU Bot':
     case 'Mail.RU Bot Img':
     case 'Mail.RU Bot Fast':
@@ -354,6 +360,10 @@ function augment(log) {
     case 'SleepBot':
       return hostname && hostname.endsWith('.googleusercontent.com')
         ? log.set('identity', 'SleepBot')
+        : log;
+    case 'DolfeEngineCrawler':
+      return hostname && hostname.endsWith('.googleusercontent.com')
+        ? log.set('identity', 'Dolfe')
         : log;
 
     // Hetzner
