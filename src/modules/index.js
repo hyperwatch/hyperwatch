@@ -16,6 +16,8 @@ function get(module) {
       return require('./dnsbl');
     case 'geoip':
       return require('./geoip');
+    case 'history':
+      return require('./history');
     case 'hostname':
       return require('./hostname');
     case 'identity':

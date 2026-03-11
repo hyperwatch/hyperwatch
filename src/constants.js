@@ -47,6 +47,10 @@ const constants = {
       active: false,
       priority: 620,
     },
+    history: {
+      active: false,
+      priority: 700,
+    },
     sparkline: {
       active: false,
       priority: 800,
