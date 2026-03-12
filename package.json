@@ -52,7 +52,7 @@
     "ws": "^8.18.2"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.3",
+    "@eslint/js": "^10.0.1",
     "depcheck": "^1.4.7",
     "eslint": "^9.39.3",
     "eslint-plugin-import": "^2.32.0",
