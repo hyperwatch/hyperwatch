@@ -33,8 +33,11 @@ describe('Speed serialization', () => {
     s.hit(t - 10, 50);
 
     const restored = Speed.fromJSON(s.toJSON());
-    assert.deepStrictEqual(restored.compute().toJS(), s.compute().toJS());
-    assert.deepStrictEqual(restored.computeSum().toJS(), s.computeSum().toJS());
+    assert.deepStrictEqual(restored.compute(t).toJS(), s.compute(t).toJS());
+    assert.deepStrictEqual(
+      restored.computeSum(t).toJS(),
+      s.computeSum(t).toJS()
+    );
     assert.strictEqual(restored.started, s.started);
     assert.strictEqual(restored.latest, s.latest);
   });
@@ -46,8 +49,8 @@ describe('Speed serialization', () => {
 
     const restored = Speed.fromJSON(s.toJSON());
     restored.hit(t, 75);
-    assert.deepStrictEqual(restored.compute().toJS(), [1, 1]);
-    assert.deepStrictEqual(restored.computeSum().toJS(), [75, 50]);
+    assert.deepStrictEqual(restored.compute(t).toJS(), [1, 1]);
+    assert.deepStrictEqual(restored.computeSum(t).toJS(), [75, 50]);
   });
 });
 
@@ -78,7 +81,7 @@ describe('Aggregator dump/load', () => {
 
     const pm = agg2.entries.getIn(['a', 'speed', 'per_minute']);
     assert(pm instanceof Speed);
-    assert.deepStrictEqual(pm.compute().toJS(), [1]);
+    assert.deepStrictEqual(pm.compute(t).toJS(), [1]);
   });
 
   it('preserves enriched metadata (address, agent, geoip, identity)', () => {
@@ -208,7 +211,7 @@ describe('Aggregator dump/load', () => {
     const pm = agg2.entries.getIn([id, 'speed', 'per_minute']);
     // Should now have 2 hits
     assert.strictEqual(
-      pm.compute().reduce((a, b) => a + b, 0),
+      pm.compute(t).reduce((a, b) => a + b, 0),
       2
     );
   });

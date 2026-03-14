@@ -34,12 +34,11 @@ class Speed {
     return this;
   }
 
-  compute() {
+  compute(time = now()) {
     this.gc();
     if (!this.started) {
       return List();
     }
-    const time = now();
     return Range(0, this.size)
       .map((n) => {
         let t = time - n * this.windowSize;
@@ -51,12 +50,11 @@ class Speed {
       .filter((v) => v !== undefined);
   }
 
-  computeSum() {
+  computeSum(time = now()) {
     this.gc();
     if (!this.started) {
       return List();
     }
-    const time = now();
     return Range(0, this.size)
       .map((n) => {
         let t = time - n * this.windowSize;
