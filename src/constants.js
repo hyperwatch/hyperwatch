@@ -57,7 +57,7 @@ const constants = {
     },
   },
   persistence: {
-    enabled: true,
+    enabled: false,
     path: null,
     namespace: null,
   },
