@@ -1,7 +1,9 @@
-const debug = require('debug')('hyperwatch:persistence');
-
 const fs = require('fs');
 const path = require('path');
+
+const debug = require('debug');
+
+const debugPersistence = debug('hyperwatch:persistence');
 
 const aggregators = Object.create(null);
 
@@ -25,14 +27,24 @@ function dump(dir) {
     fs.writeFileSync(tmp, JSON.stringify(data));
     fs.renameSync(tmp, target);
   }
-  debug(`Dumped ${Object.keys(aggregators).length} aggregator(s) to ${dir}`);
+  debugPersistence(
+    `Dumped ${Object.keys(aggregators).length} aggregator(s) to ${dir}`
+  );
 }
 
 function load(dir) {
   if (!fs.existsSync(dir)) {
     return;
   }
-  const files = fs.readdirSync(dir).filter((f) => f.endsWith('.json'));
+  let files;
+  try {
+    files = fs.readdirSync(dir).filter((f) => f.endsWith('.json'));
+  } catch (err) {
+    debugPersistence(
+      `Cannot read persistence directory ${dir}: ${err.message}`
+    );
+    return;
+  }
   let loaded = 0;
   for (const file of files) {
     const name = path.basename(file, '.json');
@@ -40,18 +52,20 @@ function load(dir) {
       try {
         const data = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
         if (!Array.isArray(data)) {
-          debug(`Skipping ${file}: expected array, got ${typeof data}`);
+          debugPersistence(
+            `Skipping ${file}: expected array, got ${typeof data}`
+          );
           continue;
         }
         aggregators[name].load(data);
         loaded += data.length;
       } catch (err) {
-        debug(`Skipping ${file}: ${err.message}`);
+        debugPersistence(`Skipping ${file}: ${err.message}`);
       }
     }
   }
   if (loaded) {
-    debug(`Loaded ${loaded} entries from ${dir}`);
+    debugPersistence(`Loaded ${loaded} entries from ${dir}`);
   }
 }
 
