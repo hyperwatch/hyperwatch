@@ -44,7 +44,8 @@ function start() {
   return Promise.all([app.start(), pipeline.start()]);
 }
 
-function stop() {
+async function stop() {
+  await pipeline.stop();
   try {
     if (constants.persistence.enabled) {
       persistence.dump(getPersistenceDir());
@@ -52,7 +53,7 @@ function stop() {
   } catch (err) {
     console.error('Error dumping aggregators:', err.message);
   }
-  return Promise.all([app.stop(), pipeline.stop()]);
+  return app.stop();
 }
 
 module.exports = {
