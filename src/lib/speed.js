@@ -34,12 +34,11 @@ class Speed {
     return this;
   }
 
-  compute() {
+  compute(time = now()) {
     this.gc();
     if (!this.started) {
       return List();
     }
-    const time = now();
     return Range(0, this.size)
       .map((n) => {
         let t = time - n * this.windowSize;
@@ -51,12 +50,11 @@ class Speed {
       .filter((v) => v !== undefined);
   }
 
-  computeSum() {
+  computeSum(time = now()) {
     this.gc();
     if (!this.started) {
       return List();
     }
-    const time = now();
     return Range(0, this.size)
       .map((n) => {
         let t = time - n * this.windowSize;
@@ -66,6 +64,26 @@ class Speed {
         }
       })
       .filter((v) => v !== undefined);
+  }
+
+  toJSON() {
+    return {
+      windowSize: this.windowSize,
+      size: this.size,
+      counters: this.counters.toObject(),
+      sums: this.sums.toObject(),
+      started: this.started,
+      latest: this.latest,
+    };
+  }
+
+  static fromJSON(data) {
+    const speed = new Speed(data.windowSize, data.size);
+    speed.counters = Map(data.counters);
+    speed.sums = Map(data.sums);
+    speed.started = data.started;
+    speed.latest = data.latest;
+    return speed;
   }
 }
 

@@ -56,6 +56,11 @@ const constants = {
       priority: 800,
     },
   },
+  persistence: {
+    enabled: false,
+    path: null,
+    namespace: null,
+  },
 };
 
 module.exports = rc('hyperwatch', constants);
