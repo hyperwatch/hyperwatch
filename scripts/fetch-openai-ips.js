@@ -4,7 +4,6 @@ const path = require('path');
 const dataDir = path.join(__dirname, '..', 'src', 'data');
 
 const sources = [
-  // OpenAI
   { name: 'chatgpt-user-ips', url: 'https://openai.com/chatgpt-user.json' },
   { name: 'gptbot-ips', url: 'https://openai.com/gptbot.json' },
   { name: 'openai-searchbot-ips', url: 'https://openai.com/searchbot.json' },

@@ -1,4 +1,4 @@
-const { Map, Set, is } = require('immutable');
+const { Map, Set, fromJS, is } = require('immutable');
 
 const { Formatter, address, identity } = require('../lib/formatter');
 const { Speed } = require('../lib/speed');
@@ -66,7 +66,7 @@ class Aggregator {
     this.sorters = defaultSorters;
     this.gcSize = 1000;
 
-    setInterval(() => this.gc(), 60 * 1000);
+    setInterval(() => this.gc(), 60 * 1000).unref();
   }
 
   setFormatter(fn) {
@@ -163,6 +163,40 @@ class Aggregator {
     }
 
     this.entries = this.entries.filter((value, key) => keepList.has(key));
+  }
+
+  dump() {
+    return this.entries
+      .map((entry) => {
+        const plain = entry.toJS();
+        plain.speed = {
+          per_minute: entry.getIn(['speed', 'per_minute']).toJSON(),
+          per_hour: entry.getIn(['speed', 'per_hour']).toJSON(),
+        };
+        return plain;
+      })
+      .valueSeq()
+      .toArray();
+  }
+
+  load(data) {
+    for (const item of data) {
+      const { speed, ...rest } = item;
+      // fromJS deep-converts everything to Immutable structures.
+      // Signature headers must stay as a plain object (used with Object.entries),
+      // and addresses must be a Set, not a List — fix both after conversion.
+      let entry = fromJS(rest);
+      if (entry.hasIn(['signature', 'headers'])) {
+        entry = entry.setIn(['signature', 'headers'], rest.signature.headers);
+      }
+      if (entry.has('addresses')) {
+        entry = entry.update('addresses', (list) => Set(list));
+      }
+      entry = entry
+        .setIn(['speed', 'per_minute'], Speed.fromJSON(speed.per_minute))
+        .setIn(['speed', 'per_hour'], Speed.fromJSON(speed.per_hour));
+      this.entries = this.entries.set(rest.id, entry);
+    }
   }
 }
 

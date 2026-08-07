@@ -16,11 +16,15 @@ function create({
   parse = defaultParse,
   sample = 1,
   reconnectOnClose = false,
+  heartbeatInterval = 30000,
 }) {
   let client;
 
+  let reconnectAttempts = 0;
+
   const setupWebSocketClient = ({ status, success, reject }) => {
     let isAlive;
+    let keepAlive;
 
     if (username && password) {
       options.headers = options.headers || {};
@@ -34,7 +38,23 @@ function create({
 
     client.on('open', () => {
       isAlive = true;
+      reconnectAttempts = 0;
       status(null, `Listening to ${address}`);
+
+      // Heartbeat: detect stale connections
+      keepAlive = setInterval(() => {
+        if (isAlive === false) {
+          client.terminate();
+          clearInterval(keepAlive);
+        } else {
+          try {
+            client.ping();
+          } catch (err) {
+            status(err, 'Websocket error');
+          }
+          isAlive = false;
+        }
+      }, heartbeatInterval);
     });
 
     client.on('message', (message) => {
@@ -52,33 +72,29 @@ function create({
       status(err, 'Websocket error');
     });
 
-    const keepAlive = setInterval(() => {
-      if (isAlive === false) {
-        client.terminate();
-        clearInterval(keepAlive);
-      } else {
-        try {
-          client.ping();
-        } catch (err) {
-          status(err, 'Websocket error');
-        }
-        isAlive = false;
-      }
-    }, 10 * 1000);
-
     client.on('pong', () => {
       isAlive = true;
     });
 
     client.on('close', () => {
       status(null, 'Websocket connection has been closed');
-      if (reconnectOnClose) {
-        setTimeout(() => {
-          status(null, 'Reconnecting Websocket');
-          setupWebSocketClient({ status, success, reject });
-        }, 10 * 1000);
+      if (keepAlive) {
+        clearInterval(keepAlive);
       }
-      clearInterval(keepAlive);
+      if (reconnectOnClose) {
+        reconnectAttempts++;
+        const delay = Math.min(
+          10 * 1000 * Math.pow(2, reconnectAttempts - 1),
+          5 * 60 * 1000
+        );
+        status(
+          null,
+          `Reconnecting Websocket in ${delay / 1000}s (attempt ${reconnectAttempts})`
+        );
+        setTimeout(() => {
+          setupWebSocketClient({ status, success, reject });
+        }, delay);
+      }
     });
   };
 

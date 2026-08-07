@@ -34,6 +34,7 @@
     "ajv-formats": "^3.0.1",
     "chalk": "^4.1.0",
     "country-code-emoji": "^2.3.0",
+    "csv-stringify": "^6.6.0",
     "debug": "^4.4.1",
     "dnsbl": "^4.0.2",
     "express": "^4.18.2",

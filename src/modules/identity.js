@@ -3,9 +3,9 @@ const IPCIDR = require('ip-cidr').default;
 const api = require('../app/api');
 // Bot IP lists for identity verification
 // Run `node scripts/fetch-openai-ips.js` to update OpenAI lists
-const amazonBotIps = require('../data/amazonbot-ips.json');
 const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
 const amazonUserIps = require('../data/amazon-user-ips.json');
+const amazonBotIps = require('../data/amazonbot-ips.json');
 const chatgptUserIps = require('../data/chatgpt-user-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
 const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
@@ -100,8 +100,9 @@ function augment(log) {
         : log;
 
     case 'Stripe':
+    case 'Stripebot':
       return hostname && hostname.endsWith('.stripe.com')
-        ? log.set('identity', family)
+        ? log.set('identity', 'Stripe')
         : log;
     case 'UptimeRobot':
       return hostname && hostname.endsWith('.uptimerobot.com')
@@ -133,8 +134,16 @@ function augment(log) {
         ? log.set('identity', 'Sirportly')
         : log;
     case 'Bytespider':
-      return hostname && hostname.endsWith('.crawl.bytedance.com')
+      return hostname &&
+        (hostname.endsWith('.crawl.bytedance.com') ||
+          hostname.endsWith('.ap-southeast-1.compute.amazonaws.com'))
         ? log.set('identity', family)
+        : log;
+    case 'TikTokSpider':
+      return hostname &&
+        (hostname.endsWith('.crawl.bytedance.com') ||
+          hostname.endsWith('.ap-southeast-1.compute.amazonaws.com'))
+        ? log.set('identity', 'TikTok')
         : log;
     case 'Mail.RU Bot':
     case 'Mail.RU Bot Img':
@@ -330,11 +339,31 @@ function augment(log) {
       return hostname && hostname.endsWith('.us-east-2.compute.amazonaws.com')
         ? log.set('identity', 'Claude')
         : log;
+    case 'PerplexityBot':
+      return hostname && hostname.endsWith('.compute-1.amazonaws.com')
+        ? log.set('identity', 'Perplexity')
+        : log;
 
     // GCE
+    case 'Aranet-SearchBot':
+      return hostname && hostname.endsWith('.googleusercontent.com')
+        ? log.set('identity', 'Aranet')
+        : log;
+    case 'Discordbot':
+      return hostname && hostname.endsWith('.googleusercontent.com')
+        ? log.set('identity', 'Discord')
+        : log;
     case 'VelenPublicWebCrawler':
       return hostname && hostname.endsWith('.googleusercontent.com')
         ? log.set('identity', 'Velen')
+        : log;
+    case 'SleepBot':
+      return hostname && hostname.endsWith('.googleusercontent.com')
+        ? log.set('identity', 'SleepBot')
+        : log;
+    case 'DolfeEngineCrawler':
+      return hostname && hostname.endsWith('.googleusercontent.com')
+        ? log.set('identity', 'Dolfe')
         : log;
 
     // Hetzner
@@ -353,6 +382,14 @@ function augment(log) {
     case 'ev-crawler':
       return hostname && hostname.endsWith('.headline.com')
         ? log.set('identity', 'Headline')
+        : log;
+    case 'SentryUptimeBot':
+      return hostname && hostname.endsWith('.googleusercontent.com')
+        ? log.set('identity', 'Sentry')
+        : log;
+    case 'FlipboardProxy':
+      return hostname && hostname.endsWith('.flipboard.com')
+        ? log.set('identity', 'Flipboard')
         : log;
   }
 
