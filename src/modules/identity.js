@@ -448,7 +448,9 @@ function start() {
 
   aggregator.setIdentifier(identifier);
 
-  pipeline.getNode('main').map((log) => aggregator.processLog(log));
+  pipeline
+    .getNode('main')
+    .map((log) => aggregator.processLog(log), 'aggregator');
 
   api.registerAggregator('identities', aggregator);
 }

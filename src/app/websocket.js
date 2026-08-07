@@ -70,7 +70,7 @@ app.streamToWebsocket = (
         client.send(JSON.stringify(log));
       }
     });
-  });
+  }, `ws:${endpoint}`);
 
   // Heartbeat: detect and clean up stale connections
   setInterval(() => {

@@ -1,6 +1,10 @@
 const aggregator = require('../lib/aggregator');
 
-const sparkline = (entry, key) => {
+const sparkline = (entry, key, output) => {
+  if (output === 'text') {
+    return;
+  }
+
   const id = entry.get('id');
 
   const points = entry

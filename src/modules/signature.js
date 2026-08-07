@@ -1,7 +1,7 @@
 const { is, Set } = require('immutable');
 
 const api = require('../app/api');
-const { Aggregator } = require('../lib/aggregator');
+const { Aggregator, lastSeen } = require('../lib/aggregator');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
 const {
@@ -65,8 +65,10 @@ function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 }
 
+let _aggregator;
+
 function start() {
-  const aggregator = new Aggregator();
+  const aggregator = (_aggregator = new Aggregator());
 
   aggregator.setIdentifier((log) => log.getIn(['signature', 'id']));
 
@@ -85,6 +87,14 @@ function start() {
           .slice(0, 10)
           .join('<br>'),
     ],
+    [
+      'lastAddress',
+      (entry) => {
+        const addr = entry.get('lastAddress');
+        if (!addr) {return '';}
+        return addr.get('hostname') || addr.get('value') || '';
+      },
+    ],
 
     [
       'headers',
@@ -96,8 +106,46 @@ function start() {
       },
     ],
 
+    [
+      'score',
+      (entry) => {
+        const s = entry.get('score');
+        return typeof s === 'number' ? s.toFixed(1) : '—';
+      },
+    ],
+
+    ['lastSeen', lastSeen],
     ['count15m', (entry) => aggregateCount(entry, 'per_minute')],
     ['count24h', (entry) => aggregateCount(entry, 'per_hour')],
+
+    [
+      'ok15m',
+      (entry) =>
+        entry.getIn(['speed', 'ok_per_minute'])
+          ? aggregateCount(entry, 'ok_per_minute')
+          : 0,
+    ],
+    [
+      'ok24h',
+      (entry) =>
+        entry.getIn(['speed', 'ok_per_hour'])
+          ? aggregateCount(entry, 'ok_per_hour')
+          : 0,
+    ],
+    [
+      'err15m',
+      (entry) =>
+        entry.getIn(['speed', 'err_per_minute'])
+          ? aggregateCount(entry, 'err_per_minute')
+          : 0,
+    ],
+    [
+      'err24h',
+      (entry) =>
+        entry.getIn(['speed', 'err_per_hour'])
+          ? aggregateCount(entry, 'err_per_hour')
+          : 0,
+    ],
 
     [
       'execTime15m',
@@ -120,7 +168,22 @@ function start() {
       }
     }
 
+    // Firewall status follows latest log — cleared when rule is removed
+    const firewall = log.get('firewall') || null;
+    if (!is(firewall, entry.get('firewall'))) {
+      entry = entry.set('firewall', firewall);
+    }
+
+    const fp = log.get('fingerprint');
+    if (fp) {
+      const score = typeof fp.score === 'number' ? fp.score : fp.get && fp.get('score');
+      if (typeof score === 'number') {
+        entry = entry.set('score', score);
+      }
+    }
+
     const address = log.get('address');
+    entry = entry.set('lastAddress', address);
     if (!entry.has('addresses')) {
       entry = entry.set('addresses', new Set([address]));
     } else if (!entry.get('addresses').has(address)) {
@@ -132,7 +195,32 @@ function start() {
 
   aggregator.setEnricher(enricher);
 
-  pipeline.getNode('main').map((log) => aggregator.processLog(log));
+  aggregator.sorters.ok15m = (entry) =>
+    entry.getIn(['speed', 'ok_per_minute'])
+      ? aggregateCount(entry, 'ok_per_minute')
+      : 0;
+  aggregator.sorters.ok24h = (entry) =>
+    entry.getIn(['speed', 'ok_per_hour'])
+      ? aggregateCount(entry, 'ok_per_hour')
+      : 0;
+  aggregator.sorters.err15m = (entry) =>
+    entry.getIn(['speed', 'err_per_minute'])
+      ? aggregateCount(entry, 'err_per_minute')
+      : 0;
+  aggregator.sorters.err24h = (entry) =>
+    entry.getIn(['speed', 'err_per_hour'])
+      ? aggregateCount(entry, 'err_per_hour')
+      : 0;
+  aggregator.sorters.addressCount = (entry) =>
+    entry.has('addresses') ? entry.get('addresses').size : 0;
+  aggregator.sorters.score = (entry) => {
+    const s = entry.get('score');
+    return typeof s === 'number' ? s : -1;
+  };
+
+  pipeline
+    .getNode('main')
+    .map((log) => aggregator.processLog(log), 'aggregator');
 
   api.registerAggregator('signatures', aggregator);
 }
@@ -140,4 +228,7 @@ function start() {
 module.exports = {
   init,
   start,
+  get aggregator() {
+    return _aggregator;
+  },
 };

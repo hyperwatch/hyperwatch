@@ -1,6 +1,7 @@
 const debug = require('debug');
 
 const constants = require('../constants');
+const pipeline = require('../lib/pipeline');
 
 const debugModules = debug('hyperwatch:modules');
 
@@ -14,6 +15,10 @@ function get(module) {
       return require('./cloudflare');
     case 'dnsbl':
       return require('./dnsbl');
+    case 'fingerprint':
+      return require('./fingerprint');
+    case 'firewall':
+      return require('./firewall');
     case 'geoip':
       return require('./geoip');
     case 'history':
@@ -38,27 +43,35 @@ function get(module) {
   }
 }
 
-function activeModules() {
+function activeModulesWithKeys() {
   return Object.keys(constants.modules)
     .map((key) => Object.assign({ key }, constants.modules[key]))
     .sort((a, b) => a.priority - b.priority)
     .filter((m) => m.active === true)
-    .map((m) => get(m.key))
-    .filter((m) => m);
+    .map((m) => ({ key: m.key, module: get(m.key) }))
+    .filter((m) => m.module);
+}
+
+function activeModules() {
+  return activeModulesWithKeys().map((m) => m.module);
 }
 
 function init() {
-  for (const module of activeModules()) {
+  for (const { key, module } of activeModulesWithKeys()) {
     if (module && module.init) {
+      pipeline.currentModule = key;
       module.init();
+      pipeline.currentModule = null;
     }
   }
 }
 
 function start() {
-  for (const module of activeModules()) {
+  for (const { key, module } of activeModulesWithKeys()) {
     if (module && module.start) {
+      pipeline.currentModule = key;
       module.start();
+      pipeline.currentModule = null;
     }
   }
 }

@@ -7,6 +7,7 @@ const express = require('express');
 
 const monitoring = require('../lib/monitoring');
 const persistence = require('../lib/persistence');
+const pipeline = require('../lib/pipeline');
 const { formatTable } = require('../lib/util');
 const stylesheet = require('../stylesheet');
 
@@ -15,6 +16,79 @@ const script = fs.readFileSync(path.join(__dirname, '..', 'script.js'));
 const app = express();
 
 app.use(express.json());
+
+function renderHtmlTree(node, pipeline) {
+  const label = [];
+  if (node.name) {label.push(`<strong>${node.name}</strong>`);}
+  if (node.op) {label.push(`<span class="op">[${node.op}]</span>`);}
+  if (node.module) {label.push(`<span class="module">(${node.module})</span>`);}
+  if (node.fnName) {label.push(`<span class="fn">${node.fnName}</span>`);}
+
+  let html = `<li>${label.join(' ')}`;
+  if (node.children && node.children.length > 0) {
+    html += '<ul>';
+    for (const child of node.children) {
+      html += renderHtmlTree(child, pipeline);
+    }
+    html += '</ul>';
+  }
+  html += '</li>';
+  return html;
+}
+
+app.get('/nodes.:format(json|csv)?', (req, res) => {
+  const nodes = Object.keys(pipeline.nodes);
+  const format = req.params.format;
+  const view = req.query.view;
+
+  if (format === 'csv') {
+    const csv = stringify(
+      nodes.map((name) => ({ name })),
+      {
+        header: true,
+        columns: ['name'],
+      }
+    );
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="nodes.csv"');
+    res.send(csv);
+  } else if (format === 'json') {
+    if (view === 'tree') {
+      res.json(pipeline.getTree());
+    } else {
+      res.json(nodes);
+    }
+  } else {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    if (view === 'tree') {
+      const tree = pipeline.getTree();
+      res.send(
+        `<!DOCTYPE html>
+<html>
+<head>
+<style>${stylesheet}
+.op { color: #666; }
+.module { color: #0a0; }
+.fn { color: #00a; }
+ul { list-style: none; padding-left: 1.5em; }
+</style>
+</head>
+<body><ul>${renderHtmlTree(tree, pipeline)}</ul></body>
+</html>`
+      );
+    } else {
+      res.send(
+        `<!DOCTYPE html>
+<html>
+<head>
+<style>${stylesheet}</style>
+</head>
+<body>${formatTable(nodes.map((name) => ({ name })))}</body>
+</html>`
+      );
+    }
+  }
+});
 
 app.streamToHttp = (
   endpoint,
@@ -85,7 +159,7 @@ body { display: flex; flex-direction: column-reverse; }
         res.write(`<div>${line}</div>\n`);
       }
     });
-  });
+  }, `http:${endpoint}`);
 };
 
 app.registerAggregator = (name, aggregator) => {
@@ -130,6 +204,11 @@ app.registerAggregator = (name, aggregator) => {
 </html>`
       );
     }
+  });
+
+  app.delete(`/${name}`, (req, res) => {
+    aggregator.reset();
+    res.send({ success: true });
   });
 
   app.get(`/${name}/:identifier.:format(json)?`, (req, res) => {

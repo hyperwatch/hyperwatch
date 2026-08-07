@@ -128,35 +128,74 @@ class Builder {
     this.children = [];
     this.name = null;
     this.pipeline = pipeline;
+    this.parent = null;
+    this.op = null;
+    this.module = null;
+    this.fnName = null;
+    this._label = null;
+    // Lightweight per-node counter for throughput tracking
+    this.counter = 0;
+    this.rateWindow = []; // timestamps of recent events for rate calculation
   }
 
-  add(xf) {
+  add(xf, { op = null, fnName = null, label = null } = {}) {
     const child = new Builder(xf, this.pipeline);
+    child.parent = this;
+    child.op = op;
+    child.module = this.pipeline ? this.pipeline.currentModule : null;
+    child.fnName = fnName || null;
+    child._label = label || null;
     this.children.push(child);
     return child;
   }
 
-  map(f) {
-    return this.add(map(f));
+  map(f, label) {
+    return this.add(map(f), { op: 'map', fnName: f.name, label });
   }
 
-  filter(pred) {
-    return this.add(filter(pred));
+  filter(pred, label) {
+    return this.add(filter(pred), { op: 'filter', fnName: pred.name, label });
   }
 
-  split(pred) {
-    return [this.add(filter(pred)), this.add(filter(complement(pred)))];
+  split(pred, labels) {
+    return [
+      this.add(filter(pred), {
+        op: 'split-true',
+        fnName: pred.name,
+        label: labels && labels[0],
+      }),
+      this.add(filter(complement(pred)), {
+        op: 'split-false',
+        fnName: pred.name,
+        label: labels && labels[1],
+      }),
+    ];
   }
 
-  by(f) {
-    return this.add(by(f));
+  by(f, label) {
+    return this.add(by(f), { op: 'by', fnName: f.name, label });
   }
 
   create() {
+    const self = this;
+    const countXf = (stream) => (event) => {
+      self.counter++;
+      const now = Date.now();
+      self.rateWindow.push(now);
+      // Keep only last 10 seconds of timestamps
+      while (self.rateWindow.length > 0 && self.rateWindow[0] < now - 10000) {
+        self.rateWindow.shift();
+      }
+      forward(stream, event);
+    };
     if (this.children.length === 0) {
-      return this.xf;
+      return comp([this.xf, countXf]);
     }
-    return comp([this.xf, multiplex(this.children.map((b) => b.create()))]);
+    return comp([
+      this.xf,
+      countXf,
+      multiplex(this.children.map((b) => b.create())),
+    ]);
   }
 
   // Helpers
@@ -194,6 +233,9 @@ class Pipeline extends Builder {
       main: this,
     };
     this.pipeline = this;
+    this.name = 'raw';
+    this.currentModule = null;
+    this.op = 'identity';
   }
 
   registerInput(input) {
@@ -204,6 +246,16 @@ class Pipeline extends Builder {
       type: 'input',
     });
     this.monitors.push(monitor);
+    // Create a tap node so this input gets its own /logs/ WebSocket endpoint
+    const inputIndex = this.inputs.length;
+    const nodeName = `input-${inputIndex}`;
+    const tap = new Builder(identity(), this);
+    tap.name = nodeName;
+    tap.op = 'input';
+    tap.module = null;
+    tap.fnName = null;
+    this.registerNode(nodeName, tap);
+    input._tap = tap;
   }
 
   start() {
@@ -213,6 +265,8 @@ class Pipeline extends Builder {
       const monitor = this.monitors.find(
         (monitor) => monitor.type === 'input' && monitor.name === input.name
       );
+      // Build the tap stream so it can forward logs to WebSocket clients
+      const tapStream = input._tap ? input._tap.create()(() => {}) : null;
       input.start({
         success: (log) => {
           const valid = validate(log.toJS());
@@ -224,6 +278,7 @@ class Pipeline extends Builder {
               data: log,
             });
             monitor.hit('accepted');
+            if (tapStream) forward(tapStream, event);
             forward(stream, event);
           } else {
             monitor.hit('rejected');
@@ -256,11 +311,55 @@ class Pipeline extends Builder {
   }
 
   registerNode(name, node) {
+    const previous = this.nodes[name];
+    if (previous && previous !== node && previous.name === name) {
+      previous.name = null;
+    }
     this.nodes[name] = node;
   }
 
   getNode(name) {
     return this.nodes[name];
+  }
+
+  getTree(node = this) {
+    const now = Date.now();
+    // Trim stale timestamps before computing rate
+    while (node.rateWindow.length > 0 && node.rateWindow[0] < now - 10000) {
+      node.rateWindow.shift();
+    }
+    const obj = {
+      name: node.name || null,
+      op: node.op || null,
+      module: node.module || null,
+      fnName: node.fnName || null,
+      label: node._label || null,
+      count: node.counter,
+      rate: node.rateWindow.length / 10, // events per second (10s window)
+      children: node.children.map((child) => this.getTree(child)),
+    };
+    // Include inputs at the root level
+    if (node === this) {
+      obj.inputs = this.inputs.map((input) => {
+        const monitor = this.monitors.find(
+          (m) => m.type === 'input' && m.name === input.name
+        );
+        const accepted = monitor
+          ? monitor.speeds.accepted.per_minute.compute()
+          : null;
+        const rejected = monitor
+          ? monitor.speeds.rejected.per_minute.compute()
+          : null;
+        return {
+          name: input.name,
+          node: input._tap ? input._tap.name : null,
+          status: monitor ? monitor.status : null,
+          accepted: accepted ? accepted.reduce((a, b) => a + b, 0) : 0,
+          rejected: rejected ? rejected.reduce((a, b) => a + b, 0) : 0,
+        };
+      });
+    }
+    return obj;
   }
 }
 
