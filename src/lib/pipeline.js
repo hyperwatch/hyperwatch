@@ -278,7 +278,9 @@ class Pipeline extends Builder {
               data: log,
             });
             monitor.hit('accepted');
-            if (tapStream) {forward(tapStream, event);}
+            if (tapStream) {
+              forward(tapStream, event);
+            }
             forward(stream, event);
           } else {
             monitor.hit('rejected');

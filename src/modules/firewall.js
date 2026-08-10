@@ -280,9 +280,12 @@ const firewallFormat = (entry) =>
 const addressFirewallRuleFormat = (entry) => {
   const addr = entry.getIn(['address', 'value']);
   for (const rule of rules) {
-    if (rule.match.address === addr) {return rule.id;}
-    if (rule.match.addresses && rule.match.addresses.includes(addr))
-      {return rule.id;}
+    if (rule.match.address === addr) {
+      return rule.id;
+    }
+    if (rule.match.addresses && rule.match.addresses.includes(addr)) {
+      return rule.id;
+    }
   }
   return '';
 };
@@ -291,8 +294,12 @@ const signatureFirewallFormat = (entry) => {
   const fw = entry.get('firewall');
   if (fw) {
     const action =
-      typeof fw === 'object' && fw.action ? fw.action : fw.get && fw.get('action');
-    if (action) {return action;}
+      typeof fw === 'object' && fw.action
+        ? fw.action
+        : fw.get && fw.get('action');
+    if (action) {
+      return action;
+    }
   }
   return getSignatureAction(entry.getIn(['signature', 'id'])) || '';
 };
@@ -301,7 +308,9 @@ const signatureFirewallRuleFormat = (entry) => {
   const fw = entry.get('firewall');
   if (fw) {
     return (
-      (typeof fw === 'object' && fw.rule ? fw.rule : fw.get && fw.get('rule')) || ''
+      (typeof fw === 'object' && fw.rule
+        ? fw.rule
+        : fw.get && fw.get('rule')) || ''
     );
   }
   return '';

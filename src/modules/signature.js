@@ -91,7 +91,9 @@ function start() {
       'lastAddress',
       (entry) => {
         const addr = entry.get('lastAddress');
-        if (!addr) {return '';}
+        if (!addr) {
+          return '';
+        }
         return addr.get('hostname') || addr.get('value') || '';
       },
     ],
@@ -176,7 +178,8 @@ function start() {
 
     const fp = log.get('fingerprint');
     if (fp) {
-      const score = typeof fp.score === 'number' ? fp.score : fp.get && fp.get('score');
+      const score =
+        typeof fp.score === 'number' ? fp.score : fp.get && fp.get('score');
       if (typeof score === 'number') {
         entry = entry.set('score', score);
       }

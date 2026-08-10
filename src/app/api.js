@@ -19,10 +19,18 @@ app.use(express.json());
 
 function renderHtmlTree(node, pipeline) {
   const label = [];
-  if (node.name) {label.push(`<strong>${node.name}</strong>`);}
-  if (node.op) {label.push(`<span class="op">[${node.op}]</span>`);}
-  if (node.module) {label.push(`<span class="module">(${node.module})</span>`);}
-  if (node.fnName) {label.push(`<span class="fn">${node.fnName}</span>`);}
+  if (node.name) {
+    label.push(`<strong>${node.name}</strong>`);
+  }
+  if (node.op) {
+    label.push(`<span class="op">[${node.op}]</span>`);
+  }
+  if (node.module) {
+    label.push(`<span class="module">(${node.module})</span>`);
+  }
+  if (node.fnName) {
+    label.push(`<span class="fn">${node.fnName}</span>`);
+  }
 
   let html = `<li>${label.join(' ')}`;
   if (node.children && node.children.length > 0) {

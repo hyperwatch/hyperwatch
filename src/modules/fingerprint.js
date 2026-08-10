@@ -356,7 +356,9 @@ function start() {
       'score',
       (entry) => {
         const fp = entry.get('fingerprint');
-        if (!fp) {return '0.0';}
+        if (!fp) {
+          return '0.0';
+        }
         const score =
           typeof fp.score === 'number' ? fp.score : fp.get && fp.get('score');
         return score != null ? score.toFixed(1) : '0.0';
@@ -366,7 +368,9 @@ function start() {
       'flags',
       (entry) => {
         const fp = entry.get('fingerprint');
-        if (!fp) {return '';}
+        if (!fp) {
+          return '';
+        }
         const flags = fp.flags || (fp.get && fp.get('flags'));
         return flags
           ? (Array.isArray(flags) ? flags : flags.toJS()).join(', ')
