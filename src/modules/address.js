@@ -30,7 +30,6 @@ function start() {
       'identity',
       'cloudflare',
       'dnsbl',
-      'firewall',
       'geoip',
       'hostname',
       'agent',
