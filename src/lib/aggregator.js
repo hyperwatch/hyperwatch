@@ -46,6 +46,7 @@ const defaultEnricher = (entry, log) => {
     'identity',
     'cloudflare',
     'dnsbl',
+    'firewall',
     'geoip',
     'hostname',
     'agent',
