@@ -108,6 +108,14 @@ function start() {
       },
     ],
 
+    [
+      'score',
+      (entry) => {
+        const s = entry.get('score');
+        return typeof s === 'number' ? s.toFixed(1) : '—';
+      },
+    ],
+
     ['lastSeen', lastSeen],
     ['count15m', (entry) => aggregateCount(entry, 'per_minute')],
     ['count24h', (entry) => aggregateCount(entry, 'per_hour')],
@@ -162,6 +170,15 @@ function start() {
       }
     }
 
+    const fp = log.get('fingerprint');
+    if (fp) {
+      const score =
+        typeof fp.score === 'number' ? fp.score : fp.get && fp.get('score');
+      if (typeof score === 'number') {
+        entry = entry.set('score', score);
+      }
+    }
+
     const address = log.get('address');
     entry = entry.set('lastAddress', address);
     if (!entry.has('addresses')) {
@@ -193,6 +210,10 @@ function start() {
       : 0;
   aggregator.sorters.addressCount = (entry) =>
     entry.has('addresses') ? entry.get('addresses').size : 0;
+  aggregator.sorters.score = (entry) => {
+    const s = entry.get('score');
+    return typeof s === 'number' ? s : -1;
+  };
 
   pipeline
     .getNode('main')
