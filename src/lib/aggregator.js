@@ -115,7 +115,10 @@ const defaultSorters = {
 class Aggregator {
   constructor() {
     this.entries = new Map();
-    this.formatter = defaultFormatter;
+    // Snapshot the default formats: modules extend defaultFormatter during
+    // init, aggregators are created during start, and per-aggregator
+    // insertFormat calls must not leak into other aggregators.
+    this.formatter = defaultFormatter.clone();
     this.enricher = defaultEnricher;
     this.identifier = defaultIdentifier;
     this.sorters = { ...defaultSorters };
