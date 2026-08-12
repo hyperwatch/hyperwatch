@@ -16,6 +16,14 @@
   "bin": {
     "hyperwatch": "./bin/hyperwatch"
   },
+  "files": [
+    "bin",
+    "config",
+    "docs",
+    "scripts",
+    "src",
+    "start.js"
+  ],
   "scripts": {
     "depcheck": "depcheck",
     "lint": "eslint",
