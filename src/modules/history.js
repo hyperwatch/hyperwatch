@@ -1,5 +1,5 @@
-const constants = require('../constants');
 const { api } = require('../app');
+const constants = require('../constants');
 const pipeline = require('../lib/pipeline');
 
 class CircularBuffer {
