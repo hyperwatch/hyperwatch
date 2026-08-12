@@ -257,13 +257,16 @@ class Aggregator {
       const { speed, ...rest } = item;
       // fromJS deep-converts everything to Immutable structures.
       // Signature headers must stay as a plain object (used with Object.entries),
-      // and addresses must be a Set, not a List — fix both after conversion.
+      // and addresses/signatures must be Sets, not Lists — fix after conversion.
       let entry = fromJS(rest);
       if (entry.hasIn(['signature', 'headers'])) {
         entry = entry.setIn(['signature', 'headers'], rest.signature.headers);
       }
       if (entry.has('addresses')) {
         entry = entry.update('addresses', (list) => Set(list));
+      }
+      if (entry.has('signatures')) {
+        entry = entry.update('signatures', (list) => Set(list));
       }
       entry = entry
         .setIn(['speed', 'per_minute'], Speed.fromJSON(speed.per_minute))

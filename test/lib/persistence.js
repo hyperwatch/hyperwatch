@@ -182,6 +182,29 @@ describe('Aggregator dump/load', () => {
     assert.strictEqual(updated.size, 3);
   });
 
+  it('restores signatures as an Immutable Set', () => {
+    const agg = new Aggregator();
+    const t = now();
+
+    agg.entries = agg.entries
+      .setIn(['a', 'id'], 'a')
+      .setIn(['a', 'identifier'], '1.2.3.4')
+      .setIn(['a', 'signatures'], Set(['sig-abc', 'sig-def']))
+      .setIn(['a', 'speed', 'per_minute'], new Speed(60, 15).hit(t))
+      .setIn(['a', 'speed', 'per_hour'], new Speed(3600, 24).hit(t));
+
+    const agg2 = new Aggregator();
+    agg2.load(agg.dump());
+
+    const signatures = agg2.entries.getIn(['a', 'signatures']);
+    assert.ok(Set.isSet(signatures), 'signatures should be an Immutable Set');
+    assert.strictEqual(signatures.size, 2);
+    // Set.add should work (this is what the address enricher does)
+    const updated = signatures.add('sig-xyz');
+    assert.strictEqual(updated.size, 3);
+    assert.strictEqual(signatures.add('sig-abc').size, 2);
+  });
+
   it('loaded entries accept new hits from processLog', () => {
     const { md5 } = require('../../src/lib/util');
 
