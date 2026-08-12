@@ -1,6 +1,6 @@
 {
   "name": "@hyperwatch/hyperwatch",
-  "version": "4.3.0",
+  "version": "4.3.1",
   "description": "Open Source HTTP Traffic Manager",
   "license": "Apache-2.0",
   "author": "François Hodierne <francois@hodierne.net>",
@@ -10,11 +10,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hyperwatch/hyperwatch.git"
+    "url": "git+https://github.com/hyperwatch/hyperwatch.git"
   },
   "main": "hyperwatch.js",
   "bin": {
-    "hyperwatch": "./bin/hyperwatch"
+    "hyperwatch": "bin/hyperwatch"
   },
   "files": [
     "bin",
