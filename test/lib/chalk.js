@@ -1,6 +1,6 @@
 const assert = require('assert');
 
-const chalk = require('chalk');
+const { default: chalk } = require('chalk');
 const { Map } = require('immutable');
 
 const { colorize, executionTime } = require('../../src/lib/formatter');
