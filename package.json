@@ -44,7 +44,7 @@
     "country-code-emoji": "^2.3.0",
     "csv-stringify": "^6.8.3",
     "debug": "^4.4.3",
-    "dnsbl": "^4.0.3",
+    "dnsbl": "^5.1.1",
     "express": "^5.2.1",
     "geoip-lite": "^2.0.3",
     "immutable": "^5.1.9",

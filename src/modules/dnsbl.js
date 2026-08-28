@@ -4,11 +4,19 @@ const aggregator = require('../lib/aggregator');
 const cache = require('../lib/cache');
 const pipeline = require('../lib/pipeline');
 
+// Indirection so tests can swap the DNS lookup without hitting the network.
+const defaultLookup = (ip, blacklist) => dnsbl.lookup(ip, blacklist);
+let lookup = defaultLookup;
+
+function setLookup(fn = defaultLookup) {
+  lookup = fn;
+}
+
 async function xblLookup(ip) {
   if (await cache.has(`xbl-${ip}`)) {
     return cache.get(`xbl-${ip}`);
   }
-  const result = await dnsbl.lookup(ip, 'xbl.spamhaus.org');
+  const result = await lookup(ip, 'xbl.spamhaus.org');
   cache.set(`xbl-${ip}`, result);
   return result;
 }
@@ -45,4 +53,6 @@ function init() {
 module.exports = {
   augment,
   init,
+  setLookup,
+  xblFormat,
 };
