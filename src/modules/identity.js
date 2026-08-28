@@ -25,6 +25,7 @@ function augment(log) {
   const address =
     log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
   const signature = log.getIn(['signature', 'id']);
+  const signatureAgent = log.getIn(['request', 'headers', 'signature-agent']);
 
   switch (family) {
     // Per hostname
@@ -412,6 +413,15 @@ function augment(log) {
     case 'FlipboardProxy':
       return hostname && hostname.endsWith('.flipboard.com')
         ? log.set('identity', 'Flipboard')
+        : log;
+
+    // Web Bot Auth
+    case 'ExaSearchBot':
+      // Exa search crawler. No published IP ranges or reverse DNS: requests
+      // are signed (RFC 9421) and carry a `Signature-Agent` header
+      // https://crawler.exa.ai/
+      return signatureAgent && signatureAgent.includes('https://crawler.exa.ai')
+        ? log.set('identity', 'Exa')
         : log;
   }
 
