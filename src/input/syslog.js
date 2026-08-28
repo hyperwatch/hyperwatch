@@ -1,5 +1,6 @@
 const { fromJS } = require('immutable');
-const syslogParse = require('syslog-parse');
+// syslog-parse is ESM-only with a default export
+const syslogParse = require('syslog-parse').default;
 
 const socket = require('./socket');
 
@@ -21,6 +22,9 @@ function create({
         }
         try {
           const result = syslogParse(message);
+          if (!result) {
+            throw new Error('Unparseable syslog message');
+          }
           success(parse(result.message));
         } catch (err) {
           reject(err);
