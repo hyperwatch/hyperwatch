@@ -3,14 +3,29 @@ const IPCIDR = require('ip-cidr').default;
 const api = require('../app/api');
 // Bot IP lists for identity verification
 // Run `node scripts/fetch-openai-ips.js` to update OpenAI lists
+// Run `node scripts/fetch-anthropic-ips.js` to update the Claude list
 const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
 const amazonUserIps = require('../data/amazon-user-ips.json');
 const amazonBotIps = require('../data/amazonbot-ips.json');
 const chatgptUserIps = require('../data/chatgpt-user-ips.json');
+const claudeBotIps = require('../data/claude-bot-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
 const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
 const { Aggregator } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
+
+// Anthropic publishes one list of ranges covering all Claude crawlers.
+// Reverse DNS is not usable here: Claude crawlers run on shared cloud
+// infrastructure, so their PTR records are not Anthropic-controlled.
+const claudeBotCidrs = claudeBotIps.map((cidr) => new IPCIDR(cidr));
+
+const claudeIdentities = {
+  ClaudeBot: 'Claude',
+  'Claude-User': 'Claude User',
+  'Claude-SearchBot': 'Claude SearchBot',
+  'Claude-Web': 'Claude Web',
+  'anthropic-ai': 'Anthropic',
+};
 
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
@@ -295,6 +310,15 @@ function augment(log) {
       return chatgptUserIps.some((cidr) => new IPCIDR(cidr).contains(address))
         ? log.set('identity', 'ChatGPT')
         : log;
+    case 'ClaudeBot':
+    case 'Claude-User':
+    case 'Claude-SearchBot':
+    case 'Claude-Web':
+    case 'anthropic-ai':
+      // https://claude.com/crawling/bots.json
+      return address && claudeBotCidrs.some((cidr) => cidr.contains(address))
+        ? log.set('identity', claudeIdentities[family])
+        : log;
     case 'meta-externalagent':
     case 'meta-webindexer':
       return address &&
@@ -338,10 +362,6 @@ function augment(log) {
       return hostname &&
         hostname.endsWith('.eu-central-1.compute.amazonaws.com')
         ? log.set('identity', 'Wise')
-        : log;
-    case 'ClaudeBot':
-      return hostname && hostname.endsWith('.us-east-2.compute.amazonaws.com')
-        ? log.set('identity', 'Claude')
         : log;
     case 'PerplexityBot':
       return hostname && hostname.endsWith('.compute-1.amazonaws.com')
