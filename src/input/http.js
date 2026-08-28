@@ -10,6 +10,10 @@ function create({ name = 'HTTP server', path, parse = fromJS }) {
         // No validation before sending the response to the client
         res.send('Ok');
         // Processing the message(s)
+        // Express 5 leaves req.body undefined when no body parser matched
+        if (req.body === undefined) {
+          return;
+        }
         const messages = Array.isArray(req.body) ? req.body : [req.body];
         messages.forEach((message) => {
           try {

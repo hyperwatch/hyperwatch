@@ -23,9 +23,14 @@ function mapper(entry, format) {
 }
 
 function start() {
-  api.get('/status(.:format(txt|json))?', (req, res) => {
+  api.get('/status{.:format}', (req, res) => {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
+
+    if (format && !['json', 'txt'].includes(format)) {
+      res.sendStatus(404);
+      return;
+    }
 
     let rawData = monitoring.getAllComputed();
 

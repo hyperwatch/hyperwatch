@@ -67,10 +67,15 @@ function renderHtmlInputs(inputs) {
   return html;
 }
 
-app.get('/nodes.:format(json|csv)?', (req, res) => {
+app.get('/nodes{.:format}', (req, res) => {
   const nodes = Object.keys(pipeline.nodes);
   const format = req.params.format;
   const view = req.query.view;
+
+  if (format && !['csv', 'json'].includes(format)) {
+    res.sendStatus(404);
+    return;
+  }
 
   if (format === 'csv') {
     const csv = stringify(
@@ -196,11 +201,16 @@ body { display: flex; flex-direction: column-reverse; }
 
 app.registerAggregator = (name, aggregator) => {
   persistence.register(name, aggregator);
-  app.get(`/${name}.:format(json|csv)?`, (req, res) => {
+  app.get(`/${name}{.:format}`, (req, res) => {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
     const limit = req.query.limit || 100;
     const sort = req.query.sort || 'count15m';
+
+    if (format && !['csv', 'json'].includes(format)) {
+      res.sendStatus(404);
+      return;
+    }
 
     const data = aggregator.getData({
       sort,
@@ -243,7 +253,7 @@ app.registerAggregator = (name, aggregator) => {
     res.send({ success: true });
   });
 
-  app.get(`/${name}/:identifier.:format(json)?`, (req, res) => {
+  app.get(`/${name}/:identifier{.json}`, (req, res) => {
     const entry = aggregator.get(req.params.identifier);
     if (!entry) {
       res.status(404).send('Not Found');
