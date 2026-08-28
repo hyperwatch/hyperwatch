@@ -9,17 +9,35 @@ const {
   md5,
 } = require('../lib/util');
 
+const lastSeen = (entry) => {
+  const ts =
+    entry.getIn(['speed', 'per_minute']) &&
+    entry.getIn(['speed', 'per_minute']).latest;
+  return ts ? new Date(ts * 1000).toISOString() : '';
+};
+
+const statusCount = (key) => (entry) =>
+  entry.getIn(['speed', key]) ? aggregateCount(entry, key) : 0;
+
 const defaultFormatter = new Formatter();
 defaultFormatter.setFormats([
   ['identity', identity],
 
-  ['address', address],
+  ['address', (entry) => entry.getIn(['address', 'value']) || ''],
+  ['hostname', address],
 
   ['count15m', (entry) => aggregateCount(entry, 'per_minute')],
   ['count24h', (entry) => aggregateCount(entry, 'per_hour')],
 
+  ['2xx15m', statusCount('2xx_per_minute')],
+  ['2xx24h', statusCount('2xx_per_hour')],
+  ['4xx15m', statusCount('4xx_per_minute')],
+  ['4xx24h', statusCount('4xx_per_hour')],
+
   ['execTime15m', (entry) => formatDuration(aggregateSum(entry, 'per_minute'))],
   ['execTime24h', (entry) => formatDuration(aggregateSum(entry, 'per_hour'))],
+
+  ['lastSeen', lastSeen],
 ]);
 
 const defaultEnricher = (entry, log) => {
@@ -52,6 +70,10 @@ const defaultIdentifier = (log) => {
 const defaultSorters = {
   count15m: (entry) => aggregateCount(entry, 'per_minute'),
   count24h: (entry) => aggregateCount(entry, 'per_hour'),
+  '2xx15m': statusCount('2xx_per_minute'),
+  '2xx24h': statusCount('2xx_per_hour'),
+  '4xx15m': statusCount('4xx_per_minute'),
+  '4xx24h': statusCount('4xx_per_hour'),
   latest: (entry) => entry.getIn(['speed', 'per_minute']).latest,
   execTime15m: (entry) => aggregateSum(entry, 'per_minute'),
   execTime24h: (entry) => aggregateSum(entry, 'per_hour'),
@@ -60,10 +82,13 @@ const defaultSorters = {
 class Aggregator {
   constructor() {
     this.entries = new Map();
-    this.formatter = defaultFormatter;
+    // Snapshot the default formats: modules extend defaultFormatter during
+    // init, aggregators are created during start, and per-aggregator
+    // insertFormat calls must not leak into other aggregators.
+    this.formatter = defaultFormatter.clone();
     this.enricher = defaultEnricher;
     this.identifier = defaultIdentifier;
-    this.sorters = defaultSorters;
+    this.sorters = { ...defaultSorters };
     this.gcSize = 1000;
 
     setInterval(() => this.gc(), 60 * 1000).unref();
@@ -93,6 +118,8 @@ class Aggregator {
     const rawExecTime = Number(log.get('executionTime'));
     const executionTime = Number.isFinite(rawExecTime) ? rawExecTime : 0;
 
+    const status = log.getIn(['response', 'status']);
+
     if (!this.entries.has(id)) {
       this.entries = this.entries
         .setIn([id, 'id'], id)
@@ -104,7 +131,11 @@ class Aggregator {
         .setIn(
           [id, 'speed', 'per_hour'],
           new Speed(3600, 24).hit(undefined, executionTime)
-        );
+        )
+        .setIn([id, 'speed', '2xx_per_minute'], new Speed(60, 15))
+        .setIn([id, 'speed', '2xx_per_hour'], new Speed(3600, 24))
+        .setIn([id, 'speed', '4xx_per_minute'], new Speed(60, 15))
+        .setIn([id, 'speed', '4xx_per_hour'], new Speed(3600, 24));
     } else {
       this.entries = this.entries
         .updateIn([id, 'speed', 'per_minute'], (speed) =>
@@ -113,6 +144,16 @@ class Aggregator {
         .updateIn([id, 'speed', 'per_hour'], (speed) =>
           speed.hit(undefined, executionTime)
         );
+    }
+
+    if (status >= 200 && status < 300) {
+      this.entries = this.entries
+        .updateIn([id, 'speed', '2xx_per_minute'], (speed) => speed.hit())
+        .updateIn([id, 'speed', '2xx_per_hour'], (speed) => speed.hit());
+    } else if (status >= 400 && status < 500) {
+      this.entries = this.entries
+        .updateIn([id, 'speed', '4xx_per_minute'], (speed) => speed.hit())
+        .updateIn([id, 'speed', '4xx_per_hour'], (speed) => speed.hit());
     }
 
     this.entries = this.entries.updateIn([id], (entry) =>
@@ -131,10 +172,8 @@ class Aggregator {
       sort = 'count15m';
     }
 
-    const rawData = this.entries
-      .map(this.sorters[sort])
-      .sort()
-      .reverse()
+    const sorted = this.entries.map(this.sorters[sort]).sort().reverse();
+    const rawData = sorted
       .slice(0, limit || 100)
       .keySeq()
       .map((id) => this.entries.get(id));
@@ -144,6 +183,10 @@ class Aggregator {
     return raw
       ? rawData
       : rawData.map((entry) => this.formatter.formatObject(entry, output));
+  }
+
+  reset() {
+    this.entries = new Map();
   }
 
   gc() {
@@ -169,10 +212,10 @@ class Aggregator {
     return this.entries
       .map((entry) => {
         const plain = entry.toJS();
-        plain.speed = {
-          per_minute: entry.getIn(['speed', 'per_minute']).toJSON(),
-          per_hour: entry.getIn(['speed', 'per_hour']).toJSON(),
-        };
+        plain.speed = entry
+          .get('speed')
+          .map((speed) => speed.toJSON())
+          .toObject();
         return plain;
       })
       .valueSeq()
@@ -184,7 +227,7 @@ class Aggregator {
       const { speed, ...rest } = item;
       // fromJS deep-converts everything to Immutable structures.
       // Signature headers must stay as a plain object (used with Object.entries),
-      // and addresses must be a Set, not a List — fix both after conversion.
+      // and addresses/signatures must be Sets, not Lists — fix after conversion.
       let entry = fromJS(rest);
       if (entry.hasIn(['signature', 'headers'])) {
         entry = entry.setIn(['signature', 'headers'], rest.signature.headers);
@@ -192,12 +235,45 @@ class Aggregator {
       if (entry.has('addresses')) {
         entry = entry.update('addresses', (list) => Set(list));
       }
+      if (entry.has('signatures')) {
+        entry = entry.update('signatures', (list) => Set(list));
+      }
       entry = entry
         .setIn(['speed', 'per_minute'], Speed.fromJSON(speed.per_minute))
-        .setIn(['speed', 'per_hour'], Speed.fromJSON(speed.per_hour));
+        .setIn(['speed', 'per_hour'], Speed.fromJSON(speed.per_hour))
+        .setIn(
+          ['speed', '2xx_per_minute'],
+          speed['2xx_per_minute']
+            ? Speed.fromJSON(speed['2xx_per_minute'])
+            : new Speed(60, 15)
+        )
+        .setIn(
+          ['speed', '2xx_per_hour'],
+          speed['2xx_per_hour']
+            ? Speed.fromJSON(speed['2xx_per_hour'])
+            : new Speed(3600, 24)
+        )
+        .setIn(
+          ['speed', '4xx_per_minute'],
+          speed['4xx_per_minute']
+            ? Speed.fromJSON(speed['4xx_per_minute'])
+            : new Speed(60, 15)
+        )
+        .setIn(
+          ['speed', '4xx_per_hour'],
+          speed['4xx_per_hour']
+            ? Speed.fromJSON(speed['4xx_per_hour'])
+            : new Speed(3600, 24)
+        );
       this.entries = this.entries.set(rest.id, entry);
     }
   }
 }
 
-module.exports = { Aggregator, defaultFormatter, defaultEnricher };
+module.exports = {
+  Aggregator,
+  defaultFormatter,
+  defaultEnricher,
+  lastSeen,
+  statusCount,
+};

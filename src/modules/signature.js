@@ -1,7 +1,7 @@
 const { is, Set } = require('immutable');
 
 const api = require('../app/api');
-const { Aggregator } = require('../lib/aggregator');
+const { Aggregator, lastSeen, statusCount } = require('../lib/aggregator');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
 const {
@@ -65,8 +65,10 @@ function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 }
 
+let _aggregator;
+
 function start() {
-  const aggregator = new Aggregator();
+  const aggregator = (_aggregator = new Aggregator());
 
   aggregator.setIdentifier((log) => log.getIn(['signature', 'id']));
 
@@ -85,6 +87,16 @@ function start() {
           .slice(0, 10)
           .join('<br>'),
     ],
+    [
+      'lastAddress',
+      (entry) => {
+        const addr = entry.get('lastAddress');
+        if (!addr) {
+          return '';
+        }
+        return addr.get('hostname') || addr.get('value') || '';
+      },
+    ],
 
     [
       'headers',
@@ -96,8 +108,14 @@ function start() {
       },
     ],
 
+    ['lastSeen', lastSeen],
     ['count15m', (entry) => aggregateCount(entry, 'per_minute')],
     ['count24h', (entry) => aggregateCount(entry, 'per_hour')],
+
+    ['2xx15m', statusCount('2xx_per_minute')],
+    ['2xx24h', statusCount('2xx_per_hour')],
+    ['4xx15m', statusCount('4xx_per_minute')],
+    ['4xx24h', statusCount('4xx_per_hour')],
 
     [
       'execTime15m',
@@ -121,6 +139,7 @@ function start() {
     }
 
     const address = log.get('address');
+    entry = entry.set('lastAddress', address);
     if (!entry.has('addresses')) {
       entry = entry.set('addresses', new Set([address]));
     } else if (!entry.get('addresses').has(address)) {
@@ -132,7 +151,12 @@ function start() {
 
   aggregator.setEnricher(enricher);
 
-  pipeline.getNode('main').map((log) => aggregator.processLog(log));
+  aggregator.sorters.addressCount = (entry) =>
+    entry.has('addresses') ? entry.get('addresses').size : 0;
+
+  pipeline
+    .getNode('main')
+    .map((log) => aggregator.processLog(log), 'aggregator');
 
   api.registerAggregator('signatures', aggregator);
 }
@@ -140,4 +164,7 @@ function start() {
 module.exports = {
   init,
   start,
+  get aggregator() {
+    return _aggregator;
+  },
 };

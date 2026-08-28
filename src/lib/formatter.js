@@ -65,6 +65,15 @@ class Formatter {
     };
   }
 
+  clone() {
+    const formatter = new Formatter();
+    formatter.formats = [...this.formats];
+    formatter.colors = { ...this.colors };
+    formatter.output = this.output;
+
+    return formatter;
+  }
+
   setOutput(output) {
     this.output = output;
 

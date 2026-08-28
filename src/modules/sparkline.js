@@ -1,6 +1,10 @@
 const aggregator = require('../lib/aggregator');
 
-const sparkline = (entry, key) => {
+const sparkline = (entry, key, output) => {
+  if (output === 'text') {
+    return;
+  }
+
   const id = entry.get('id');
 
   const points = entry
@@ -22,8 +26,8 @@ sparkline ('${id}', ${JSON.stringify(points)}, '#797979', 14, 5);
 };
 
 function init() {
-  aggregator.defaultFormatter.insertFormat('activity', (entry) =>
-    sparkline(entry, 'per_minute')
+  aggregator.defaultFormatter.insertFormat('activity', (entry, output) =>
+    sparkline(entry, 'per_minute', output)
   );
 }
 
