@@ -72,6 +72,11 @@ app.get('/nodes{.:format}', (req, res) => {
   const format = req.params.format;
   const view = req.query.view;
 
+  if (format && !['csv', 'json'].includes(format)) {
+    res.sendStatus(404);
+    return;
+  }
+
   if (format === 'csv') {
     const csv = stringify(
       nodes.map((name) => ({ name })),
@@ -201,6 +206,11 @@ app.registerAggregator = (name, aggregator) => {
     const format = req.params.format || (raw ? 'json' : null);
     const limit = req.query.limit || 100;
     const sort = req.query.sort || 'count15m';
+
+    if (format && !['csv', 'json'].includes(format)) {
+      res.sendStatus(404);
+      return;
+    }
 
     const data = aggregator.getData({
       sort,

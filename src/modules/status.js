@@ -27,6 +27,11 @@ function start() {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
 
+    if (format && !['json', 'txt'].includes(format)) {
+      res.sendStatus(404);
+      return;
+    }
+
     let rawData = monitoring.getAllComputed();
 
     if (req.query.type) {

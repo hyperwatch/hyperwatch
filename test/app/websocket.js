@@ -4,7 +4,9 @@ const http = require('http');
 const express = require('express');
 const WebSocket = require('ws');
 
+const websocket = require('../../src/app/websocket');
 const wsServer = require('../../src/app/ws-server');
+const websocketInput = require('../../src/input/websocket');
 
 /**
  * Create a test server (Express + HTTP + WebSocket routing) wired to the
@@ -184,38 +186,26 @@ describe('WebSocket integration', () => {
       wsServer = setup.wsServer;
       baseUrl = await listen(httpServer);
 
-      // Simulate the streamToWebsocket pattern from src/app/websocket.js
-      const clients = {};
       let mapCallback;
-
-      // Mock stream with .map() that captures the callback
       const mockStream = {
-        map(fn) {
+        map(fn, name) {
           mapCallback = fn;
+          assert.strictEqual(name, 'ws:/logs/test');
         },
       };
 
-      wsServer.ws('/logs/test', (client, req) => {
-        const clientId = req.query.clientId || 'default';
-        clients[clientId] = client;
-        client.on('close', () => delete clients[clientId]);
-      });
+      const originalSetInterval = global.setInterval;
+      global.setInterval = () => undefined;
+      try {
+        websocket.streamToWebsocket('/logs/test', mockStream);
+      } finally {
+        global.setInterval = originalSetInterval;
+      }
 
-      // Register the broadcast callback (mirrors websocket.streamToWebsocket)
-      mockStream.map((log) => {
-        Object.values(clients).forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
-            client.send(JSON.stringify(log));
-          }
-        });
-      });
-
-      // Connect a client
       const client = await connectWs(
         `${baseUrl.replace('http', 'ws')}/logs/test?clientId=test1`
       );
 
-      // Push data through the mock stream
       const msgPromise = nextMessage(client);
       mapCallback({ event: 'request', method: 'GET', url: '/api/test' });
       const received = JSON.parse(await msgPromise);
@@ -233,25 +223,18 @@ describe('WebSocket integration', () => {
       wsServer = setup.wsServer;
       baseUrl = await listen(httpServer);
 
-      const clients = {};
+      const originalSetInterval = global.setInterval;
+      global.setInterval = () => undefined;
+      try {
+        websocket.streamToWebsocket('/logs/dedup', { map() {} });
+      } finally {
+        global.setInterval = originalSetInterval;
+      }
 
-      wsServer.ws('/logs/dedup', (client, req) => {
-        const clientId = req.query.clientId || 'default';
-        if (clients[clientId]) {
-          client.terminate();
-          return;
-        }
-        clients[clientId] = client;
-        client.on('close', () => delete clients[clientId]);
-      });
-
-      // First connection with clientId=abc should succeed
       const client1 = await connectWs(
         `${baseUrl.replace('http', 'ws')}/logs/dedup?clientId=abc`
       );
-      assert.strictEqual(Object.keys(clients).length, 1);
 
-      // Second connection with same clientId should be terminated
       const client2 = new WebSocket(
         `${baseUrl.replace('http', 'ws')}/logs/dedup?clientId=abc`
       );
@@ -260,7 +243,7 @@ describe('WebSocket integration', () => {
         client2.on('error', () => {});
       });
 
-      assert.strictEqual(Object.keys(clients).length, 1);
+      assert.strictEqual(client1.readyState, WebSocket.OPEN);
 
       client1.close();
     });
@@ -273,25 +256,26 @@ describe('WebSocket integration', () => {
       wsServer = setup.wsServer;
       baseUrl = await listen(httpServer);
 
-      // Simulate the input/websocket.js server pattern
-      const received = [];
-      wsServer.ws('/input', (ws) => {
-        ws.on('message', (message) => {
-          received.push(JSON.parse(message.toString()));
-        });
+      let resolveReceived;
+      const received = new Promise((resolve) => {
+        resolveReceived = resolve;
+      });
+      const input = websocketInput.create({
+        type: 'server',
+        path: '/input',
+      });
+      input.start({
+        status() {},
+        reject: assert.fail,
+        success: resolveReceived,
       });
 
       const client = await connectWs(`${baseUrl.replace('http', 'ws')}/input`);
 
-      client.send(JSON.stringify({ type: 'log', data: 'test1' }));
-      client.send(JSON.stringify({ type: 'log', data: 'test2' }));
-
-      // Give a tick for messages to arrive
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      assert.strictEqual(received.length, 2);
-      assert.strictEqual(received[0].data, 'test1');
-      assert.strictEqual(received[1].data, 'test2');
+      client.send(JSON.stringify({ type: 'log', data: 'test' }));
+      const message = await received;
+      assert.strictEqual(message.get('type'), 'log');
+      assert.strictEqual(message.get('data'), 'test');
 
       client.close();
     });
