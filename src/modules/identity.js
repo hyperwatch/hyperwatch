@@ -237,6 +237,10 @@ function augment(log) {
       return hostname && hostname.endsWith('.blex.seranking.com')
         ? log.set('identity', 'SE Ranking')
         : log;
+    case 'SofyaBot':
+      return hostname && hostname.endsWith('.sofya.co')
+        ? log.set('identity', 'Sofya')
+        : log;
 
     // Per hostname + CIDR
     case 'Twitterbot':
