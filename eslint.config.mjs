@@ -1,5 +1,5 @@
 import js from "@eslint/js";
-import importPlugin from "eslint-plugin-import";
+import importX from "eslint-plugin-import-x";
 import nodePlugin from "eslint-plugin-n";
 import globals from "globals";
 
@@ -9,7 +9,7 @@ export default [
   },
   js.configs.recommended,
   nodePlugin.configs["flat/recommended"],
-  importPlugin.flatConfigs.recommended,
+  importX.flatConfigs.recommended,
   {
     languageOptions: {
       ecmaVersion: 2018,
@@ -67,7 +67,7 @@ export default [
         { exceptAfterSingleLine: true },
       ],
 
-      "import/order": [
+      "import-x/order": [
         "warn",
         {
           alphabetize: {
