@@ -15,22 +15,54 @@ const signature = require('./signature');
 
 let rules = [];
 
-function loadRules() {
-  const filePath =
+function rulesPath() {
+  return (
     (constants.modules.firewall && constants.modules.firewall.path) ||
-    path.join(process.cwd(), 'firewall.json');
+    path.join(process.cwd(), 'firewall.json')
+  );
+}
 
+function compileRules(data) {
+  if (!data || (data.rules !== undefined && !Array.isArray(data.rules))) {
+    throw new TypeError('rules must be an array');
+  }
+
+  return (data.rules || []).map((rule) => {
+    if (!rule || typeof rule !== 'object' || Array.isArray(rule)) {
+      throw new TypeError('each rule must be an object');
+    }
+
+    const compiled = { ...rule };
+    if (!rule.match) {
+      return compiled;
+    }
+    if (typeof rule.match !== 'object' || Array.isArray(rule.match)) {
+      throw new TypeError('rule match must be an object');
+    }
+
+    compiled.match = { ...rule.match };
+    if (rule.match.ua_regex) {
+      compiled._ua_regex = new RegExp(rule.match.ua_regex);
+    }
+    if (rule.match.cidrs) {
+      if (!Array.isArray(rule.match.cidrs)) {
+        throw new TypeError('rule match.cidrs must be an array');
+      }
+      compiled._cidrs = rule.match.cidrs.map((cidr) => new IPCIDR(cidr));
+    }
+    return compiled;
+  });
+}
+
+function loadRules(filePath = rulesPath()) {
   try {
     const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    rules = (data.rules || []).map((rule) => {
-      if (rule.match && rule.match.ua_regex) {
-        rule._ua_regex = new RegExp(rule.match.ua_regex);
-      }
-      return rule;
-    });
+    const nextRules = compileRules(data);
+    rules = nextRules;
+    return true;
   } catch (err) {
     console.warn(`firewall: could not load ${filePath}: ${err.message}`);
-    rules = [];
+    return false;
   }
 }
 
@@ -59,10 +91,7 @@ function matchRule(log, rule) {
   if (match.cidrs) {
     const address =
       log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
-    if (
-      !address ||
-      !match.cidrs.some((cidr) => new IPCIDR(cidr).contains(address))
-    ) {
+    if (!address || !rule._cidrs.some((cidr) => cidr.contains(address))) {
       return false;
     }
   }
@@ -172,9 +201,7 @@ function init() {
   loadRules();
 
   // Watch for changes to the rules file
-  const filePath =
-    (constants.modules.firewall && constants.modules.firewall.path) ||
-    path.join(process.cwd(), 'firewall.json');
+  const filePath = rulesPath();
 
   fs.watchFile(filePath, { interval: 5000 }, () => {
     console.log('firewall: reloading rules');
@@ -252,10 +279,11 @@ function start() {
 
 function getExplicitAction(address) {
   for (const rule of rules) {
-    if (rule.match.address === address) {
+    const match = rule.match || {};
+    if (match.address === address) {
       return rule.action;
     }
-    if (rule.match.addresses && rule.match.addresses.includes(address)) {
+    if (match.addresses && match.addresses.includes(address)) {
       return rule.action;
     }
   }
@@ -264,10 +292,11 @@ function getExplicitAction(address) {
 
 function getSignatureAction(sig) {
   for (const rule of rules) {
-    if (rule.match.signature === sig) {
+    const match = rule.match || {};
+    if (match.signature === sig) {
       return rule.action;
     }
-    if (rule.match.signatures && rule.match.signatures.includes(sig)) {
+    if (match.signatures && match.signatures.includes(sig)) {
       return rule.action;
     }
   }
@@ -280,10 +309,11 @@ const firewallFormat = (entry) =>
 const addressFirewallRuleFormat = (entry) => {
   const addr = entry.getIn(['address', 'value']);
   for (const rule of rules) {
-    if (rule.match.address === addr) {
+    const match = rule.match || {};
+    if (match.address === addr) {
       return rule.id;
     }
-    if (rule.match.addresses && rule.match.addresses.includes(addr)) {
+    if (match.addresses && match.addresses.includes(addr)) {
       return rule.id;
     }
   }
@@ -316,4 +346,10 @@ const signatureFirewallRuleFormat = (entry) => {
   return '';
 };
 
-module.exports = { init, start, getExplicitAction, getSignatureAction };
+module.exports = {
+  init,
+  start,
+  getExplicitAction,
+  getSignatureAction,
+  _testing: { loadRules, augment },
+};
