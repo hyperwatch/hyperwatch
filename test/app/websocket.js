@@ -1,46 +1,16 @@
-/* eslint-env mocha */
-
 const assert = require('assert');
 const http = require('http');
 
 const express = require('express');
 const WebSocket = require('ws');
-const { WebSocketServer } = require('ws');
+
+const wsServer = require('../../src/app/ws-server');
 
 /**
- * Create a standalone ws-server instance for test isolation.
- * Mirrors the logic in src/app/ws-server.js but with its own state.
- */
-function createWsServer() {
-  const wss = new WebSocketServer({ noServer: true });
-  const routes = new Map();
-
-  function ws(path, handler) {
-    routes.set(path, handler);
-  }
-
-  function handleUpgrade(request, socket, head) {
-    const url = new URL(request.url, 'http://localhost');
-    request.query = Object.fromEntries(url.searchParams);
-
-    const handler = routes.get(url.pathname);
-    if (handler) {
-      wss.handleUpgrade(request, socket, head, (client) => {
-        handler(client, request);
-      });
-    } else {
-      socket.destroy();
-    }
-  }
-
-  return { ws, handleUpgrade };
-}
-
-/**
- * Create a test server (Express + HTTP + WebSocket routing).
+ * Create a test server (Express + HTTP + WebSocket routing) wired to the
+ * real ws-server module, the same way src/app/index.js does it.
  */
 function createTestServer() {
-  const wsServer = createWsServer();
   const app = express();
   const httpServer = http.createServer(app);
 

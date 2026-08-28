@@ -3,10 +3,10 @@ const http = require('http');
 const express = require('express');
 
 const constants = require('../constants');
-const wsServer = require('./ws-server');
 
 const api = require('./api');
 const websocket = require('./websocket');
+const wsServer = require('./ws-server');
 
 const app = express();
 const httpServer = http.createServer(app);

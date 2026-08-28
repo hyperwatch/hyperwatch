@@ -67,7 +67,7 @@ function renderHtmlInputs(inputs) {
   return html;
 }
 
-app.get('/nodes.:format(json|csv)?', (req, res) => {
+app.get('/nodes{.:format}', (req, res) => {
   const nodes = Object.keys(pipeline.nodes);
   const format = req.params.format;
   const view = req.query.view;
@@ -243,7 +243,7 @@ app.registerAggregator = (name, aggregator) => {
     res.send({ success: true });
   });
 
-  app.get(`/${name}/:identifier{.:format}`, (req, res) => {
+  app.get(`/${name}/:identifier{.json}`, (req, res) => {
     const entry = aggregator.get(req.params.identifier);
     if (!entry) {
       res.status(404).send('Not Found');
