@@ -1,7 +1,7 @@
 const { is, Set } = require('immutable');
 
 const api = require('../app/api');
-const { Aggregator, lastSeen } = require('../lib/aggregator');
+const { Aggregator, lastSeen, statusCount } = require('../lib/aggregator');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
 const {
@@ -112,34 +112,10 @@ function start() {
     ['count15m', (entry) => aggregateCount(entry, 'per_minute')],
     ['count24h', (entry) => aggregateCount(entry, 'per_hour')],
 
-    [
-      'ok15m',
-      (entry) =>
-        entry.getIn(['speed', 'ok_per_minute'])
-          ? aggregateCount(entry, 'ok_per_minute')
-          : 0,
-    ],
-    [
-      'ok24h',
-      (entry) =>
-        entry.getIn(['speed', 'ok_per_hour'])
-          ? aggregateCount(entry, 'ok_per_hour')
-          : 0,
-    ],
-    [
-      'err15m',
-      (entry) =>
-        entry.getIn(['speed', 'err_per_minute'])
-          ? aggregateCount(entry, 'err_per_minute')
-          : 0,
-    ],
-    [
-      'err24h',
-      (entry) =>
-        entry.getIn(['speed', 'err_per_hour'])
-          ? aggregateCount(entry, 'err_per_hour')
-          : 0,
-    ],
+    ['2xx15m', statusCount('2xx_per_minute')],
+    ['2xx24h', statusCount('2xx_per_hour')],
+    ['4xx15m', statusCount('4xx_per_minute')],
+    ['4xx24h', statusCount('4xx_per_hour')],
 
     [
       'execTime15m',
@@ -175,22 +151,6 @@ function start() {
 
   aggregator.setEnricher(enricher);
 
-  aggregator.sorters.ok15m = (entry) =>
-    entry.getIn(['speed', 'ok_per_minute'])
-      ? aggregateCount(entry, 'ok_per_minute')
-      : 0;
-  aggregator.sorters.ok24h = (entry) =>
-    entry.getIn(['speed', 'ok_per_hour'])
-      ? aggregateCount(entry, 'ok_per_hour')
-      : 0;
-  aggregator.sorters.err15m = (entry) =>
-    entry.getIn(['speed', 'err_per_minute'])
-      ? aggregateCount(entry, 'err_per_minute')
-      : 0;
-  aggregator.sorters.err24h = (entry) =>
-    entry.getIn(['speed', 'err_per_hour'])
-      ? aggregateCount(entry, 'err_per_hour')
-      : 0;
   aggregator.sorters.addressCount = (entry) =>
     entry.has('addresses') ? entry.get('addresses').size : 0;
 

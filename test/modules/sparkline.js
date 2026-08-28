@@ -9,7 +9,7 @@ const sparkline = require('../../src/modules/sparkline');
 
 describe('Sparkline formatter', () => {
   it('omits HTML activity from text output', () => {
-    const originalFormats = aggregator.defaultFormatter.formats;
+    const originalFormats = [...aggregator.defaultFormatter.formats];
 
     try {
       sparkline.init();
