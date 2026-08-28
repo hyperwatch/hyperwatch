@@ -5,13 +5,13 @@ const { fromJS } = require('immutable');
 const claudeBotIps = require('../../src/data/claude-bot-ips.json');
 const identity = require('../../src/modules/identity.js');
 
-const claudeFamilies = {
-  ClaudeBot: 'Claude',
-  'Claude-User': 'Claude User',
-  'Claude-SearchBot': 'Claude SearchBot',
-  'Claude-Web': 'Claude Web',
-  'anthropic-ai': 'Anthropic',
-};
+const claudeFamilies = [
+  'ClaudeBot',
+  'Claude-User',
+  'Claude-SearchBot',
+  'Claude-Web',
+  'anthropic-ai',
+];
 
 function log({ family, address, hostname }) {
   return fromJS({
@@ -37,7 +37,7 @@ describe('identity', () => {
     });
 
     it('should not identify an address outside the published ranges', () => {
-      for (const family of Object.keys(claudeFamilies)) {
+      for (const family of claudeFamilies) {
         const result = identity.augment(log({ family, address: '8.8.8.8' }));
         assert.strictEqual(result.get('identity'), undefined);
       }
@@ -48,9 +48,9 @@ describe('identity', () => {
       'should identify every Claude family from a published range',
       () => {
         const address = claudeBotIps[0].split('/')[0];
-        for (const [family, expected] of Object.entries(claudeFamilies)) {
+        for (const family of claudeFamilies) {
           const result = identity.augment(log({ family, address }));
-          assert.strictEqual(result.get('identity'), expected);
+          assert.strictEqual(result.get('identity'), 'Claude');
         }
       }
     );

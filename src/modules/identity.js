@@ -19,14 +19,6 @@ const pipeline = require('../lib/pipeline');
 // infrastructure, so their PTR records are not Anthropic-controlled.
 const claudeBotCidrs = claudeBotIps.map((cidr) => new IPCIDR(cidr));
 
-const claudeIdentities = {
-  ClaudeBot: 'Claude',
-  'Claude-User': 'Claude User',
-  'Claude-SearchBot': 'Claude SearchBot',
-  'Claude-Web': 'Claude Web',
-  'anthropic-ai': 'Anthropic',
-};
-
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
   const hostname = log.getIn(['address', 'hostname']);
@@ -317,7 +309,7 @@ function augment(log) {
     case 'anthropic-ai':
       // https://claude.com/crawling/bots.json
       return address && claudeBotCidrs.some((cidr) => cidr.contains(address))
-        ? log.set('identity', claudeIdentities[family])
+        ? log.set('identity', 'Claude')
         : log;
     case 'meta-externalagent':
     case 'meta-webindexer':
