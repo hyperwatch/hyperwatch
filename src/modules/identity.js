@@ -365,6 +365,12 @@ function augment(log) {
       return hostname && hostname.endsWith('.googleusercontent.com')
         ? log.set('identity', 'Dolfe')
         : log;
+    case 'ShapBot':
+      // Parallel Web Systems crawler, runs on GCE
+      // https://docs.parallel.ai/resources/crawler
+      return hostname && hostname.endsWith('.googleusercontent.com')
+        ? log.set('identity', 'Parallel')
+        : log;
 
     // Hetzner
     case 'Ubermetrics':
