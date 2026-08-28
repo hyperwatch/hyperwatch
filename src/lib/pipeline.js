@@ -135,7 +135,11 @@ class Builder {
     this._label = null;
     // Lightweight per-node counter for throughput tracking
     this.counter = 0;
-    this.rateWindow = []; // timestamps of recent events for rate calculation
+    // Fixed one-second buckets keep rate tracking bounded and O(1) per event.
+    this.rateBuckets = Array.from({ length: 10 }, () => ({
+      second: null,
+      count: 0,
+    }));
   }
 
   add(xf, { op = null, fnName = null, label = null } = {}) {
@@ -180,12 +184,13 @@ class Builder {
     const self = this;
     const countXf = (stream) => (event) => {
       self.counter++;
-      const now = Date.now();
-      self.rateWindow.push(now);
-      // Keep only last 10 seconds of timestamps
-      while (self.rateWindow.length > 0 && self.rateWindow[0] < now - 10000) {
-        self.rateWindow.shift();
+      const second = Math.floor(Date.now() / 1000);
+      const bucket = self.rateBuckets[second % self.rateBuckets.length];
+      if (bucket.second !== second) {
+        bucket.second = second;
+        bucket.count = 0;
       }
+      bucket.count++;
       forward(stream, event);
     };
     if (this.children.length === 0) {
@@ -325,11 +330,15 @@ class Pipeline extends Builder {
   }
 
   getTree(node = this) {
-    const now = Date.now();
-    // Trim stale timestamps before computing rate
-    while (node.rateWindow.length > 0 && node.rateWindow[0] < now - 10000) {
-      node.rateWindow.shift();
-    }
+    const second = Math.floor(Date.now() / 1000);
+    const windowStart = second - node.rateBuckets.length + 1;
+    const rateCount = node.rateBuckets.reduce(
+      (count, bucket) =>
+        bucket.second >= windowStart && bucket.second <= second
+          ? count + bucket.count
+          : count,
+      0
+    );
     const obj = {
       name: node.name || null,
       op: node.op || null,
@@ -337,7 +346,7 @@ class Pipeline extends Builder {
       fnName: node.fnName || null,
       label: node._label || null,
       count: node.counter,
-      rate: node.rateWindow.length / 10, // events per second (10s window)
+      rate: rateCount / node.rateBuckets.length,
       children: node.children.map((child) => this.getTree(child)),
     };
     // Include inputs at the root level

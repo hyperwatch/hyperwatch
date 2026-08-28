@@ -26,8 +26,8 @@ sparkline ('${id}', ${JSON.stringify(points)}, '#797979', 14, 5);
 };
 
 function init() {
-  aggregator.defaultFormatter.insertFormat('activity', (entry) =>
-    sparkline(entry, 'per_minute')
+  aggregator.defaultFormatter.insertFormat('activity', (entry, output) =>
+    sparkline(entry, 'per_minute', output)
   );
 }
 
