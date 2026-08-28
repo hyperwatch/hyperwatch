@@ -364,6 +364,7 @@ class Pipeline extends Builder {
         return {
           name: input.name,
           node: input._tap ? input._tap.name : null,
+          tree: input._tap ? this.getTree(input._tap) : null,
           status: monitor ? monitor.status : null,
           accepted: accepted ? accepted.reduce((a, b) => a + b, 0) : 0,
           rejected: rejected ? rejected.reduce((a, b) => a + b, 0) : 0,

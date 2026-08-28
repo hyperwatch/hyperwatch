@@ -17,7 +17,7 @@ const app = express();
 
 app.use(express.json());
 
-function renderHtmlTree(node, pipeline) {
+function renderHtmlTree(node) {
   const label = [];
   if (node.name) {
     label.push(`<strong>${node.name}</strong>`);
@@ -31,16 +31,39 @@ function renderHtmlTree(node, pipeline) {
   if (node.fnName) {
     label.push(`<span class="fn">${node.fnName}</span>`);
   }
+  if (node.label) {
+    label.push(`<span class="label">${node.label}</span>`);
+  }
 
   let html = `<li>${label.join(' ')}`;
   if (node.children && node.children.length > 0) {
     html += '<ul>';
     for (const child of node.children) {
-      html += renderHtmlTree(child, pipeline);
+      html += renderHtmlTree(child);
     }
     html += '</ul>';
   }
   html += '</li>';
+  return html;
+}
+
+function renderHtmlInputs(inputs) {
+  if (!inputs || inputs.length === 0) {
+    return '';
+  }
+  let html = '<ul>';
+  for (const input of inputs) {
+    html += `<li><strong>${input.name}</strong> <span class="op">[input]</span>`;
+    if (input.status) {
+      html += ` <span class="module">(${input.status})</span>`;
+    }
+    html += ` accepted: ${input.accepted}, rejected: ${input.rejected}`;
+    if (input.tree) {
+      html += `<ul>${renderHtmlTree(input.tree)}</ul>`;
+    }
+    html += '</li>';
+  }
+  html += '</ul>';
   return html;
 }
 
@@ -78,10 +101,11 @@ app.get('/nodes.:format(json|csv)?', (req, res) => {
 .op { color: #666; }
 .module { color: #0a0; }
 .fn { color: #00a; }
+.label { color: #a50; }
 ul { list-style: none; padding-left: 1.5em; }
 </style>
 </head>
-<body><ul>${renderHtmlTree(tree, pipeline)}</ul></body>
+<body>${renderHtmlInputs(tree.inputs)}<ul>${renderHtmlTree(tree)}</ul></body>
 </html>`
       );
     } else {
