@@ -49,6 +49,10 @@ const constants = {
       active: false,
       priority: 620, // depends on: agent, hostname, signature, address
     },
+    fingerprint: {
+      active: false,
+      priority: 625, // depends on: agent, identity
+    },
     // --- Output: depends on full enrichment ---
     history: {
       active: false,
