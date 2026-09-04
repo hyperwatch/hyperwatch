@@ -7,6 +7,5 @@ config
 !config/express_websocket_example.js
 .hyperwatch-data
 node_modules
-package-lock.json
 license maxmind
 .claude/settings.local.json
