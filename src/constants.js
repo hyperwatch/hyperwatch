@@ -49,6 +49,10 @@ const constants = {
       active: false,
       priority: 620, // depends on: agent, hostname, signature, address
     },
+    firewall: {
+      active: false,
+      priority: 650, // requires: all enrichment; injects into address aggregator
+    },
     // --- Output: depends on full enrichment ---
     history: {
       active: false,
