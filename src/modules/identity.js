@@ -249,6 +249,18 @@ function augment(log) {
       return hostname && hostname.endsWith('.sofya.co')
         ? log.set('identity', 'Sofya')
         : log;
+    case 'YouBot':
+      // https://docs.you.com/youbot
+      return hostname && hostname.endsWith('.search.you.com')
+        ? log.set('identity', 'You.com')
+        : log;
+    case 'AIWebIndex':
+    case 'AIWebIndex-Agent':
+      // Lyrenth AI-readable web index, forward-confirmed rDNS under lyrenth.com
+      // https://lyrenth.com/bot
+      return hostname && hostname.endsWith('.lyrenth.com')
+        ? log.set('identity', 'Lyrenth')
+        : log;
 
     // Per hostname + CIDR
     case 'Twitterbot':
