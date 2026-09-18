@@ -1,9 +1,10 @@
-const { is, Set } = require('immutable');
+const { is } = require('immutable');
 
 const api = require('../app/api');
 const { Aggregator, lastSeen, statusCount } = require('../lib/aggregator');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
+const { touch, prune } = require('../lib/recent-map');
 const {
   aggregateCount,
   aggregateSum,
@@ -77,15 +78,16 @@ function start() {
   signatureFormatter.setFormats([
     ['signature', (entry) => entry.getIn(['signature', 'id'])],
     ['identity', (entry) => entry.get('identity')],
-    ['addressCount', (entry) => entry.get('addresses').size],
+    [
+      'addressCount',
+      (entry) => (entry.has('addresses') ? entry.get('addresses').size : 0),
+    ],
     [
       'addresses',
       (entry) =>
-        entry
-          .get('addresses')
-          .map((address) => address.get('value'))
-          .slice(0, 10)
-          .join('<br>'),
+        entry.has('addresses')
+          ? entry.get('addresses').keySeq().slice(0, 10).join('<br>')
+          : '',
     ],
     [
       'lastAddress',
@@ -140,16 +142,20 @@ function start() {
 
     const address = log.get('address');
     entry = entry.set('lastAddress', address);
-    if (!entry.has('addresses')) {
-      entry = entry.set('addresses', new Set([address]));
-    } else if (!entry.get('addresses').has(address)) {
-      entry = entry.update('addresses', (set) => set.add(address));
+    // Distinct IPs seen in the last 24h
+    const value = address && address.get('value');
+    if (value) {
+      entry = entry.update('addresses', (map) => touch(map, value));
     }
 
     return entry;
   };
 
   aggregator.setEnricher(enricher);
+
+  aggregator.setEntryGc((entry) =>
+    entry.has('addresses') ? entry.update('addresses', prune) : entry
+  );
 
   aggregator.sorters.addressCount = (entry) =>
     entry.has('addresses') ? entry.get('addresses').size : 0;

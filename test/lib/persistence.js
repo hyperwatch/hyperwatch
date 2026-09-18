@@ -3,9 +3,10 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { Map, Set, fromJS } = require('immutable');
+const { Map, fromJS } = require('immutable');
 
 const { Aggregator } = require('../../src/lib/aggregator');
+const { WINDOW, prune } = require('../../src/lib/recent-map');
 const { Speed } = require('../../src/lib/speed');
 const { now } = require('../../src/lib/util');
 
@@ -146,28 +147,14 @@ describe('Aggregator dump/load', () => {
     ]);
   });
 
-  it('restores addresses as an Immutable Set', () => {
+  it('restores addresses as a Map of ip → lastSeen', () => {
     const agg = new Aggregator();
     const t = now();
 
     agg.entries = agg.entries
       .setIn(['a', 'id'], 'a')
       .setIn(['a', 'identifier'], 'sig-abc')
-      .setIn(['a', 'speed', 'per_minute'], new Speed(60, 15).hit(t))
-      .setIn(['a', 'speed', 'per_hour'], new Speed(3600, 24).hit(t))
-      .set(
-        'a',
-        agg.entries.get('a', Map()).merge(
-          Map({
-            id: 'a',
-            identifier: 'sig-abc',
-            addresses: Set([
-              Map({ value: '1.2.3.4' }),
-              Map({ value: '5.6.7.8' }),
-            ]),
-          })
-        )
-      )
+      .setIn(['a', 'addresses'], Map({ '1.2.3.4': t, '5.6.7.8': t - 10 }))
       .setIn(['a', 'speed', 'per_minute'], new Speed(60, 15).hit(t))
       .setIn(['a', 'speed', 'per_hour'], new Speed(3600, 24).hit(t));
 
@@ -175,21 +162,20 @@ describe('Aggregator dump/load', () => {
     agg2.load(agg.dump());
 
     const addresses = agg2.entries.getIn(['a', 'addresses']);
-    assert.ok(Set.isSet(addresses), 'addresses should be an Immutable Set');
+    assert.ok(Map.isMap(addresses), 'addresses should be an Immutable Map');
     assert.strictEqual(addresses.size, 2);
-    // Set.add should work (this is what signature enricher does)
-    const updated = addresses.add(Map({ value: '9.9.9.9' }));
-    assert.strictEqual(updated.size, 3);
+    assert.strictEqual(addresses.get('1.2.3.4'), t);
+    assert.strictEqual(addresses.get('5.6.7.8'), t - 10);
   });
 
-  it('restores signatures as an Immutable Set', () => {
+  it('restores signatures as a Map of id → lastSeen', () => {
     const agg = new Aggregator();
     const t = now();
 
     agg.entries = agg.entries
       .setIn(['a', 'id'], 'a')
       .setIn(['a', 'identifier'], '1.2.3.4')
-      .setIn(['a', 'signatures'], Set(['sig-abc', 'sig-def']))
+      .setIn(['a', 'signatures'], Map({ 'sig-abc': t, 'sig-def': t }))
       .setIn(['a', 'speed', 'per_minute'], new Speed(60, 15).hit(t))
       .setIn(['a', 'speed', 'per_hour'], new Speed(3600, 24).hit(t));
 
@@ -197,12 +183,91 @@ describe('Aggregator dump/load', () => {
     agg2.load(agg.dump());
 
     const signatures = agg2.entries.getIn(['a', 'signatures']);
-    assert.ok(Set.isSet(signatures), 'signatures should be an Immutable Set');
+    assert.ok(Map.isMap(signatures), 'signatures should be an Immutable Map');
     assert.strictEqual(signatures.size, 2);
-    // Set.add should work (this is what the address enricher does)
-    const updated = signatures.add('sig-xyz');
-    assert.strictEqual(updated.size, 3);
-    assert.strictEqual(signatures.add('sig-abc').size, 2);
+    assert.strictEqual(signatures.get('sig-abc'), t);
+  });
+
+  it('migrates legacy array addresses/signatures to Maps', () => {
+    const t = now();
+    const speed = {
+      per_minute: new Speed(60, 15).hit(t).toJSON(),
+      per_hour: new Speed(3600, 24).hit(t).toJSON(),
+    };
+    const legacy = [
+      {
+        id: 'a',
+        identifier: 'sig-abc',
+        addresses: [
+          { value: '1.2.3.4' },
+          { value: '1.2.3.4', hostname: 'host.example' },
+          { value: '5.6.7.8' },
+        ],
+        speed,
+      },
+      {
+        id: 'b',
+        identifier: '1.2.3.4',
+        signatures: ['sig-abc', 'sig-def'],
+        speed,
+      },
+    ];
+
+    const agg = new Aggregator();
+    agg.load(legacy);
+
+    const addresses = agg.entries.getIn(['a', 'addresses']);
+    assert.ok(Map.isMap(addresses));
+    // same IP with different metadata collapses into one key
+    assert.deepStrictEqual(addresses.keySeq().sort().toArray(), [
+      '1.2.3.4',
+      '5.6.7.8',
+    ]);
+    assert.strictEqual(addresses.get('1.2.3.4'), t);
+
+    const signatures = agg.entries.getIn(['b', 'signatures']);
+    assert.ok(Map.isMap(signatures));
+    assert.deepStrictEqual(signatures.keySeq().sort().toArray(), [
+      'sig-abc',
+      'sig-def',
+    ]);
+    assert.strictEqual(signatures.get('sig-def'), t);
+  });
+
+  it('runs entryGc on load so stale members are dropped after downtime', () => {
+    const t = now();
+    const old = t - WINDOW - 60;
+    const agg = new Aggregator();
+    agg.setEntryGc((entry) =>
+      entry.has('addresses') ? entry.update('addresses', prune) : entry
+    );
+    agg.load([
+      {
+        id: 'a',
+        identifier: 'sig-abc',
+        addresses: { '1.2.3.4': old, '5.6.7.8': t },
+        speed: {
+          per_minute: new Speed(60, 15).hit(t).toJSON(),
+          per_hour: new Speed(3600, 24).hit(t).toJSON(),
+        },
+      },
+      {
+        id: 'b',
+        identifier: 'sig-def',
+        addresses: [{ value: '9.9.9.9' }],
+        speed: {
+          per_minute: new Speed(60, 15).hit(old).toJSON(),
+          per_hour: new Speed(3600, 24).hit(old).toJSON(),
+        },
+      },
+    ]);
+
+    assert.deepStrictEqual(
+      agg.entries.getIn(['a', 'addresses']).keySeq().toArray(),
+      ['5.6.7.8']
+    );
+    // legacy entry last seen before the window: everything pruned
+    assert.strictEqual(agg.entries.getIn(['b', 'addresses']).size, 0);
   });
 
   it('loaded entries accept new hits from processLog', () => {
