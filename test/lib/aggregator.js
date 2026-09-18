@@ -42,3 +42,18 @@ describe('Aggregator formatter isolation', () => {
     }
   });
 });
+
+describe('Aggregator entryGc', () => {
+  it('runs on gc() even below gcSize', () => {
+    const agg = new Aggregator();
+    agg.entries = agg.entries.setIn(['a', 'n'], 1).setIn(['b', 'n'], 2);
+    agg.setEntryGc((entry) => entry.update('n', (n) => n * 10));
+
+    assert.ok(agg.entries.size < agg.gcSize);
+    agg.gc();
+
+    assert.strictEqual(agg.entries.getIn(['a', 'n']), 10);
+    assert.strictEqual(agg.entries.getIn(['b', 'n']), 20);
+    assert.strictEqual(agg.entries.size, 2);
+  });
+});

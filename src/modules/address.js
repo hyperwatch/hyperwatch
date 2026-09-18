@@ -1,8 +1,9 @@
-const { is, Set } = require('immutable');
+const { is } = require('immutable');
 
 const api = require('../app/api');
 const { Aggregator } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
+const { touch, prune } = require('../lib/recent-map');
 
 const identifier = (log) => log.getIn(['address', 'value']);
 
@@ -41,21 +42,20 @@ function start() {
       }
     }
 
-    // Collect unique signature IDs
+    // Distinct signature IDs seen in the last 24h
     const signatureId = log.getIn(['signature', 'id']);
     if (signatureId) {
-      const signatures = entry.get('signatures');
-      if (!signatures || !(signatures instanceof Set)) {
-        entry = entry.set('signatures', new Set([signatureId]));
-      } else if (!signatures.has(signatureId)) {
-        entry = entry.set('signatures', signatures.add(signatureId));
-      }
+      entry = entry.update('signatures', (map) => touch(map, signatureId));
     }
 
     return entry;
   };
 
   aggregator.setEnricher(enricher);
+
+  aggregator.setEntryGc((entry) =>
+    entry.has('signatures') ? entry.update('signatures', prune) : entry
+  );
 
   aggregator.formatter.insertFormat(
     'signatureCount',
