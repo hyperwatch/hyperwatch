@@ -1,4 +1,4 @@
-const { Map, Set, fromJS, is } = require('immutable');
+const { List, Map, Set, fromJS, is } = require('immutable');
 
 const { Formatter, address, identity } = require('../lib/formatter');
 const { Speed } = require('../lib/speed');
@@ -89,6 +89,7 @@ class Aggregator {
     this.enricher = defaultEnricher;
     this.identifier = defaultIdentifier;
     this.sorters = { ...defaultSorters };
+    this.entryGc = null;
     this.gcSize = 1000;
 
     setInterval(() => this.gc(), 60 * 1000).unref();
@@ -102,6 +103,13 @@ class Aggregator {
 
   setEnricher(fn) {
     this.enricher = fn;
+
+    return this;
+  }
+
+  // Per-entry cleanup run on every gc pass, regardless of aggregator size
+  setEntryGc(fn) {
+    this.entryGc = fn;
 
     return this;
   }
@@ -190,6 +198,10 @@ class Aggregator {
   }
 
   gc() {
+    if (this.entryGc) {
+      this.entries = this.entries.map(this.entryGc);
+    }
+
     if (this.entries.size < this.gcSize) {
       return;
     }
@@ -226,17 +238,28 @@ class Aggregator {
     for (const item of data) {
       const { speed, ...rest } = item;
       // fromJS deep-converts everything to Immutable structures.
-      // Signature headers must stay as a plain object (used with Object.entries),
-      // and addresses/signatures must be Sets, not Lists — fix after conversion.
+      // Signature headers must stay as a plain object (used with Object.entries).
       let entry = fromJS(rest);
       if (entry.hasIn(['signature', 'headers'])) {
         entry = entry.setIn(['signature', 'headers'], rest.signature.headers);
       }
-      if (entry.has('addresses')) {
-        entry = entry.update('addresses', (list) => Set(list));
+      // addresses/signatures are Map<id, lastSeen>. Legacy dumps stored them
+      // as arrays (address objects / signature ids) without timestamps, so
+      // every member gets the entry's last-seen time — an approximation that
+      // keeps the whole historical set for up to one more window.
+      const lastSeen = speed.per_hour && speed.per_hour.latest;
+      const migrate = (list, key) =>
+        Map(
+          list.map((item) => [
+            Map.isMap(item) ? item.get(key) : item,
+            lastSeen || 0,
+          ])
+        );
+      if (List.isList(entry.get('addresses'))) {
+        entry = entry.update('addresses', (list) => migrate(list, 'value'));
       }
-      if (entry.has('signatures')) {
-        entry = entry.update('signatures', (list) => Set(list));
+      if (List.isList(entry.get('signatures'))) {
+        entry = entry.update('signatures', (list) => migrate(list));
       }
       entry = entry
         .setIn(['speed', 'per_minute'], Speed.fromJSON(speed.per_minute))
@@ -266,6 +289,10 @@ class Aggregator {
             : new Speed(3600, 24)
         );
       this.entries = this.entries.set(rest.id, entry);
+    }
+    // Drop members that went stale while the process was down
+    if (this.entryGc) {
+      this.entries = this.entries.map(this.entryGc);
     }
   }
 }
