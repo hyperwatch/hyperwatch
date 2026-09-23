@@ -83,14 +83,19 @@ The input accepts the following options.
 
 The Express input receives logs from a middleware mounted in an Express application running in the same process as Hyperwatch.
 
-| Attribute | Type    | Required? | Description                                                              |
-| --------- | ------- | --------- | ------------------------------------------------------------------------ |
-| app       | Express | no        | An Express app to mount the middleware on. Otherwise, use `middleware()` |
+Mount its middleware before the application routes, so every request is logged:
 
 ```javascript
-const expressInput = input.express.create({ app });
+const expressInput = input.express.create();
+app.use(expressInput.middleware()); // Before application routes
 pipeline.registerInput(expressInput);
 ```
+
+| Attribute | Type    | Required? | Description                                                                             |
+| --------- | ------- | --------- | --------------------------------------------------------------------------------------- |
+| app       | Express | no        | An Express app to mount the middleware on when the pipeline starts. See the note below. |
+
+**Note**: With the `app` option, the input calls `app.use()` only when the pipeline starts. Routes registered on the app before that run first, and their requests are not logged, even if they are declared after `input.express.create()`. Prefer mounting `middleware()` yourself, as above.
 
 To log the traffic of an application running in a separate process, use the [Hyperwatch Express Logger](https://www.npmjs.com/package/@hyperwatch/express-logger) middleware with the HTTP, WebSocket or syslog input (see the [tutorial](./tutorials/express_input.md)).
 
