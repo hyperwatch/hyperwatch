@@ -27,7 +27,7 @@ const exampleConfig = function (hyperwatch) {
     name: 'Syslog (nginx hyperwatch_combined format)',
     port: 1515,
     parse: format.nginx.parser({
-      format: format.nginx.formats.hyperwatchCombined,
+      format: format.nginx.formats.hyperwatch_combined,
     }),
   });
 
@@ -60,7 +60,7 @@ const exampleConfig = function (hyperwatch) {
     name: 'Syslog (apache hyperwatch_combined format)',
     port: 1518,
     parse: format.apache.parser({
-      format: format.apache.formats.hyperwatchCombined,
+      format: format.apache.formats.hyperwatch_combined,
     }),
   });
 
@@ -121,7 +121,7 @@ const exampleConfig = function (hyperwatch) {
   //   name: 'File input (nginx hyperwatch_combined format)',
   //   path: '/var/log/nginx/hyperwatch.log',
   //   parse: format.nginx.parser({
-  //     format: format.nginx.formats.hyperwatchCombined,
+  //     format: format.nginx.formats.hyperwatch_combined,
   //   }),
   // });
 
@@ -145,7 +145,7 @@ const exampleConfig = function (hyperwatch) {
   //   name: 'File input (nginx hyperwatch_combined format)',
   //   path: '/var/log/apache2/hyperwatch.log',
   //   parse: format.nginx.parser({
-  //     format: format.apache.formats.hyperwatchCombined,
+  //     format: format.apache.formats.hyperwatch_combined,
   //   }),
   // });
 

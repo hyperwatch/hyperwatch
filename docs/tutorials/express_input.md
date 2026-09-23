@@ -10,10 +10,10 @@ Let's start!
 
 On the same server where the Node/Express application is running, or on a server that is reachable by it, install the Hyperwatch processor.
 
-As a prerequirement, you'll need Node.js &gt;= 7. Use nvm if you're in trouble.
+As a prerequisite, you'll need Node.js >= 24. We recommend [nvm](https://github.com/nvm-sh/nvm).
 
 ```bash
-nvm install node
+nvm install 24
 ```
 
 #### Install from npm
@@ -24,7 +24,7 @@ npm install -g @hyperwatch/hyperwatch
 
 #### Install from Git
 
-Alternatively, for developement purpose, you can use Git and clone the public repository:
+Alternatively, for development purpose, you can use Git and clone the public repository:
 
 ```bash
 git clone https://github.com/hyperwatch/hyperwatch.git
@@ -38,7 +38,7 @@ In our suggested configuration, Hyperwatch will be listening for access logs usi
 
 All communications between your Node/Express application and Hyperwatch will be happening in clear, please only use that setup on your internal network. If on the public internet, we're advising to use the Websocket Secure protocol (wss) which is straightforward but out of the scope of this tutorial.
 
-Now, you can create your own configuration in `express_websocket_example.js`:
+Now, you can create your own configuration in `express_websocket_example.js` (a complete version is available in [`config/express_websocket_example.js`](../../config/express_websocket_example.js)):
 
 ```javascript
 module.exports = function (hyperwatch) {
@@ -77,10 +77,10 @@ app.use(hyperwatchExpressLogger('websocket', 'ws://localhost:3000/input/log'));
 
 In this example, there are 3 important things:
 
-1. If Hyperwatch is running on the same server, we can use `localhost` as IP address.
-   If it's on a different server, replace `localhost` by the proper private or public IP address.
+1. If Hyperwatch is running on the same server, we can use `localhost` as IP address.
+   If it's on a different server, replace `localhost` by the proper private or public IP address.
 2. Replace the port (here `3000`) by the relevant one, it should be the main port where Hyperwatch is running.
-3. Finally, the path `/input/log` should match the one configured on Hyperwatch side, If you're following this tutorial from start to begin, nothing to change!
+3. Finally, the path `/input/log` should match the one configured on Hyperwatch side, If you're following this tutorial from start to end, nothing to change!
 
 Now, that you added and configured the Hyperwatch middleware, you can deploy and restart your application.
 
@@ -96,4 +96,6 @@ hyperwatch express_websocket_example.js
 
 ### Browse the interface
 
-Now, you can point your browser to the IP/port where Hyperwatch is running. If you see data flowing, congrats you made it!
+Now, you can point your browser to the `/status` page on the IP/port where Hyperwatch is running (e.g. `http://localhost:3000/status`). If you see traffic going through your input, congrats you made it!
+
+To watch the logs live at `/logs/main` and explore aggregations such as `/addresses` or `/identities`, activate the corresponding modules. See [Global Configuration](../configuration.md#modules).

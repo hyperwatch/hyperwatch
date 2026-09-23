@@ -8,7 +8,7 @@ module.exports = function (hyperwatch) {
   /* Input configuration */
   /* =================== */
 
-  /* Syslog input  */
+  /* WebSocket input */
   /* ------------- */
 
   const webSocketServerInput = input.websocket.create({

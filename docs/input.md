@@ -3,15 +3,16 @@
 Input configuration consists in 3 steps:
 
 1. Instantiating a [type of input](#input-types) with the right configuration
-2. Optionnaly indicating to the input [how to parse the access logs](#other-formats)
+2. Optionally indicating to the input [how to parse the access logs](#other-formats)
 3. Registering the input with the pipeline
 
-You can configure and register as many inputs as you need. The web interface will show you the configured inputs, their status and how much traffic is going through them.
+You can configure and register as many inputs as you need. The `/status` page shows the configured inputs, their status and how much traffic is going through them.
 
 ## Input Types
 
 - All inputs support by default single logs in the [Hyperwatch JSON format](#json-format).
 - All inputs support an optional `parse` parameter for other formats.
+- All inputs accept an optional `name`, displayed on the `/status` page.
 
 ### Syslog
 
@@ -66,7 +67,7 @@ The input accepts the following options.
 
 ### WebSocket
 
-The WebSocket input subscribe to a WebSocket server sending access logs.
+The WebSocket input subscribes to a WebSocket server sending access logs (`client`), or listens for WebSocket connections sending access logs (`server`).
 
 The input accepts the following options.
 
@@ -75,8 +76,23 @@ The input accepts the following options.
 | type      | string | no                        | Either 'client' or 'server' (default to 'client')                                        |
 | address   | string | yes (if type is 'client') | The WebSocket address to connect to (e.g. 'wss://localhost:3000')                        |
 | path      | string | yes (if type is 'server') | The path where to listen for logs                                                        |
-| parse     | Parser | no                        | A function to parse the messages from the queue (See Formats below)                      |
+| parse     | Parser | no                        | A function to parse the messages (See [Formats](#other-formats) below)                   |
 | sample    | float  | no                        | A sample rate, a float between 0 and 1. Will only send data this percentage of the time. |
+
+### Express
+
+The Express input receives logs from a middleware mounted in an Express application running in the same process as Hyperwatch.
+
+| Attribute | Type    | Required? | Description                                                              |
+| --------- | ------- | --------- | ------------------------------------------------------------------------ |
+| app       | Express | no        | An Express app to mount the middleware on. Otherwise, use `middleware()` |
+
+```javascript
+const expressInput = input.express.create({ app });
+pipeline.registerInput(expressInput);
+```
+
+To log the traffic of an application running in a separate process, use the [Hyperwatch Express Logger](https://www.npmjs.com/package/@hyperwatch/express-logger) middleware with the HTTP, WebSocket or syslog input (see the [tutorial](./tutorials/express_input.md)).
 
 ## JSON Format
 
@@ -143,7 +159,7 @@ If you are using Nginx, you can simply copy-and-paste the format specification f
   parse: format.nginx.parser({
     format:
       '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent"',
-  });
+  }),
 }
 ```
 
@@ -167,7 +183,7 @@ If you are using Apache, you can simply copy-and-paste the format specification 
 {
   parse: format.apache.parser({
     format: '%h %l %u %t "%r" %>s %b "%{Referer}i" "%{User-agent}i"',
-  });
+  }),
 }
 ```
 
@@ -202,21 +218,23 @@ If you're using a standard log format, do not hesitate to create a ticket in the
 Simple real-time log processing of [Nginx's predefined combined](http://nginx.org/en/docs/http/ngx_http_log_module.html#log_format) log format with a log file located at `/var/log/nginx/access.log` can be achieved with the following configuration:
 
 ```javascript
-const pipeline = require('../lib/pipeline');
-const input = require('../input');
-const format = require('../format');
+module.exports = function (hyperwatch) {
+  const { pipeline, input, format } = hyperwatch;
 
-const nginxInput = input.file.create({
-  path: '/var/log/nginx/access.log',
-  parse: format.nginx.parser({ format: format.nginx.formats.combined }),
-});
+  hyperwatch.init();
 
-pipeline.registerInput(nginxInput);
+  const nginxInput = input.file.create({
+    path: '/var/log/nginx/access.log',
+    parse: format.nginx.parser({ format: format.nginx.formats.combined }),
+  });
+
+  pipeline.registerInput(nginxInput);
+};
 ```
 
 When placed in `config/custom.js` it can be used by Hyperwatch with:
 
-```
+```bash
 npm start config/custom
 ```
 
@@ -224,36 +242,39 @@ npm start config/custom
 
 For more detailed log processing, it is recommended to use the _Hyperwatch combined_ log format:
 
-```
+```nginx
 log_format hyperwatch_combined '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$http_accept" "$http_accept_charset" "$http_accept_encoding" "$http_accept_language" "$http_connection" "$http_dnt" "$http_from" "$http_host"'
 access_log /logs/access.log hyperwatch_combined;
 ```
 
 With the following configuration for Hyperwatch:
 
-```
+```javascript
 const defaultInput = input.file.create({
   path: '/logs/access.log',
-  parse: format.nginx.parser({format: format.nginx.formats.hyperwatch_combined})
-})
+  parse: format.nginx.parser({
+    format: format.nginx.formats.hyperwatch_combined,
+  }),
+});
 ```
 
 ### Behind a proxy
 
 If behind a proxy, you might want to also report the `HTTP_X_FORWARDED_FOR` header to allow Hyperwatch to properly detect the client IP address.
 
-```
+```nginx
 log_format hyperwatch_combined_with_x_forwarded_for '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$http_accept" "$http_accept_charset" "$http_accept_encoding" "$http_accept_language" "$http_connection" "$http_dnt" "$http_from" "$http_host" "$http_x_forwarded_for"'
 access_log /logs/access.log hyperwatch_combined_with_x_forwarded_for;
 ```
 
 With the following configuration for Hyperwatch:
 
-```
+```javascript
 const defaultInput = input.file.create({
   path: '/logs/access.log',
   parse: format.nginx.parser({
-    format: '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$http_accept" "$http_accept_charset" "$http_accept_encoding" "$http_accept_language" "$http_connection" "$http_dnt" "$http_from" "$http_host" "$http_x_forwarded_for"'
-  })
-})
+    format:
+      '$remote_addr - $remote_user [$time_local] "$request" $status $bytes_sent "$http_referer" "$http_user_agent" "$http_accept" "$http_accept_charset" "$http_accept_encoding" "$http_accept_language" "$http_connection" "$http_dnt" "$http_from" "$http_host" "$http_x_forwarded_for"',
+  }),
+});
 ```

@@ -14,7 +14,7 @@ module.exports = function (hyperwatch) {
   const syslogApacheHyperwatchCombinedInput = input.syslog.create({
     port: 1518,
     parse: format.apache.parser({
-      format: format.apache.formats.hyperwatchCombined,
+      format: format.apache.formats.hyperwatch_combined,
     }),
   });
 
