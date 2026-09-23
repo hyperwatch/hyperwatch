@@ -436,6 +436,28 @@ describe('WebSocket integration', () => {
       );
     });
 
+    it('keeps its upgrades from other listeners (e.g. Next.js)', async () => {
+      const emit = streamTo('/logs/embedded-next');
+      httpServer = createEmbeddedServer(api);
+      // Like Next.js on a custom server: ends the socket of every upgrade
+      // whose path matches one of its routes (e.g. a catch-all page)
+      httpServer.on('upgrade', (req, socket) => {
+        setTimeout(() => socket.end(), 10);
+      });
+      baseUrl = await listen(httpServer);
+
+      const client = await connectWithOptions(
+        `${baseUrl.replace('http', 'ws')}/_hyperwatch/logs/embedded-next`,
+        { headers }
+      );
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      assert.strictEqual(client.readyState, WebSocket.OPEN);
+      const message = nextMessage(client);
+      emit({ ok: true });
+      assert.deepStrictEqual(JSON.parse(await message), { ok: true });
+      client.close();
+    });
+
     it('leaves other upgrades to other listeners', async () => {
       httpServer = createEmbeddedServer(api);
       const other = new WebSocket.Server({ noServer: true });

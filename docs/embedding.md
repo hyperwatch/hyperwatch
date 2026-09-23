@@ -47,7 +47,7 @@ Don't call `hyperwatch.start()`: it would start the standalone Hyperwatch server
 
 `hyperwatch.app.attach(server, app)` routes the WebSocket upgrades of the HTTP server through the Express app. They go through its middlewares, so the authentication middleware protects them like any HTTP request, and they reach the WebSocket routes under the path where `hyperwatch.app.api` is mounted (e.g. `/_hyperwatch/logs/raw`).
 
-Only upgrades for Hyperwatch WebSocket routes are handled. Others, such as a development server's hot reload, are left to their own listeners.
+Only upgrades for Hyperwatch WebSocket routes are handled. Others, such as a development server's hot reload, are left to their own listeners. Hyperwatch upgrades are not passed on to those listeners, so frameworks that close unknown WebSocket connections, like Next.js on a custom server, don't interfere.
 
 A watcher can then subscribe to the live logs with a WebSocket input:
 

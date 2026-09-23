@@ -61,14 +61,14 @@ function isHyperwatchPath(pathname) {
  * they go through its middlewares (authentication, mount path…) and reach
  * the Hyperwatch WebSocket middleware. Upgrades for other paths are left
  * untouched for other listeners.
+ *
+ * Hyperwatch upgrades are not dispatched to the server's other 'upgrade'
+ * listeners: some, like the one Next.js registers on its custom server,
+ * close the sockets of the requests they don't serve, which would close
+ * the Hyperwatch WebSocket right after it opens.
  */
 function attach(server, app) {
-  server.on('upgrade', (req, socket, head) => {
-    const { pathname } = new URL(req.url, 'http://localhost');
-    if (!isHyperwatchPath(pathname)) {
-      return;
-    }
-
+  const handle = (req, socket, head) => {
     req[upgradeKey] = { socket, head };
 
     // A response bound to the socket, so middlewares can reject the upgrade
@@ -83,7 +83,23 @@ function attach(server, app) {
         res.end();
       }
     });
-  });
+  };
+
+  // Node only emits 'upgrade' events when the server has a listener
+  server.on('upgrade', () => {});
+
+  const emit = server.emit;
+  server.emit = function (event, ...args) {
+    if (event === 'upgrade') {
+      const [req, socket, head] = args;
+      const { pathname } = new URL(req.url, 'http://localhost');
+      if (isHyperwatchPath(pathname)) {
+        handle(req, socket, head);
+        return true;
+      }
+    }
+    return emit.call(this, event, ...args);
+  };
 }
 
 module.exports = { ws, handleUpgrade, middleware, attach };
