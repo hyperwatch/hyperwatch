@@ -4,7 +4,7 @@ const api = require('../app/api');
 const { Aggregator, lastSeen, statusCount } = require('../lib/aggregator');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
-const { touch, prune } = require('../lib/recent-map');
+const { touch, prune, countRecent } = require('../lib/recent-map');
 const {
   aggregateCount,
   aggregateSum,
@@ -40,6 +40,9 @@ function normalisedIdentityHeader(headers) {
 
   return obj;
 }
+
+const addressCount15m = (entry) => countRecent(entry.get('addresses'), 15 * 60);
+const addressCount24h = (entry) => countRecent(entry.get('addresses'));
 
 function computeSignature(headers) {
   const string = Object.keys(headers)
@@ -78,10 +81,8 @@ function start() {
   signatureFormatter.setFormats([
     ['signature', (entry) => entry.getIn(['signature', 'id'])],
     ['identity', (entry) => entry.get('identity')],
-    [
-      'addressCount',
-      (entry) => (entry.has('addresses') ? entry.get('addresses').size : 0),
-    ],
+    ['addressCount15m', addressCount15m],
+    ['addressCount24h', addressCount24h],
     [
       'addresses',
       (entry) =>
@@ -142,7 +143,8 @@ function start() {
 
     const address = log.get('address');
     entry = entry.set('lastAddress', address);
-    // Distinct IPs seen in the last 24h
+    // Distinct IPs with last-seen time, pruned to 24h; backs both the 15m
+    // and 24h counts
     const value = address && address.get('value');
     if (value) {
       entry = entry.update('addresses', (map) => touch(map, value));
@@ -157,8 +159,8 @@ function start() {
     entry.has('addresses') ? entry.update('addresses', prune) : entry
   );
 
-  aggregator.sorters.addressCount = (entry) =>
-    entry.has('addresses') ? entry.get('addresses').size : 0;
+  aggregator.sorters.addressCount15m = addressCount15m;
+  aggregator.sorters.addressCount24h = addressCount24h;
 
   pipeline
     .getNode('main')

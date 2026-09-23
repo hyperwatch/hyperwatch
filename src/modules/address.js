@@ -3,9 +3,13 @@ const { is } = require('immutable');
 const api = require('../app/api');
 const { Aggregator } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
-const { touch, prune } = require('../lib/recent-map');
+const { touch, prune, countRecent } = require('../lib/recent-map');
 
 const identifier = (log) => log.getIn(['address', 'value']);
+
+const signatureCount15m = (entry) =>
+  countRecent(entry.get('signatures'), 15 * 60);
+const signatureCount24h = (entry) => countRecent(entry.get('signatures'));
 
 let aggregator;
 
@@ -42,7 +46,8 @@ function start() {
       }
     }
 
-    // Distinct signature IDs seen in the last 24h
+    // Distinct signature IDs with last-seen time, pruned to 24h; backs both
+    // the 15m and 24h counts
     const signatureId = log.getIn(['signature', 'id']);
     if (signatureId) {
       entry = entry.update('signatures', (map) => touch(map, signatureId));
@@ -57,14 +62,15 @@ function start() {
     entry.has('signatures') ? entry.update('signatures', prune) : entry
   );
 
-  aggregator.formatter.insertFormat(
-    'signatureCount',
-    (entry) => (entry.has('signatures') ? entry.get('signatures').size : 0),
-    { before: 'count15m' }
-  );
+  aggregator.formatter.insertFormat('signatureCount15m', signatureCount15m, {
+    before: 'count15m',
+  });
+  aggregator.formatter.insertFormat('signatureCount24h', signatureCount24h, {
+    before: 'count15m',
+  });
 
-  aggregator.sorters.signatureCount = (entry) =>
-    entry.has('signatures') ? entry.get('signatures').size : 0;
+  aggregator.sorters.signatureCount15m = signatureCount15m;
+  aggregator.sorters.signatureCount24h = signatureCount24h;
 
   pipeline
     .getNode('main')
