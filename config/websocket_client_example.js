@@ -1,9 +1,9 @@
 /*
- * Watch the traffic of an app embedding Hyperwatch, as Open Collective does
- * for opencollective.com: subscribe to the app's raw logs, enrich them, and
+ * Subscribe to the raw logs of an app embedding Hyperwatch (see
+ * docs/express-embedding.md) with a WebSocket client input, enrich them, and
  * print them.
  *
- *   HYPERWATCH_SECRET=… npm start config/opencollective_example
+ *   HYPERWATCH_SECRET=… npm start config/websocket_client_example
  *
  * Environment:
  * - HYPERWATCH_URL: the app's raw log stream
@@ -11,8 +11,6 @@
  * - HYPERWATCH_USERNAME / HYPERWATCH_SECRET: the app's Basic Auth credentials
  *   (the username defaults to hyperwatch)
  * - PORT: where this watcher serves its API (default: 4000)
- *
- * See docs/express-embedding.md for the app side.
  */
 
 module.exports = function (hyperwatch) {
