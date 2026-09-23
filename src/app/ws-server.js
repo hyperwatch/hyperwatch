@@ -13,11 +13,51 @@ function ws(path, handler) {
   routes.set(path, handler);
 }
 
-function handleUpgrade(request, socket, head) {
-  const url = new URL(request.url, 'http://localhost');
-  request.query = Object.fromEntries(url.searchParams);
+/**
+ * Parse the target of an upgrade request without throwing. WebSocket
+ * upgrades use the origin form ("/path?query"): anything else is malformed.
+ * The pathname is kept as sent, like Express routing does.
+ */
+function parseTarget(url) {
+  if (typeof url !== 'string' || !url.startsWith('/')) {
+    return null;
+  }
+  try {
+    const { searchParams } = new URL(url, 'http://localhost');
+    return {
+      pathname: url.split(/[?#]/)[0],
+      query: Object.fromEntries(searchParams),
+    };
+  } catch (err) {
+    return null;
+  }
+}
 
-  const handler = routes.get(url.pathname);
+function reject(socket, status, message) {
+  socket.end(`HTTP/1.1 ${status} ${message}\r\nConnection: close\r\n\r\n`);
+}
+
+// Find the handler of a route, matching case like Express routing does
+function findRoute(pathname, caseSensitive) {
+  if (caseSensitive) {
+    return routes.get(pathname);
+  }
+  const lowerCase = pathname.toLowerCase();
+  for (const [route, handler] of routes) {
+    if (route.toLowerCase() === lowerCase) {
+      return handler;
+    }
+  }
+}
+
+function handleUpgrade(request, socket, head) {
+  const target = parseTarget(request.url);
+  if (!target) {
+    return reject(socket, 400, 'Bad Request');
+  }
+  request.query = target.query;
+
+  const handler = findRoute(target.pathname, false);
   if (handler) {
     wss.handleUpgrade(request, socket, head, (client) => {
       handler(client, request);
@@ -37,7 +77,10 @@ function middleware(req, res, next) {
   if (!upgrade) {
     return next();
   }
-  const handler = routes.get(req.path);
+  const handler = findRoute(
+    req.path,
+    req.app.enabled('case sensitive routing')
+  );
   if (!handler) {
     // The mount path is Hyperwatch's: unknown routes end here
     return res.status(404).end();
@@ -64,4 +107,11 @@ function dispatch(app, req, socket, head) {
   app(req, res);
 }
 
-module.exports = { ws, handleUpgrade, middleware, dispatch };
+module.exports = {
+  ws,
+  handleUpgrade,
+  middleware,
+  dispatch,
+  parseTarget,
+  reject,
+};

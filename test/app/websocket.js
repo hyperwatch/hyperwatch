@@ -1,6 +1,7 @@
 const assert = require('assert');
 const { EventEmitter } = require('events');
 const http = require('http');
+const net = require('net');
 
 const express = require('express');
 const WebSocket = require('ws');
@@ -117,6 +118,25 @@ describe('WebSocket integration', () => {
           return true;
         }
       );
+    });
+
+    it('should reject malformed upgrade targets without crashing', async () => {
+      const setup = createTestServer();
+      httpServer = setup.httpServer;
+      baseUrl = await listen(httpServer);
+
+      const statusLine = await new Promise((resolve, reject) => {
+        const socket = net.connect(httpServer.address().port, '127.0.0.1');
+        socket.on('error', reject);
+        socket.once('data', (data) => {
+          resolve(data.toString().split('\r\n')[0]);
+          socket.destroy();
+        });
+        socket.write(
+          'GET //[/ HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n'
+        );
+      });
+      assert.strictEqual(statusLine, 'HTTP/1.1 400 Bad Request');
     });
 
     it('should parse query parameters onto request.query', async () => {
@@ -337,9 +357,14 @@ describe('WebSocket integration', () => {
      * A host application embedding Hyperwatch under /_hyperwatch, behind
      * authentication, with a catch-all route like a Next.js custom server.
      */
-    function createHost({ middlewares = [auth], attachOptions } = {}) {
+    function createHost({
+      middlewares = [auth],
+      attachOptions,
+      caseSensitive = false,
+    } = {}) {
       const hw = embed('/_hyperwatch');
       const app = express();
+      app.set('case sensitive routing', caseSensitive);
       app.use(hw.path, ...middlewares, hw.router);
       app.use((req, res) => res.status(200).send('Host page'));
       const server = http.createServer(app);
@@ -375,6 +400,35 @@ describe('WebSocket integration', () => {
     }
 
     const wsUrl = (path) => `${baseUrl.replace('http', 'ws')}${path}`;
+
+    // Send a raw upgrade request and resolve with the status line of the response
+    function rawUpgrade(target) {
+      return new Promise((resolve, reject) => {
+        const socket = net.connect(httpServer.address().port, '127.0.0.1');
+        socket.on('error', reject);
+        socket.once('data', (data) => {
+          resolve(data.toString().split('\r\n')[0]);
+          socket.destroy();
+        });
+        socket.write(
+          `GET ${target} HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n`
+        );
+      });
+    }
+
+    function httpStatus(path, options = {}) {
+      return new Promise((resolve, reject) => {
+        http
+          .get(`${baseUrl}${path}`, options, (res) => {
+            res.resume();
+            resolve(res.statusCode);
+          })
+          .on('error', reject);
+      });
+    }
+
+    const teapot = (req, socket) =>
+      socket.end("HTTP/1.1 418 I'm a Teapot\r\nConnection: close\r\n\r\n");
 
     it('accepts the legacy websocket middleware in app.use', () => {
       assert.doesNotThrow(() => express().use('/_hyperwatch', auth, websocket));
@@ -493,6 +547,70 @@ describe('WebSocket integration', () => {
       emit({ ok: true });
       assert.deepStrictEqual(JSON.parse(await message), { ok: true });
       assert.deepStrictEqual(seen, ['/_next/hmr']);
+      client.close();
+    });
+
+    it('rejects malformed upgrade targets without crashing', async () => {
+      let fallbackCalled = false;
+      httpServer = createHost({
+        attachOptions: { fallback: () => (fallbackCalled = true) },
+      }).server;
+      baseUrl = await listen(httpServer);
+
+      assert.strictEqual(await rawUpgrade('//[/'), 'HTTP/1.1 400 Bad Request');
+      assert.strictEqual(
+        await rawUpgrade('http://example.org/_hyperwatch/logs/raw'),
+        'HTTP/1.1 400 Bad Request'
+      );
+      assert.strictEqual(fallbackCalled, false);
+      // The server is still up
+      assert.strictEqual(await httpStatus('/'), 200);
+    });
+
+    it('matches the mount path case-insensitively by default, like Express', async () => {
+      streamTo('/logs/embedded-case');
+      httpServer = createHost({ attachOptions: { fallback: teapot } }).server;
+      baseUrl = await listen(httpServer);
+
+      // HTTP and WebSocket both reach authentication
+      assert.strictEqual(await httpStatus('/_HYPERWATCH/nodes.json'), 401);
+      await assert.rejects(
+        () => connectWithOptions(wsUrl('/_HYPERWATCH/logs/embedded-case')),
+        /Unexpected server response: 401/
+      );
+
+      const client = await connectWithOptions(
+        wsUrl('/_HyperWatch/LOGS/embedded-case'),
+        { headers }
+      );
+      client.close();
+    });
+
+    it('matches the mount path case-sensitively when the app does', async () => {
+      streamTo('/logs/embedded-sensitive');
+      httpServer = createHost({
+        caseSensitive: true,
+        attachOptions: { fallback: teapot },
+      }).server;
+      baseUrl = await listen(httpServer);
+
+      // Neither HTTP nor WebSocket reach Hyperwatch
+      assert.strictEqual(
+        await httpStatus('/_HYPERWATCH/nodes.json', { headers }),
+        200 // the host's catch-all page
+      );
+      await assert.rejects(
+        () =>
+          connectWithOptions(wsUrl('/_HYPERWATCH/logs/embedded-sensitive'), {
+            headers,
+          }),
+        /Unexpected server response: 418/
+      );
+
+      const client = await connectWithOptions(
+        wsUrl('/_hyperwatch/logs/embedded-sensitive'),
+        { headers }
+      );
       client.close();
     });
 

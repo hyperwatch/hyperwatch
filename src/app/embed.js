@@ -19,10 +19,20 @@ function embed(path) {
 
   const listeners = new Map();
 
-  // Whether an upgrade request is for this mount path
-  function owns(req) {
-    const { pathname } = new URL(req.url, 'http://localhost');
-    return pathname === path || pathname.startsWith(`${path}/`);
+  /**
+   * Whether a request is under the mount path, matching case like the Express
+   * app it's mounted on (case-insensitive by default, like Express).
+   */
+  function owns(req, { caseSensitive = false } = {}) {
+    const target = wsServer.parseTarget(req.url);
+    if (!target) {
+      return false;
+    }
+    const pathname = caseSensitive
+      ? target.pathname
+      : target.pathname.toLowerCase();
+    const mountPath = caseSensitive ? path : path.toLowerCase();
+    return pathname === mountPath || pathname.startsWith(`${mountPath}/`);
   }
 
   /**
@@ -38,7 +48,12 @@ function embed(path) {
       );
     }
     const listener = (req, socket, head) => {
-      if (owns(req)) {
+      // Malformed targets are rejected before reaching the app or fallback
+      if (!wsServer.parseTarget(req.url)) {
+        return wsServer.reject(socket, 400, 'Bad Request');
+      }
+      const caseSensitive = app.enabled('case sensitive routing');
+      if (owns(req, { caseSensitive })) {
         wsServer.dispatch(app, req, socket, head);
       } else if (fallback) {
         fallback(req, socket, head);
