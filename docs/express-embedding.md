@@ -124,6 +124,12 @@ input.websocket.create({
 });
 ```
 
+`config/websocket_client_example.js` is a complete watcher: it subscribes to the logs of an app running locally, enriches them and prints them.
+
+```sh
+HYPERWATCH_SECRET=… npm start config/websocket_client_example
+```
+
 ## Upgrading from express-ws
 
 With Hyperwatch 4.3 and Express 4, an app would call `expressWs(app)` and mount `hyperwatch.app.api` and `hyperwatch.app.websocket` itself. Express 5 is not compatible with express-ws, and Hyperwatch no longer uses it.
