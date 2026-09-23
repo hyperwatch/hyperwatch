@@ -14,8 +14,7 @@
   },
   "main": "hyperwatch.js",
   "bin": {
-    "hyperwatch": "bin/hyperwatch",
-    "hyperwatch-firewall": "bin/hyperwatch-firewall"
+    "hyperwatch": "bin/hyperwatch"
   },
   "files": [
     "bin",

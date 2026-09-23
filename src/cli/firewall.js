@@ -1,16 +1,14 @@
-#!/usr/bin/env node
-
 const fs = require('fs');
 const path = require('path');
 const { parseArgs } = require('util');
 
-const { createClient } = require('../src/lib/cloudflare/client');
-const expression = require('../src/lib/cloudflare/expression');
-const lists = require('../src/lib/firewall/lists');
-const { migrate } = require('../src/lib/firewall/migrate');
-const sync = require('../src/lib/firewall/sync');
+const { createClient } = require('../lib/cloudflare/client');
+const expression = require('../lib/cloudflare/expression');
+const lists = require('../lib/firewall/lists');
+const { migrate } = require('../lib/firewall/migrate');
+const sync = require('../lib/firewall/sync');
 
-const USAGE = `Usage: hyperwatch-firewall <command> [options]
+const USAGE = `Usage: hyperwatch firewall <command> [options]
 
 Commands:
   sync     Two-way sync of Cloudflare-linked lists with their custom rules
@@ -28,24 +26,25 @@ Options:
 
 sync reads CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID from the environment.`;
 
-const { values: options, positionals } = parseArgs({
-  allowPositionals: true,
-  options: {
-    file: { type: 'string', default: 'firewall.json' },
-    state: { type: 'string' },
-    'dry-run': { type: 'boolean', default: false },
-    prefer: { type: 'string' },
-    list: { type: 'string' },
-    out: { type: 'string', default: 'firewall.json' },
-    force: { type: 'boolean', default: false },
-    help: { type: 'boolean', short: 'h', default: false },
-  },
-});
+const PARSE_OPTIONS = {
+  file: { type: 'string', default: 'firewall.json' },
+  state: { type: 'string' },
+  'dry-run': { type: 'boolean', default: false },
+  prefer: { type: 'string' },
+  list: { type: 'string' },
+  out: { type: 'string', default: 'firewall.json' },
+  force: { type: 'boolean', default: false },
+  help: { type: 'boolean', short: 'h', default: false },
+};
 
-const [command, ...args] = positionals;
+const COMMANDS = ['sync', 'check', 'migrate'];
+
+// Set by run() for the command being executed
+let options;
+let args;
 
 const statePath = (file) =>
-  options.state || file.replace(/\.json$/, '') + '.sync.json';
+  options.state || `${file.replace(/\.json$/, '')}.sync.json`;
 
 const short = (id) => (id ? id.slice(0, 8) : '');
 
@@ -184,10 +183,23 @@ function runMigrate() {
   return 0;
 }
 
-async function main() {
+/**
+ * Run `hyperwatch firewall <command>` with the arguments after "firewall".
+ * Resolves to the process exit code.
+ */
+async function run(argv) {
+  const parsed = parseArgs({
+    args: argv,
+    allowPositionals: true,
+    options: PARSE_OPTIONS,
+  });
+  options = parsed.values;
+  const [command, ...rest] = parsed.positionals;
+  args = rest;
+
   if (options.help || !command) {
     console.log(USAGE);
-    return command ? 0 : 1;
+    return command || options.help ? 0 : 1;
   }
   switch (command) {
     case 'sync':
@@ -202,10 +214,14 @@ async function main() {
   }
 }
 
-main().then(
-  (code) => process.exit(code),
-  (err) => {
-    console.error(err.message);
-    process.exit(1);
+// Whether `hyperwatch <argv>` is a firewall command rather than a config
+// path: "firewall" followed by a known command, an option, or nothing.
+function isFirewallCommand(argv) {
+  if (argv[0] !== 'firewall') {
+    return false;
   }
-);
+  const next = argv[1];
+  return next === undefined || next.startsWith('-') || COMMANDS.includes(next);
+}
+
+module.exports = { run, isFirewallCommand };

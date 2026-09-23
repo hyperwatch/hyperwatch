@@ -64,7 +64,7 @@ Each linked list owns one custom rule in the zone's `http_request_firewall_custo
 - `user_agent`: `(http.user_agent eq "a") or (http.user_agent eq "b")`, or `contains` for `contains` lists
 
 ```sh
-CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ZONE_ID=... hyperwatch-firewall sync --dry-run
+CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ZONE_ID=... hyperwatch firewall sync --dry-run
 ```
 
 The token needs permission to edit the zone's WAF custom rules. `--dry-run` only reads them.
@@ -88,10 +88,12 @@ A rule's enabled/disabled state is left as it is in Cloudflare.
 ## CLI
 
 ```
-hyperwatch-firewall sync [--dry-run] [--prefer local|remote] [--list <id>] [--file firewall.json] [--state firewall.sync.json]
-hyperwatch-firewall check [--file firewall.json]
-hyperwatch-firewall migrate <legacy-firewall.json> [--out firewall.json] [--force]
+hyperwatch firewall sync [--dry-run] [--prefer local|remote] [--list <id>] [--file firewall.json] [--state firewall.sync.json]
+hyperwatch firewall check [--file firewall.json]
+hyperwatch firewall migrate <legacy-firewall.json> [--out firewall.json] [--force]
 ```
+
+`hyperwatch firewall` is only treated as a firewall command when it's followed by one of these commands, an option, or nothing. Any other `hyperwatch <path>` still starts the server with that config file.
 
 `migrate` converts the older rule-based format (`{ "rules": [{ "id", "action", "match", "cloudflare" }] }`):
 
