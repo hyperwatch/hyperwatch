@@ -5,7 +5,7 @@ const express = require('express');
 const constants = require('../constants');
 
 const api = require('./api');
-const embed = require('./embed');
+const mount = require('./mount');
 const websocket = require('./websocket');
 const wsServer = require('./ws-server');
 
@@ -29,4 +29,4 @@ function stop() {
   httpServer.close();
 }
 
-module.exports = { api, embed, start, stop, websocket };
+module.exports = { api, mount, start, stop, websocket };

@@ -363,7 +363,7 @@ describe('WebSocket integration', () => {
     });
   });
   describe('Embedding in an Express app', () => {
-    const embed = require('../../src/app/embed');
+    const mount = require('../../src/app/mount');
 
     const credentials = `Basic ${Buffer.from('hyperwatch:secret').toString('base64')}`;
     const headers = { authorization: credentials };
@@ -376,22 +376,29 @@ describe('WebSocket integration', () => {
     };
 
     /**
-     * A host application embedding Hyperwatch under /_hyperwatch, behind
+     * A host application mounting Hyperwatch under /_hyperwatch, behind
      * authentication, with a catch-all route like a Next.js custom server.
      */
     function createHost({
-      middlewares = [auth],
-      attachOptions,
+      middleware = auth,
+      fallback,
       caseSensitive = false,
+      before,
     } = {}) {
-      const hw = embed('/_hyperwatch');
       const app = express();
       app.set('case sensitive routing', caseSensitive);
-      app.use(hw.path, ...middlewares, hw.router);
-      app.use((req, res) => res.status(200).send('Host page'));
       const server = http.createServer(app);
-      const detach = hw.attach(server, app, attachOptions);
-      return { hw, app, server, detach };
+      if (before) {
+        app.use(before);
+      }
+      const mounted = mount(app, {
+        server,
+        path: '/_hyperwatch',
+        middleware,
+        fallback,
+      });
+      app.use((req, res) => res.status(200).send('Host page'));
+      return { app, server, mounted };
     }
 
     function streamTo(endpoint) {
@@ -452,13 +459,154 @@ describe('WebSocket integration', () => {
     const teapot = (req, socket) =>
       socket.end("HTTP/1.1 418 I'm a Teapot\r\nConnection: close\r\n\r\n");
 
-    it('accepts the legacy websocket middleware in app.use', () => {
-      assert.doesNotThrow(() => express().use('/_hyperwatch', auth, websocket));
+    describe('mount() contract', () => {
+      it('validates its arguments before registering anything', () => {
+        const app = express();
+        const server = http.createServer(app);
+        const before = app.router.stack.length;
+
+        assert.throws(() => mount({}, { server, path: '/_hw' }), TypeError);
+        assert.throws(() => mount(app, { path: '/_hw' }), /\{ server \}/);
+        assert.throws(() => mount(app, { server, path: '_hw' }), TypeError);
+        assert.throws(() => mount(app, { server, path: '/_hw/' }), TypeError);
+        assert.throws(
+          () => mount(app, { server, path: '/_hw', middleware: 'auth' }),
+          /middleware must be a function or an array/
+        );
+        assert.throws(
+          () => mount(app, { server, path: '/_hw', fallback: true }),
+          /fallback must be a function/
+        );
+
+        assert.strictEqual(app.router.stack.length, before);
+        assert.strictEqual(server.listenerCount('upgrade'), 0);
+      });
+
+      it('uses the supplied server without listening', () => {
+        const { server } = createHost();
+        assert.strictEqual(server.listening, false);
+        assert.strictEqual(server.listenerCount('upgrade'), 1);
+      });
+
+      it('registers the routes where it is called, keeping middleware order', async () => {
+        const seen = [];
+        streamTo('/logs/mount-order');
+        const { app, server } = (() => {
+          const app = express();
+          const server = http.createServer(app);
+          app.use((req, res, next) => {
+            seen.push(`before ${req.path}`);
+            next();
+          });
+          mount(app, { server, path: '/_hyperwatch', middleware: auth });
+          app.use((req, res) => {
+            seen.push(`after ${req.path}`);
+            res.send('Host page');
+          });
+          return { app, server };
+        })();
+        assert.ok(app);
+        httpServer = server;
+        baseUrl = await listen(httpServer);
+
+        assert.strictEqual(
+          await httpStatus('/_hyperwatch/nodes.json', { headers }),
+          200
+        );
+        const client = await connectWithOptions(
+          wsUrl('/_hyperwatch/logs/mount-order'),
+          { headers }
+        );
+        client.close();
+        assert.strictEqual(await httpStatus('/page'), 200);
+
+        // Middleware registered before mount() runs for HTTP and WebSocket,
+        // routes registered after it never see Hyperwatch requests
+        assert.deepStrictEqual(seen, [
+          'before /_hyperwatch/nodes.json',
+          'before /_hyperwatch/logs/mount-order',
+          'before /page',
+          'after /page',
+        ]);
+      });
+
+      it('applies an array of middleware to HTTP requests and upgrades', async () => {
+        streamTo('/logs/mount-array');
+        const calls = [];
+        const trace = (req, res, next) => {
+          calls.push(req.headers.upgrade ? 'upgrade' : 'http');
+          next();
+        };
+        httpServer = createHost({ middleware: [trace, auth] }).server;
+        baseUrl = await listen(httpServer);
+
+        assert.strictEqual(await httpStatus('/_hyperwatch/nodes.json'), 401);
+        await assert.rejects(
+          () => connectWithOptions(wsUrl('/_hyperwatch/logs/mount-array')),
+          /Unexpected server response: 401/
+        );
+        const client = await connectWithOptions(
+          wsUrl('/_hyperwatch/logs/mount-array'),
+          { headers }
+        );
+        client.close();
+        assert.deepStrictEqual(calls, ['http', 'upgrade', 'upgrade']);
+      });
+
+      it('works without middleware', async () => {
+        streamTo('/logs/mount-open');
+        httpServer = createHost({ middleware: [] }).server;
+        baseUrl = await listen(httpServer);
+
+        assert.strictEqual(await httpStatus('/_hyperwatch/nodes.json'), 200);
+        const client = await connectWithOptions(
+          wsUrl('/_hyperwatch/logs/mount-open')
+        );
+        client.close();
+      });
+
+      it('throws when mounted twice on the same server, before registering anything', () => {
+        const { app, server } = createHost();
+        const routes = app.router.stack.length;
+        assert.throws(
+          () => mount(app, { server, path: '/_other', middleware: auth }),
+          /already mounted on this server/
+        );
+        assert.strictEqual(app.router.stack.length, routes);
+        assert.strictEqual(server.listenerCount('upgrade'), 1);
+      });
+
+      it('detachUpgrades() only stops WebSocket handling, and releases the server', async () => {
+        streamTo('/logs/mount-detach');
+        const { app, server, mounted } = createHost();
+        httpServer = server;
+        baseUrl = await listen(httpServer);
+
+        mounted.detachUpgrades();
+        mounted.detachUpgrades();
+        assert.strictEqual(server.listenerCount('upgrade'), 0);
+
+        // The HTTP routes stay mounted: Express can't remove them
+        assert.strictEqual(
+          await httpStatus('/_hyperwatch/nodes.json', { headers }),
+          200
+        );
+        // Upgrades are no longer handled by Hyperwatch
+        await assert.rejects(() =>
+          connectWithOptions(wsUrl('/_hyperwatch/logs/mount-detach'), {
+            headers,
+          })
+        );
+
+        // The server can be mounted on again
+        const again = mount(app, { server, path: '/_hw2', middleware: auth });
+        assert.strictEqual(server.listenerCount('upgrade'), 1);
+        again.detachUpgrades();
+      });
     });
 
-    it('rejects an invalid mount path', () => {
-      assert.throws(() => embed('_hyperwatch'), TypeError);
-      assert.throws(() => embed('/_hyperwatch/'), TypeError);
+    it('accepts the legacy websocket middleware in app.use', () => {
+      assert.doesNotThrow(() => express().use('/_hyperwatch', auth, websocket));
     });
 
     it('streams logs under the mount path', async () => {
@@ -496,7 +644,9 @@ describe('WebSocket integration', () => {
         error.status = 503;
         next(error);
       };
-      httpServer = createHost({ middlewares: [unavailable] }).server;
+      const { app, server } = createHost({ middleware: unavailable });
+      app.set('env', 'test');
+      httpServer = server;
       baseUrl = await listen(httpServer);
 
       await assert.rejects(
@@ -550,10 +700,8 @@ describe('WebSocket integration', () => {
         setTimeout(() => socket.end(), 10);
       });
       httpServer = createHost({
-        attachOptions: {
-          fallback: (req, socket, head) =>
-            framework.emit('upgrade', req, socket, head),
-        },
+        fallback: (req, socket, head) =>
+          framework.emit('upgrade', req, socket, head),
       }).server;
       baseUrl = await listen(httpServer);
 
@@ -575,7 +723,7 @@ describe('WebSocket integration', () => {
     it('rejects malformed upgrade targets without crashing', async () => {
       let fallbackCalled = false;
       httpServer = createHost({
-        attachOptions: { fallback: () => (fallbackCalled = true) },
+        fallback: () => (fallbackCalled = true),
       }).server;
       baseUrl = await listen(httpServer);
 
@@ -591,7 +739,7 @@ describe('WebSocket integration', () => {
 
     it('matches the mount path case-insensitively by default, like Express', async () => {
       streamTo('/logs/embedded-case');
-      httpServer = createHost({ attachOptions: { fallback: teapot } }).server;
+      httpServer = createHost({ fallback: teapot }).server;
       baseUrl = await listen(httpServer);
 
       // HTTP and WebSocket both reach authentication
@@ -610,10 +758,7 @@ describe('WebSocket integration', () => {
 
     it('matches the mount path case-sensitively when the app does', async () => {
       streamTo('/logs/embedded-sensitive');
-      httpServer = createHost({
-        caseSensitive: true,
-        attachOptions: { fallback: teapot },
-      }).server;
+      httpServer = createHost({ caseSensitive: true, fallback: teapot }).server;
       baseUrl = await listen(httpServer);
 
       // Neither HTTP nor WebSocket reach Hyperwatch
@@ -636,33 +781,13 @@ describe('WebSocket integration', () => {
       client.close();
     });
 
-    it('throws when attached twice, and can attach again after detach', () => {
-      const { hw, app, server, detach } = createHost();
-      assert.strictEqual(server.listenerCount('upgrade'), 1);
-      assert.throws(() => hw.attach(server, app), /already attached/);
-
-      detach();
-      detach();
-      assert.strictEqual(server.listenerCount('upgrade'), 0);
-
-      const detachAgain = hw.attach(server, app);
-      assert.strictEqual(server.listenerCount('upgrade'), 1);
-      detachAgain();
-    });
-
     it('still serves the HTTP API under the mount path', async () => {
       httpServer = createHost().server;
       baseUrl = await listen(httpServer);
-
-      const status = await new Promise((resolve, reject) => {
-        http
-          .get(`${baseUrl}/_hyperwatch/nodes.json`, { headers }, (res) => {
-            res.resume();
-            resolve(res.statusCode);
-          })
-          .on('error', reject);
-      });
-      assert.strictEqual(status, 200);
+      assert.strictEqual(
+        await httpStatus('/_hyperwatch/nodes.json', { headers }),
+        200
+      );
     });
   });
 });

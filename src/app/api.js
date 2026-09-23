@@ -17,7 +17,7 @@ const script = fs.readFileSync(path.join(__dirname, '..', 'script.js'));
 
 const app = express();
 
-// WebSocket upgrades dispatched by embed().attach() when Hyperwatch is embedded
+// WebSocket upgrades dispatched by mount() when Hyperwatch is embedded
 app.use(wsServer.middleware);
 
 app.use(express.json());

@@ -7,8 +7,8 @@ const wsServer = require('./ws-server');
 
 /**
  * Express middleware completing the Hyperwatch WebSocket upgrades dispatched
- * by embed().attach(). hyperwatch.app.api already includes it: prefer
- * hyperwatch.app.embed(). Mounting it alone doesn't handle any upgrade.
+ * by hyperwatch.app.mount(), which already includes it. Kept for apps that
+ * mounted it explicitly: on its own, it doesn't handle any upgrade.
  */
 const websocket = (req, res, next) => wsServer.middleware(req, res, next);
 
