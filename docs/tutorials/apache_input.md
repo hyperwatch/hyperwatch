@@ -10,10 +10,10 @@ Let's start.
 
 On the same server where Apache is running, or on a server that is reachable by it, install the Hyperwatch processor.
 
-As a prerequirement, you'll need Node.js &gt;= 7. Use nvm if you're in trouble.
+As a prerequisite, you'll need Node.js >= 24. We recommend [nvm](https://github.com/nvm-sh/nvm).
 
 ```bash
-nvm install node
+nvm install 24
 ```
 
 #### Install from npm
@@ -24,7 +24,7 @@ npm install -g @hyperwatch/hyperwatch
 
 #### Install from Git
 
-Alternatively, for developemnt purpose, you can use Git and clone the public repository:
+Alternatively, for development purpose, you can use Git and clone the public repository:
 
 ```bash
 git clone https://github.com/hyperwatch/hyperwatch.git
@@ -34,13 +34,13 @@ npm install
 
 ### Configure Hyperwatch
 
-In our suggested configuration, Hyperwatch will be listening for access logs in the the `access_watch_combined` format on port `1518`.
+In our suggested configuration, Hyperwatch will be listening for access logs in the `hyperwatch_combined` format on port `1518`.
 
-We always recommand using the `access_watch_combined` format, which is logging more detailed information and allows for a much better analysis than the regular `combined` format.
+We always recommend using the `hyperwatch_combined` format, which is logging more detailed information and allows for a much better analysis than the regular `combined` format.
 
-To get more familiar, you can inspect default and example configurations in [`config/default.js`](<(../../config/default.js)>) and [`config/example.js`](../../config/example.js) file.
+To get more familiar, you can inspect default and example configurations in [`config/default.js`](../../config/default.js) and [`config/example.js`](../../config/example.js) file.
 
-Now, you can create your own configuration in `apache_syslog_example.js`:
+Now, you can create your own configuration in `apache_syslog_example.js` (a complete version is available in [`config/apache_syslog_example.js`](../../config/apache_syslog_example.js)):
 
 ```javascript
 module.exports = function (hyperwatch) {
@@ -61,7 +61,7 @@ module.exports = function (hyperwatch) {
 
 ### Configure Apache
 
-First, if you're following our recommendation and opted for the `hyperwatch_combined` format, you need to define it in the Apache configuration. This will not replace the standard log format, just create an additional one.
+First, if you're following our recommendation and opted for the `hyperwatch_combined` format, you need to define it in the Apache configuration. This will not replace the standard log format, just create an additional one.
 
 ```
 LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\" \"%{Accept}i\" \"%{Accept-Charset}i\" \"%{Accept-Encoding}i\" \"%{Accept-Language}i\" \"%{Connection}i\" \"%{Dnt}i\" \"%{From}i\" \"%{Host}i\"" hyperwatch_combined
@@ -79,13 +79,13 @@ Note: This is known to be working on _Ubuntu 16.04, 18.04_ with _logger 2.27.1, 
 
 In this example, there are 3 important things:
 
-1. If Hyperwatch is running on the same server, we can use `localhost` as IP address.
-   If it's on a different server, replace `localhost` by the proper private or public IP address.
-2. We configured Hyperwatch to listen for syslog messages in the `hyperwatch_combined` format on port `1518`.
+1. If Hyperwatch is running on the same server, we can use `localhost` as IP address.
+   If it's on a different server, replace `localhost` by the proper private or public IP address.
+2. We configured Hyperwatch to listen for syslog messages in the `hyperwatch_combined` format on port `1518`.
    We're properly passing that port in the configuration
-3. Finally, we're asking Apache to use the `hyperwatch_combined` log format we previously configured.
+3. Finally, we're asking Apache to use the `hyperwatch_combined` log format we previously configured.
 
-Don't forget to reload Aapche with the updated configuration. On Ubuntu, it would be:
+Don't forget to reload Apache with the updated configuration. On Ubuntu, it would be:
 
 ```bash
 service apache2 reload
@@ -101,4 +101,6 @@ hyperwatch apache_syslog_example.js
 
 ### Browse the interface
 
-Now, you can point your browser to the IP/port where Hyperwatch is running. If you see data flowing, congrats you made it!
+Now, you can point your browser to the `/status` page on the IP/port where Hyperwatch is running (e.g. `http://localhost:3000/status`). If you see traffic going through your input, congrats you made it!
+
+To watch the logs live at `/logs/main` and explore aggregations such as `/addresses` or `/identities`, activate the corresponding modules. See [Global Configuration](../configuration.md#modules).

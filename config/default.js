@@ -27,7 +27,7 @@ const defaultConfig = function (hyperwatch) {
     name: 'Syslog (nginx hyperwatch_combined format)',
     port: 1515,
     parse: format.nginx.parser({
-      format: format.nginx.formats.hyperwatchCombined,
+      format: format.nginx.formats.hyperwatch_combined,
     }),
   });
 
