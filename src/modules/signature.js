@@ -140,6 +140,12 @@ function start() {
       }
     }
 
+    // Firewall status follows latest log — cleared when rule is removed
+    const firewall = log.get('firewall') || null;
+    if (!is(firewall, entry.get('firewall'))) {
+      entry = entry.set('firewall', firewall);
+    }
+
     const address = log.get('address');
     entry = entry.set('lastAddress', address);
     // Distinct IPs seen in the last 24h
