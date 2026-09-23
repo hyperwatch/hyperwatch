@@ -1,0 +1,211 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { parseArgs } = require('util');
+
+const { createClient } = require('../src/lib/cloudflare/client');
+const expression = require('../src/lib/cloudflare/expression');
+const lists = require('../src/lib/firewall/lists');
+const { migrate } = require('../src/lib/firewall/migrate');
+const sync = require('../src/lib/firewall/sync');
+
+const USAGE = `Usage: hyperwatch-firewall <command> [options]
+
+Commands:
+  sync     Two-way sync of Cloudflare-linked lists with their custom rules
+  check    Validate firewall.json and each linked list's expression length
+  migrate  Convert a legacy rule-based firewall.json into lists
+
+Options:
+  --file <path>        firewall.json to use (default: ./firewall.json)
+  --state <path>       sync state file (default: next to --file, .sync.json)
+  --dry-run            sync: show the plan, change nothing
+  --prefer <side>      sync: resolve action/description conflicts (local|remote)
+  --list <id>          sync: only this list
+  --out <path>         migrate: output file (default: ./firewall.json)
+  --force              migrate: overwrite existing output files
+
+sync reads CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID from the environment.`;
+
+const { values: options, positionals } = parseArgs({
+  allowPositionals: true,
+  options: {
+    file: { type: 'string', default: 'firewall.json' },
+    state: { type: 'string' },
+    'dry-run': { type: 'boolean', default: false },
+    prefer: { type: 'string' },
+    list: { type: 'string' },
+    out: { type: 'string', default: 'firewall.json' },
+    force: { type: 'boolean', default: false },
+    help: { type: 'boolean', short: 'h', default: false },
+  },
+});
+
+const [command, ...args] = positionals;
+
+const statePath = (file) =>
+  options.state || file.replace(/\.json$/, '') + '.sync.json';
+
+const short = (id) => (id ? id.slice(0, 8) : '');
+
+function printPlan(items) {
+  for (const item of items) {
+    const version = item.ruleVersion ? `, v${item.ruleVersion}` : '';
+    console.log(`${item.listId} (rule ${short(item.ruleId)}${version})`);
+    const line = (label, { add, remove }) => {
+      if (add.length || remove.length) {
+        const changes = [
+          ...add.map((v) => `+${v}`),
+          ...remove.map((v) => `-${v}`),
+        ];
+        console.log(`  ${label}: ${changes.join('  ')}`);
+      }
+    };
+    line('to Cloudflare', item.toRemote);
+    line('to firewall.json', item.toLocal);
+    for (const c of item.conflicts) {
+      console.log(
+        `  conflict: ${c.field} is ${JSON.stringify(c.local)} locally, ${JSON.stringify(c.remote)} in Cloudflare`
+      );
+    }
+    for (const warning of item.warnings) {
+      console.log(`  warning: ${warning}`);
+    }
+    for (const error of item.errors) {
+      console.log(`  error: ${error}`);
+    }
+    if (!item.errors.length && !sync.hasChanges(item)) {
+      console.log('  in sync');
+    }
+  }
+}
+
+async function runSync() {
+  if (options.prefer && !['local', 'remote'].includes(options.prefer)) {
+    throw new Error('--prefer must be "local" or "remote"');
+  }
+  const file = options.file;
+  const data = lists.load(file);
+  const state = sync.loadState(statePath(file));
+  const client = createClient();
+  const ruleset = await client.getEntrypoint();
+
+  const items = sync.plan({
+    data,
+    state,
+    ruleset,
+    prefer: options.prefer,
+    only: options.list,
+  });
+  printPlan(items);
+  const failed = items.some((item) => item.errors.length);
+
+  if (options['dry-run']) {
+    console.log('\nDry run: nothing changed.');
+    return failed ? 1 : 0;
+  }
+
+  const result = await sync.apply(items, {
+    client,
+    originalData: data,
+    readData: () => lists.load(file),
+    writeData: (next) => lists.save(file, next),
+    state,
+  });
+  console.log('');
+  for (const item of result.items) {
+    if (item.skipped) {
+      console.log(`${item.listId}: skipped (${item.skipped})`);
+    } else if (item.patch) {
+      console.log(
+        `${item.listId}: Cloudflare rule updated to v${item.newVersion}`
+      );
+    }
+  }
+  if (result.localWritten) {
+    sync.saveState(statePath(file), result.state);
+    console.log(`${file} and ${statePath(file)} updated.`);
+  } else if (result.items.some((item) => item.applied)) {
+    console.log(
+      `${file} changed during the sync and was left alone; run sync again to finish.`
+    );
+    return 1;
+  }
+  return failed || result.items.some((item) => item.skipped) ? 1 : 0;
+}
+
+function runCheck() {
+  const data = lists.load(options.file);
+  let failed = false;
+  for (const list of data.lists) {
+    let detail = `${list.entries.length} entries`;
+    if (list.cloudflare) {
+      try {
+        const length = expression.build(list).length;
+        detail += `, expression ${length}/${expression.MAX_LENGTH} characters`;
+      } catch (err) {
+        detail += `, error: ${err.message}`;
+        failed = true;
+      }
+    } else {
+      detail += ', local only';
+    }
+    console.log(`${list.id} (${list.type}, ${list.action}): ${detail}`);
+  }
+  return failed ? 1 : 0;
+}
+
+function runMigrate() {
+  const [input] = args;
+  if (!input) {
+    throw new Error('migrate needs the legacy firewall.json path');
+  }
+  const out = options.out;
+  const legacyOut = path.join(path.dirname(out), 'firewall.legacy.json');
+  for (const target of [out, legacyOut]) {
+    if (fs.existsSync(target) && !options.force) {
+      throw new Error(`${target} exists; pass --force to overwrite`);
+    }
+  }
+  const old = JSON.parse(fs.readFileSync(input, 'utf8'));
+  const { firewall, legacy, report } = migrate(old);
+  lists.save(out, firewall);
+  fs.writeFileSync(legacyOut, `${JSON.stringify(legacy, null, 2)}\n`);
+
+  console.log(`Lists written to ${out}:`);
+  for (const [id, count] of Object.entries(report.lists)) {
+    console.log(`  ${id}: ${count} entries`);
+  }
+  console.log(`Backed up to ${legacyOut}:`);
+  for (const [reason, count] of Object.entries(report.legacy)) {
+    console.log(`  ${count} × ${reason}`);
+  }
+  return 0;
+}
+
+async function main() {
+  if (options.help || !command) {
+    console.log(USAGE);
+    return command ? 0 : 1;
+  }
+  switch (command) {
+    case 'sync':
+      return runSync();
+    case 'check':
+      return runCheck();
+    case 'migrate':
+      return runMigrate();
+    default:
+      console.error(`Unknown command "${command}"\n\n${USAGE}`);
+      return 1;
+  }
+}
+
+main().then(
+  (code) => process.exit(code),
+  (err) => {
+    console.error(err.message);
+    process.exit(1);
+  }
+);

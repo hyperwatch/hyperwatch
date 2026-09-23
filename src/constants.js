@@ -49,6 +49,11 @@ const constants = {
       active: false,
       priority: 620, // depends on: agent, hostname, signature, address
     },
+    firewall: {
+      active: false,
+      priority: 650, // depends on: address, cloudflare (client IP)
+      path: null, // defaults to ./firewall.json
+    },
     // --- Output: depends on full enrichment ---
     history: {
       active: false,

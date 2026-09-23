@@ -15,6 +15,8 @@ function get(module) {
       return require('./cloudflare');
     case 'dnsbl':
       return require('./dnsbl');
+    case 'firewall':
+      return require('./firewall');
     case 'geoip':
       return require('./geoip');
     case 'history':
