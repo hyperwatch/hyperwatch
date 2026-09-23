@@ -15,6 +15,8 @@ function get(module) {
       return require('./cloudflare');
     case 'dnsbl':
       return require('./dnsbl');
+    case 'fingerprint':
+      return require('./fingerprint');
     case 'geoip':
       return require('./geoip');
     case 'history':

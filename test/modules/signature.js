@@ -66,4 +66,24 @@ describe('signature aggregator', () => {
     assert.strictEqual(formatted.addressCount, 1);
     assert.strictEqual(formatted.addresses, '5.6.7.8');
   });
+
+  it('records the fingerprint score and sorts by it', () => {
+    aggregator.processLog(
+      log('1.2.3.4', 'sig-low').set('fingerprint', { score: 0.2, flags: [] })
+    );
+    aggregator.processLog(
+      log('1.2.3.4', 'sig-high').set('fingerprint', { score: 0.8, flags: [] })
+    );
+    aggregator.processLog(log('1.2.3.4', 'sig-none'));
+
+    const rows = aggregator.getData({ sort: 'score', format: 'json' }).toJS();
+    assert.deepStrictEqual(
+      rows.map((row) => [row.signature, row.score]),
+      [
+        ['sig-high', '0.8'],
+        ['sig-low', '0.2'],
+        ['sig-none', '—'],
+      ]
+    );
+  });
 });
