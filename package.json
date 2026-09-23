@@ -74,6 +74,9 @@
   "engines": {
     "node": ">=24"
   },
+  "allowScripts": {
+    "unrs-resolver": false
+  },
   "depcheck": {
     "ignores": [
       "prettier-package-json"
