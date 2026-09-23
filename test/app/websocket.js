@@ -1,10 +1,10 @@
 const assert = require('assert');
+const { EventEmitter } = require('events');
 const http = require('http');
 
 const express = require('express');
 const WebSocket = require('ws');
 
-const api = require('../../src/app/api');
 const websocket = require('../../src/app/websocket');
 const wsServer = require('../../src/app/ws-server');
 const websocketInput = require('../../src/input/websocket');
@@ -321,6 +321,8 @@ describe('WebSocket integration', () => {
     });
   });
   describe('Embedding in an Express app', () => {
+    const embed = require('../../src/app/embed');
+
     const credentials = `Basic ${Buffer.from('hyperwatch:secret').toString('base64')}`;
     const headers = { authorization: credentials };
 
@@ -335,13 +337,14 @@ describe('WebSocket integration', () => {
      * A host application embedding Hyperwatch under /_hyperwatch, behind
      * authentication, with a catch-all route like a Next.js custom server.
      */
-    function createEmbeddedServer(...hyperwatchMiddlewares) {
-      const host = express();
-      host.use('/_hyperwatch', auth, ...hyperwatchMiddlewares);
-      host.use((req, res) => res.status(404).send('Host page not found'));
-      const server = http.createServer(host);
-      wsServer.attach(server, host);
-      return server;
+    function createHost({ middlewares = [auth], attachOptions } = {}) {
+      const hw = embed('/_hyperwatch');
+      const app = express();
+      app.use(hw.path, ...middlewares, hw.router);
+      app.use((req, res) => res.status(200).send('Host page'));
+      const server = http.createServer(app);
+      const detach = hw.attach(server, app, attachOptions);
+      return { hw, app, server, detach };
     }
 
     function streamTo(endpoint) {
@@ -371,17 +374,24 @@ describe('WebSocket integration', () => {
       });
     }
 
-    it('can be mounted with app.use (regression: express-ws removal)', () => {
+    const wsUrl = (path) => `${baseUrl.replace('http', 'ws')}${path}`;
+
+    it('accepts the legacy websocket middleware in app.use', () => {
       assert.doesNotThrow(() => express().use('/_hyperwatch', auth, websocket));
     });
 
-    it('streams logs under the mount path of the API', async () => {
+    it('rejects an invalid mount path', () => {
+      assert.throws(() => embed('_hyperwatch'), TypeError);
+      assert.throws(() => embed('/_hyperwatch/'), TypeError);
+    });
+
+    it('streams logs under the mount path', async () => {
       const emit = streamTo('/logs/embedded');
-      httpServer = createEmbeddedServer(api);
+      httpServer = createHost().server;
       baseUrl = await listen(httpServer);
 
       const client = await connectWithOptions(
-        `${baseUrl.replace('http', 'ws')}/_hyperwatch/logs/embedded`,
+        wsUrl('/_hyperwatch/logs/embedded'),
         { headers }
       );
       const message = nextMessage(client);
@@ -392,92 +402,116 @@ describe('WebSocket integration', () => {
       client.close();
     });
 
-    it('streams logs with the websocket middleware mounted explicitly', async () => {
-      const emit = streamTo('/logs/embedded-explicit');
-      httpServer = createEmbeddedServer(websocket, api);
-      baseUrl = await listen(httpServer);
-
-      const client = await connectWithOptions(
-        `${baseUrl.replace('http', 'ws')}/_hyperwatch/logs/embedded-explicit`,
-        { headers }
-      );
-      const message = nextMessage(client);
-      emit({ ok: true });
-      assert.deepStrictEqual(JSON.parse(await message), { ok: true });
-      client.close();
-    });
-
-    it('runs the host middlewares, rejecting unauthenticated upgrades', async () => {
+    it('rejects unauthenticated upgrades through the Express chain', async () => {
       streamTo('/logs/embedded-auth');
-      httpServer = createEmbeddedServer(api);
+      httpServer = createHost().server;
       baseUrl = await listen(httpServer);
 
       await assert.rejects(
-        () =>
-          connectWithOptions(
-            `${baseUrl.replace('http', 'ws')}/_hyperwatch/logs/embedded-auth`
-          ),
+        () => connectWithOptions(wsUrl('/_hyperwatch/logs/embedded-auth')),
         /Unexpected server response: 401/
       );
     });
 
-    it('answers 404 when the route is not under the mount path', async () => {
-      streamTo('/logs/embedded-404');
-      httpServer = createEmbeddedServer(api);
+    it('keeps the status of middleware errors', async () => {
+      streamTo('/logs/embedded-error');
+      const unavailable = (req, res, next) => {
+        const error = new Error('Service unavailable');
+        error.status = 503;
+        next(error);
+      };
+      httpServer = createHost({ middlewares: [unavailable] }).server;
       baseUrl = await listen(httpServer);
 
       await assert.rejects(
         () =>
-          connectWithOptions(
-            `${baseUrl.replace('http', 'ws')}/elsewhere/logs/embedded-404`,
-            { headers }
-          ),
+          connectWithOptions(wsUrl('/_hyperwatch/logs/embedded-error'), {
+            headers,
+          }),
+        /Unexpected server response: 503/
+      );
+    });
+
+    it('answers 404 for an unknown route under the mount path', async () => {
+      httpServer = createHost().server;
+      baseUrl = await listen(httpServer);
+
+      await assert.rejects(
+        () =>
+          connectWithOptions(wsUrl('/_hyperwatch/logs/unknown'), { headers }),
         /Unexpected server response: 404/
       );
     });
 
-    it('keeps its upgrades from other listeners (e.g. Next.js)', async () => {
-      const emit = streamTo('/logs/embedded-next');
-      httpServer = createEmbeddedServer(api);
-      // Like Next.js on a custom server: ends the socket of every upgrade
-      // whose path matches one of its routes (e.g. a catch-all page)
-      httpServer.on('upgrade', (req, socket) => {
-        setTimeout(() => socket.end(), 10);
-      });
-      baseUrl = await listen(httpServer);
-
-      const client = await connectWithOptions(
-        `${baseUrl.replace('http', 'ws')}/_hyperwatch/logs/embedded-next`,
-        { headers }
-      );
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      assert.strictEqual(client.readyState, WebSocket.OPEN);
-      const message = nextMessage(client);
-      emit({ ok: true });
-      assert.deepStrictEqual(JSON.parse(await message), { ok: true });
-      client.close();
-    });
-
-    it('leaves other upgrades to other listeners', async () => {
-      httpServer = createEmbeddedServer(api);
+    it('leaves routes outside the mount path to other listeners, even with a Hyperwatch suffix', async () => {
+      streamTo('/logs/embedded-suffix');
+      httpServer = createHost().server;
       const other = new WebSocket.Server({ noServer: true });
       httpServer.on('upgrade', (req, socket, head) => {
-        if (req.url === '/other') {
+        if (req.url === '/other/logs/embedded-suffix') {
           other.handleUpgrade(req, socket, head, (client) =>
-            client.send('other')
+            client.send('other service')
           );
         }
       });
       baseUrl = await listen(httpServer);
 
-      const client = new WebSocket(`${baseUrl.replace('http', 'ws')}/other`);
-      assert.strictEqual(await nextMessage(client), 'other');
+      const client = new WebSocket(wsUrl('/other/logs/embedded-suffix'));
+      assert.strictEqual(await nextMessage(client), 'other service');
       client.close();
       other.close();
     });
 
+    it('sends only the upgrades it does not own to the fallback', async () => {
+      const emit = streamTo('/logs/embedded-fallback');
+      // A framework with its own upgrade handling, like Next.js, which ends
+      // the socket of upgrades it doesn't serve. It only listens to the
+      // fallback channel, so it never sees Hyperwatch upgrades.
+      const framework = new EventEmitter();
+      const seen = [];
+      framework.on('upgrade', (req, socket) => {
+        seen.push(req.url);
+        setTimeout(() => socket.end(), 10);
+      });
+      httpServer = createHost({
+        attachOptions: {
+          fallback: (req, socket, head) =>
+            framework.emit('upgrade', req, socket, head),
+        },
+      }).server;
+      baseUrl = await listen(httpServer);
+
+      const client = await connectWithOptions(
+        wsUrl('/_hyperwatch/logs/embedded-fallback'),
+        { headers }
+      );
+      await assert.rejects(() => connectWs(wsUrl('/_next/hmr')));
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      assert.strictEqual(client.readyState, WebSocket.OPEN);
+      const message = nextMessage(client);
+      emit({ ok: true });
+      assert.deepStrictEqual(JSON.parse(await message), { ok: true });
+      assert.deepStrictEqual(seen, ['/_next/hmr']);
+      client.close();
+    });
+
+    it('throws when attached twice, and can attach again after detach', () => {
+      const { hw, app, server, detach } = createHost();
+      assert.strictEqual(server.listenerCount('upgrade'), 1);
+      assert.throws(() => hw.attach(server, app), /already attached/);
+
+      detach();
+      detach();
+      assert.strictEqual(server.listenerCount('upgrade'), 0);
+
+      const detachAgain = hw.attach(server, app);
+      assert.strictEqual(server.listenerCount('upgrade'), 1);
+      detachAgain();
+    });
+
     it('still serves the HTTP API under the mount path', async () => {
-      httpServer = createEmbeddedServer(api);
+      httpServer = createHost().server;
       baseUrl = await listen(httpServer);
 
       const status = await new Promise((resolve, reject) => {

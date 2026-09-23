@@ -6,17 +6,11 @@ const monitoring = require('../lib/monitoring');
 const wsServer = require('./ws-server');
 
 /**
- * Express middleware serving the Hyperwatch WebSocket routes (e.g. /logs/raw)
- * in an application embedding Hyperwatch. hyperwatch.app.api already includes
- * it, so mounting the API is usually enough:
- *
- *   app.use('/_hyperwatch', auth, hyperwatch.app.api);
- *   const server = app.listen(3000);
- *   hyperwatch.app.attach(server, app);
+ * Express middleware completing the Hyperwatch WebSocket upgrades dispatched
+ * by embed().attach(). hyperwatch.app.api already includes it: prefer
+ * hyperwatch.app.embed(). Mounting it alone doesn't handle any upgrade.
  */
 const websocket = (req, res, next) => wsServer.middleware(req, res, next);
-
-websocket.attach = wsServer.attach;
 
 websocket.streamToWebsocket = (
   endpoint,
