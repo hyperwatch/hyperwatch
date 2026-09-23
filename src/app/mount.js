@@ -4,6 +4,15 @@ const wsServer = require('./ws-server');
 // Servers where Hyperwatch handles WebSocket upgrades, with their listener
 const upgradeListeners = new WeakMap();
 
+// Paths where Hyperwatch is mounted, per app. Express can't remove routes, so
+// a path stays mounted for the life of the app.
+const mountedPaths = new WeakMap();
+
+// A path as the app routes it: case-insensitive unless the app says otherwise
+function routingKey(app, path) {
+  return app.enabled('case sensitive routing') ? path : path.toLowerCase();
+}
+
 function validate(app, { server, path, middleware, fallback }) {
   if (typeof app !== 'function' || typeof app.use !== 'function') {
     throw new TypeError('mount() expects an Express app');
@@ -26,6 +35,12 @@ function validate(app, { server, path, middleware, fallback }) {
   }
   if (fallback !== undefined && typeof fallback !== 'function') {
     throw new TypeError('fallback must be a function');
+  }
+  const paths = mountedPaths.get(app);
+  if (paths && paths.has(routingKey(app, path))) {
+    throw new Error(
+      `Hyperwatch is already mounted on this app at ${path}: its routes can't be removed, so mounting again can't change its options (e.g. middleware)`
+    );
   }
   if (upgradeListeners.has(server)) {
     throw new Error('Hyperwatch is already mounted on this server');
@@ -55,16 +70,21 @@ function isUnderPath(target, path, caseSensitive) {
  *   other listeners. Malformed targets get 400.
  * - Never creates a server nor listens.
  *
- * Mounting twice on the same server throws, before registering anything.
+ * Mounting again on the same server, or on the same app at the same path
+ * (even after detachUpgrades()), throws before registering anything.
  * Returns `{ path, detachUpgrades }`: detachUpgrades() removes the upgrade
  * listener and releases the server. Express can't remove routes, so the
- * HTTP routes stay mounted on the app.
+ * HTTP routes stay mounted on the app, with their original middleware.
  */
 function mount(app, options = {}) {
   const middlewares = validate(app, options);
   const { server, path, fallback } = options;
 
   app.use(path, ...middlewares, api);
+  if (!mountedPaths.has(app)) {
+    mountedPaths.set(app, new Set());
+  }
+  mountedPaths.get(app).add(routingKey(app, path));
 
   const listener = (req, socket, head) => {
     const target = wsServer.parseTarget(req.url);

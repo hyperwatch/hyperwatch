@@ -576,6 +576,53 @@ describe('WebSocket integration', () => {
         assert.strictEqual(server.listenerCount('upgrade'), 1);
       });
 
+      it('refuses to mount the same app path again, even after detachUpgrades()', async () => {
+        streamTo('/logs/mount-remount');
+        // Mounted without authentication
+        const { app, server, mounted } = createHost({ middleware: [] });
+        httpServer = server;
+        baseUrl = await listen(httpServer);
+        mounted.detachUpgrades();
+
+        const rejectAll = (req, res) => res.status(401).send('Unauthorized');
+        const routes = app.router.stack.length;
+        // Mounting again with authentication can't protect the existing routes
+        assert.throws(
+          () =>
+            mount(app, { server, path: '/_hyperwatch', middleware: rejectAll }),
+          /already mounted on this app at \/_hyperwatch/
+        );
+        // Same path as Express routes it (case-insensitive by default)
+        assert.throws(
+          () =>
+            mount(app, { server, path: '/_HYPERWATCH', middleware: rejectAll }),
+          /already mounted on this app/
+        );
+        // Same app and path, on another server
+        assert.throws(
+          () =>
+            mount(app, {
+              server: http.createServer(app),
+              path: '/_hyperwatch',
+              middleware: rejectAll,
+            }),
+          /already mounted on this app/
+        );
+        assert.strictEqual(app.router.stack.length, routes);
+        assert.strictEqual(server.listenerCount('upgrade'), 0);
+
+        // The original routes still answer, as documented
+        assert.strictEqual(await httpStatus('/_hyperwatch/nodes.json'), 200);
+      });
+
+      it('allows another case of the path when the app routes case-sensitively', () => {
+        const { app } = createHost({ caseSensitive: true });
+        const other = http.createServer(app);
+        assert.doesNotThrow(() =>
+          mount(app, { server: other, path: '/_HYPERWATCH', middleware: auth })
+        );
+      });
+
       it('detachUpgrades() only stops WebSocket handling, and releases the server', async () => {
         streamTo('/logs/mount-detach');
         const { app, server, mounted } = createHost();

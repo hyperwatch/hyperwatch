@@ -72,9 +72,12 @@ Hyperwatch only owns its mount path: `/other/logs/raw` is never handled by Hyper
 
 ### Mounting twice, and cleanup
 
-Hyperwatch can be mounted once per server: calling `mount()` again with the same `server` throws, before registering anything.
+`mount()` throws, before registering anything, when:
 
-`mount()` returns `{ path, detachUpgrades }`. `detachUpgrades()` removes the `upgrade` listener, so Hyperwatch stops handling WebSocket upgrades, and releases the server for another `mount()`. It can be called several times. It doesn't unmount the HTTP routes: Express can't remove routes from an app, so they stay mounted.
+- Hyperwatch is already mounted on the same `server`.
+- Hyperwatch was already mounted on the same app at the same path, matched like the app routes it (so `/_HYPERWATCH` is the same path by default). This holds even after `detachUpgrades()`: Express can't remove routes, so the first mount keeps answering at that path, with its original middleware. Mounting again couldn't change them, e.g. add authentication.
+
+`mount()` returns `{ path, detachUpgrades }`. `detachUpgrades()` removes the `upgrade` listener, so Hyperwatch stops handling WebSocket upgrades, and releases the server for a mount at another path. It can be called several times. It doesn't unmount the HTTP routes, which stay mounted with their middleware.
 
 ## Next.js custom server (workaround for Next.js 16.3)
 
