@@ -491,22 +491,21 @@ describe('WebSocket integration', () => {
       it('registers the routes where it is called, keeping middleware order', async () => {
         const seen = [];
         streamTo('/logs/mount-order');
-        const { app, server } = (() => {
-          const app = express();
-          const server = http.createServer(app);
-          app.use((req, res, next) => {
-            seen.push(`before ${req.path}`);
-            next();
-          });
-          mount(app, { server, path: '/_hyperwatch', middleware: auth });
-          app.use((req, res) => {
-            seen.push(`after ${req.path}`);
-            res.send('Host page');
-          });
-          return { app, server };
-        })();
-        assert.ok(app);
-        httpServer = server;
+        const app = express();
+        httpServer = http.createServer(app);
+        app.use((req, res, next) => {
+          seen.push(`before ${req.path}`);
+          next();
+        });
+        mount(app, {
+          server: httpServer,
+          path: '/_hyperwatch',
+          middleware: auth,
+        });
+        app.use((req, res) => {
+          seen.push(`after ${req.path}`);
+          res.send('Host page');
+        });
         baseUrl = await listen(httpServer);
 
         assert.strictEqual(
