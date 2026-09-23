@@ -139,6 +139,28 @@ describe('WebSocket integration', () => {
       assert.strictEqual(statusLine, 'HTTP/1.1 400 Bad Request');
     });
 
+    it('should match routes exactly, keeping streams that differ by case apart', async () => {
+      const setup = createTestServer();
+      httpServer = setup.httpServer;
+      wsServer = setup.wsServer;
+      baseUrl = await listen(httpServer);
+
+      wsServer.ws('/logs/team', (client) => client.send('team'));
+      wsServer.ws('/logs/TEAM', (client) => client.send('TEAM'));
+
+      const upper = new WebSocket(`${baseUrl.replace('http', 'ws')}/logs/TEAM`);
+      assert.strictEqual(await nextMessage(upper), 'TEAM');
+      upper.close();
+
+      const lower = new WebSocket(`${baseUrl.replace('http', 'ws')}/logs/team`);
+      assert.strictEqual(await nextMessage(lower), 'team');
+      lower.close();
+
+      await assert.rejects(() =>
+        connectWs(`${baseUrl.replace('http', 'ws')}/logs/Team`)
+      );
+    });
+
     it('should parse query parameters onto request.query', async () => {
       const setup = createTestServer();
       httpServer = setup.httpServer;

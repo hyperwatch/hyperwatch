@@ -16,16 +16,21 @@ function ws(path, handler) {
 /**
  * Parse the target of an upgrade request without throwing. WebSocket
  * upgrades use the origin form ("/path?query"): anything else is malformed.
- * The pathname is kept as sent, like Express routing does.
+ * `pathname` is kept as sent, like Express routing does; `urlPathname` is
+ * normalized by the URL parser.
  */
 function parseTarget(url) {
   if (typeof url !== 'string' || !url.startsWith('/')) {
     return null;
   }
   try {
-    const { searchParams } = new URL(url, 'http://localhost');
+    const { pathname: urlPathname, searchParams } = new URL(
+      url,
+      'http://localhost'
+    );
     return {
       pathname: url.split(/[?#]/)[0],
+      urlPathname,
       query: Object.fromEntries(searchParams),
     };
   } catch (err) {
@@ -57,7 +62,8 @@ function handleUpgrade(request, socket, head) {
   }
   request.query = target.query;
 
-  const handler = findRoute(target.pathname, false);
+  // Standalone mode: exact match, stream names are case-sensitive
+  const handler = routes.get(target.urlPathname);
   if (handler) {
     wss.handleUpgrade(request, socket, head, (client) => {
       handler(client, request);
