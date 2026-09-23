@@ -78,4 +78,24 @@ describe('identity', () => {
       }
     });
   });
+
+  describe('Reflection', () => {
+    it('should identify a reflection.ai hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'Reflectionbot',
+          address: '16.216.88.112',
+          hostname: 'reflectionbot-88-112.reflection.ai',
+        })
+      );
+      assert.strictEqual(result.get('identity'), 'Reflection');
+    });
+
+    it('should not identify an unverified hostname', () => {
+      const result = identity.augment(
+        log({ family: 'Reflectionbot', address: '8.8.8.8' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
 });
