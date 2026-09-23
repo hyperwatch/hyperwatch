@@ -188,50 +188,25 @@ describe('Aggregator dump/load', () => {
     assert.strictEqual(signatures.get('sig-abc'), t);
   });
 
-  it('migrates legacy array addresses/signatures to Maps', () => {
+  it('discards legacy array addresses/signatures', () => {
     const t = now();
     const speed = {
       per_minute: new Speed(60, 15).hit(t).toJSON(),
       per_hour: new Speed(3600, 24).hit(t).toJSON(),
     };
-    const legacy = [
+    const agg = new Aggregator();
+    agg.load([
       {
         id: 'a',
         identifier: 'sig-abc',
-        addresses: [
-          { value: '1.2.3.4' },
-          { value: '1.2.3.4', hostname: 'host.example' },
-          { value: '5.6.7.8' },
-        ],
+        addresses: [{ value: '1.2.3.4' }, { value: '5.6.7.8' }],
         speed,
       },
-      {
-        id: 'b',
-        identifier: '1.2.3.4',
-        signatures: ['sig-abc', 'sig-def'],
-        speed,
-      },
-    ];
-
-    const agg = new Aggregator();
-    agg.load(legacy);
-
-    const addresses = agg.entries.getIn(['a', 'addresses']);
-    assert.ok(Map.isMap(addresses));
-    // same IP with different metadata collapses into one key
-    assert.deepStrictEqual(addresses.keySeq().sort().toArray(), [
-      '1.2.3.4',
-      '5.6.7.8',
+      { id: 'b', identifier: '1.2.3.4', signatures: ['sig-abc'], speed },
     ]);
-    assert.strictEqual(addresses.get('1.2.3.4'), t);
 
-    const signatures = agg.entries.getIn(['b', 'signatures']);
-    assert.ok(Map.isMap(signatures));
-    assert.deepStrictEqual(signatures.keySeq().sort().toArray(), [
-      'sig-abc',
-      'sig-def',
-    ]);
-    assert.strictEqual(signatures.get('sig-def'), t);
+    assert.ok(!agg.entries.hasIn(['a', 'addresses']));
+    assert.ok(!agg.entries.hasIn(['b', 'signatures']));
   });
 
   it('runs entryGc on load so stale members are dropped after downtime', () => {
@@ -254,7 +229,7 @@ describe('Aggregator dump/load', () => {
       {
         id: 'b',
         identifier: 'sig-def',
-        addresses: [{ value: '9.9.9.9' }],
+        addresses: { '9.9.9.9': old },
         speed: {
           per_minute: new Speed(60, 15).hit(old).toJSON(),
           per_hour: new Speed(3600, 24).hit(old).toJSON(),
@@ -266,7 +241,7 @@ describe('Aggregator dump/load', () => {
       agg.entries.getIn(['a', 'addresses']).keySeq().toArray(),
       ['5.6.7.8']
     );
-    // legacy entry last seen before the window: everything pruned
+    // entry last seen before the window: everything pruned
     assert.strictEqual(agg.entries.getIn(['b', 'addresses']).size, 0);
   });
 
