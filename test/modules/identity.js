@@ -55,4 +55,27 @@ describe('identity', () => {
       }
     );
   });
+
+  describe('Meta', () => {
+    const metaFamilies = ['meta-externalagent', 'meta-webindexer'];
+
+    it('should identify an address in the Meta allocation', () => {
+      for (const family of metaFamilies) {
+        const result = identity.augment(
+          log({ family, address: '2a03:2880:f800:1::' })
+        );
+        assert.strictEqual(result.get('identity'), 'Meta');
+      }
+    });
+
+    it('should not trust Cloudflare Workers egress', () => {
+      // Shared by every Cloudflare Worker, so anyone can send a Meta UA from it
+      for (const family of metaFamilies) {
+        const result = identity.augment(
+          log({ family, address: '2a06:98c0:3600::103' })
+        );
+        assert.strictEqual(result.get('identity'), undefined);
+      }
+    });
+  });
 });

@@ -326,9 +326,9 @@ function augment(log) {
         : log;
     case 'meta-externalagent':
     case 'meta-webindexer':
-      return address &&
-        (new IPCIDR('2a03:2880::/29').contains(address) ||
-          new IPCIDR('2a06:98c0:3600::/48').contains(address))
+      // Meta Platforms, AS32934. Not 2a06:98c0:3600::/48: that is Cloudflare
+      // Workers egress, so any Worker could claim to be Meta from there.
+      return address && new IPCIDR('2a03:2880::/29').contains(address)
         ? log.set('identity', 'Meta')
         : log;
 
