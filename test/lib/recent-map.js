@@ -2,7 +2,12 @@ const assert = require('assert');
 
 const { Map } = require('immutable');
 
-const { WINDOW, touch, prune } = require('../../src/lib/recent-map');
+const {
+  WINDOW,
+  touch,
+  prune,
+  countRecent,
+} = require('../../src/lib/recent-map');
 
 describe('recent-map', () => {
   const t0 = 1700000000;
@@ -44,5 +49,18 @@ describe('recent-map', () => {
     refreshed = touch(refreshed, 'a', t0 + WINDOW - 10);
     assert.strictEqual(prune(refreshed, later).size, 1);
     assert.strictEqual(prune(refreshed, later).get('a'), t0 + WINDOW - 10);
+  });
+
+  it('countRecent counts keys seen within a given window', () => {
+    const now = t0 + WINDOW;
+    const map = Map({
+      stale: t0, // exactly WINDOW ago → outside both windows
+      hourAgo: now - 3600, // inside 24h, outside 15m
+      recent: now,
+    });
+    assert.strictEqual(countRecent(map, 15 * 60, now), 1);
+    assert.strictEqual(countRecent(map, WINDOW, now), 2);
+    assert.strictEqual(countRecent(map, undefined, now), 2);
+    assert.strictEqual(countRecent(undefined), 0);
   });
 });

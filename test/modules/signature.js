@@ -2,6 +2,7 @@ const assert = require('assert');
 
 const { fromJS } = require('immutable');
 
+const { now } = require('../../src/lib/util');
 const signature = require('../../src/modules/signature');
 
 function log(address, id = 'sig-abc') {
@@ -34,7 +35,7 @@ describe('signature aggregator', () => {
 
     const entry = aggregator.entries.first();
     const formatted = aggregator.formatter.formatObject(entry, 'text');
-    assert.strictEqual(formatted.addressCount, 3);
+    assert.strictEqual(formatted.addressCount24h, 3);
     assert.strictEqual(formatted.addresses, '1.2.3.4<br>5.6.7.8<br>9.9.9.9');
     assert.strictEqual(formatted.lastAddress, '9.9.9.9');
   });
@@ -44,7 +45,7 @@ describe('signature aggregator', () => {
     const entry = aggregator.entries.first().delete('addresses');
 
     const formatted = aggregator.formatter.formatObject(entry, 'text');
-    assert.strictEqual(formatted.addressCount, 0);
+    assert.strictEqual(formatted.addressCount24h, 0);
     assert.strictEqual(formatted.addresses, '');
   });
 
@@ -63,7 +64,24 @@ describe('signature aggregator', () => {
       aggregator.entries.get(id),
       'text'
     );
-    assert.strictEqual(formatted.addressCount, 1);
+    assert.strictEqual(formatted.addressCount24h, 1);
     assert.strictEqual(formatted.addresses, '5.6.7.8');
+  });
+
+  it('counts addresses over 15m and 24h', () => {
+    aggregator.processLog(log('1.2.3.4'));
+    aggregator.processLog(log('5.6.7.8'));
+    const id = aggregator.entries.keySeq().first();
+    aggregator.entries = aggregator.entries.setIn(
+      [id, 'addresses', '1.2.3.4'],
+      now() - 3600
+    );
+
+    const formatted = aggregator.formatter.formatObject(
+      aggregator.entries.get(id),
+      'text'
+    );
+    assert.strictEqual(formatted.addressCount15m, 1);
+    assert.strictEqual(formatted.addressCount24h, 2);
   });
 });
