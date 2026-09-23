@@ -5,7 +5,12 @@ const monitoring = require('../lib/monitoring');
 
 const wsServer = require('./ws-server');
 
-const websocket = {};
+/**
+ * Express middleware completing the Hyperwatch WebSocket upgrades dispatched
+ * by hyperwatch.app.mount(), which already includes it. Kept for apps that
+ * mounted it explicitly: on its own, it doesn't handle any upgrade.
+ */
+const websocket = (req, res, next) => wsServer.middleware(req, res, next);
 
 websocket.streamToWebsocket = (
   endpoint,
