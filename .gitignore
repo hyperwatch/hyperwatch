@@ -5,6 +5,7 @@ config
 !config/default.js
 !config/example.js
 !config/express_websocket_example.js
+!config/opencollective_example.js
 .hyperwatch-data
 node_modules
 license maxmind
