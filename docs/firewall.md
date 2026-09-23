@@ -56,6 +56,19 @@ Hyperwatch doesn't block anything itself: matching logs get a `firewall` field (
 - IPv6 addresses are stored in their canonical form (`2001:db8::1`). CIDRs must not have host bits set (`10.0.0.0/8`, not `10.0.0.1/8`).
 - Use `addEntry` / `removeEntry` from `src/lib/firewall/lists` to edit the file from code. `save` writes atomically.
 
+## HTTP API
+
+Besides the `/firewall` aggregator (matches per list), the module serves:
+
+| Endpoint                          | Description                                                                                                                |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `GET /firewall/lists.json`        | All lists and their entries. Linked lists get `pending: { added, removed }` since the last sync, or `null` if never synced |
+| `POST /firewall/lookup`           | `{ "addresses": [...], "user_agents": [...] }` → the matching `{ list, action, value }` (or `null`) for each               |
+| `POST /firewall/lists/:id/add`    | `{ "value", "reason", "source" }` adds an entry                                                                            |
+| `POST /firewall/lists/:id/remove` | `{ "value" }` removes an entry                                                                                             |
+
+Edits write `firewall.json` and apply right away. They don't touch Cloudflare: run `hyperwatch firewall sync up` to push them.
+
 ## Syncing with Cloudflare
 
 Each linked list owns one custom rule in the zone's `http_request_firewall_custom` phase. Hyperwatch writes the rule's whole expression:
@@ -64,31 +77,33 @@ Each linked list owns one custom rule in the zone's `http_request_firewall_custo
 - `user_agent`: `(http.user_agent eq "a") or (http.user_agent eq "b")`, or `contains` for `contains` lists
 
 ```sh
-CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ZONE_ID=... hyperwatch firewall sync --dry-run
+CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ZONE_ID=... hyperwatch firewall sync down --dry-run
 ```
 
 The token needs permission to edit the zone's WAF custom rules. `--dry-run` only reads them.
 
-Sync is two-way:
+Each sync goes one way:
 
-- Values added or removed on either side since the last sync are applied to the other side. The first sync takes the union of both.
-- Values added in Cloudflare are added to `firewall.json` with `"source": "cloudflare"`.
-- The last agreed state is kept in `firewall.sync.json`, next to `firewall.json`. Keep that file with `firewall.json`: without it, the next sync is treated as a first sync, and removals are lost.
-- Cloudflare is updated first, then `firewall.json`. If either side changes while a sync runs, that part is left alone, and the next sync finishes the job.
+- `sync down` applies the values added or removed in Cloudflare since the last sync to `firewall.json`, along with the rule's action and description. It never writes to Cloudflare. Values added in Cloudflare get `"source": "cloudflare"`.
+- `sync up` applies the values added or removed in `firewall.json` since the last sync to the Cloudflare rule, along with the list's action and description. It never changes `firewall.json`.
+- Neither direction undoes a change still pending on the side it writes to: `sync down` doesn't bring back a value you removed locally, and `sync up` doesn't remove a value added in Cloudflare.
+- For a full sync, run `sync down`, then `sync up`.
+- The last agreed state is kept in `firewall.sync.json`, next to `firewall.json`. Keep that file with `firewall.json`: without it, the next sync is treated as a first sync, and removals are lost. On a first sync, `down` imports every value only in Cloudflare and `up` pushes every value only in `firewall.json`.
+- If the rule or `firewall.json` changes while a sync runs, that list is left alone, and the next sync finishes the job.
 
 Sync refuses to touch a list, and says why, when:
 
 - the rule's expression isn't one Hyperwatch would write (someone edited the rule by hand)
-- the rule's action or description differs from the list. Choose a side with `--prefer local` or `--prefer remote`
-- the expression would go over Cloudflare's 4,096-character limit. Split the list
-- the rule would end up empty
+- the rule's action has no list equivalent (`sync down`)
+- the expression would go over Cloudflare's 4,096-character limit. Split the list (`sync up`)
+- the rule would end up empty (`sync up`)
 
 A rule's enabled/disabled state is left as it is in Cloudflare.
 
 ## CLI
 
 ```
-hyperwatch firewall sync [--dry-run] [--prefer local|remote] [--list <id>] [--file firewall.json] [--state firewall.sync.json]
+hyperwatch firewall sync up|down [--dry-run] [--list <id>] [--file firewall.json] [--state firewall.sync.json]
 hyperwatch firewall check [--file firewall.json]
 hyperwatch firewall migrate <legacy-firewall.json> [--out firewall.json] [--force]
 ```

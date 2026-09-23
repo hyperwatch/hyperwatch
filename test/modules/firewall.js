@@ -90,4 +90,97 @@ describe('firewall module', () => {
     assert.strictEqual(firewall.augment(log('1.2.3.4')).has('firewall'), false);
     assert.ok(firewall.augment(log('9.9.9.9')).has('firewall'));
   });
+
+  it('looks up addresses and user agents', () => {
+    writeLists(file, ['10.0.0.0/8']);
+    firewall.load(file);
+    assert.deepStrictEqual(
+      firewall.lookup({
+        addresses: ['10.1.2.3', '1.1.1.1'],
+        user_agents: ['BadBot/1.0'],
+      }),
+      {
+        addresses: {
+          '10.1.2.3': {
+            list: 'block-ips',
+            action: 'block',
+            value: '10.0.0.0/8',
+          },
+          '1.1.1.1': null,
+        },
+        user_agents: {
+          'BadBot/1.0': {
+            list: 'monitor-uas',
+            action: 'monitor',
+            value: 'BadBot/1.0',
+          },
+        },
+      }
+    );
+  });
+
+  it('adds and removes entries and reloads', () => {
+    writeLists(file, ['1.2.3.4']);
+    firewall.load(file);
+
+    firewall.edit(file, 'block-ips', 'add', {
+      value: '9.9.9.9',
+      reason: 'spam',
+      source: 'dashboard',
+    });
+    assert.ok(firewall.augment(log('9.9.9.9')).has('firewall'));
+    const entry = firewall
+      .summary(file)
+      .lists[0].entries.find((e) => e.value === '9.9.9.9');
+    assert.strictEqual(entry.reason, 'spam');
+    assert.strictEqual(entry.source, 'dashboard');
+
+    firewall.edit(file, 'block-ips', 'remove', { value: '9.9.9.9' });
+    assert.strictEqual(firewall.augment(log('9.9.9.9')).has('firewall'), false);
+
+    assert.throws(() =>
+      firewall.edit(file, 'nope', 'add', { value: '1.1.1.1' })
+    );
+    assert.throws(() =>
+      firewall.edit(file, 'block-ips', 'add', { value: 'x' })
+    );
+  });
+
+  it('reports entries pending a Cloudflare sync', () => {
+    fs.writeFileSync(
+      file,
+      JSON.stringify({
+        lists: [
+          {
+            id: 'block-ips',
+            type: 'ip',
+            action: 'block',
+            cloudflare: { rule_id: 'abc' },
+            entries: [{ value: '1.1.1.1' }, { value: '2.2.2.2' }],
+          },
+          {
+            id: 'block-uas',
+            type: 'user_agent',
+            action: 'block',
+            cloudflare: { rule_id: 'def' },
+            entries: [{ value: 'BadBot/1.0' }],
+          },
+        ],
+      })
+    );
+    fs.writeFileSync(
+      path.join(dir, 'firewall.sync.json'),
+      JSON.stringify({
+        lists: {
+          'block-ips': { rule_id: 'abc', values: ['1.1.1.1', '3.3.3.3'] },
+        },
+      })
+    );
+    const [ips, uas] = firewall.summary(file).lists;
+    assert.deepStrictEqual(ips.pending, {
+      added: ['2.2.2.2'],
+      removed: ['3.3.3.3'],
+    });
+    assert.strictEqual(uas.pending, null);
+  });
 });

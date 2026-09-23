@@ -59,6 +59,12 @@ describe('hyperwatch firewall', () => {
       assert.strictEqual(await firewall.run(['nope']), 1);
     });
 
+    it('needs a sync direction', async () => {
+      for (const argv of [['sync'], ['sync', 'both']]) {
+        await assert.rejects(firewall.run(argv), /"sync up".*"sync down"/);
+      }
+    });
+
     it('migrates a legacy file, then checks it', async () => {
       const legacy = path.join(dir, 'legacy.json');
       const out = path.join(dir, 'firewall.json');
