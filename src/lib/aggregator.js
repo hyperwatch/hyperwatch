@@ -243,23 +243,13 @@ class Aggregator {
       if (entry.hasIn(['signature', 'headers'])) {
         entry = entry.setIn(['signature', 'headers'], rest.signature.headers);
       }
-      // addresses/signatures are Map<id, lastSeen>. Legacy dumps stored them
-      // as arrays (address objects / signature ids) without timestamps, so
-      // every member gets the entry's last-seen time — an approximation that
-      // keeps the whole historical set for up to one more window.
-      const lastSeen = speed.per_hour && speed.per_hour.latest;
-      const migrate = (list, key) =>
-        Map(
-          list.map((item) => [
-            Map.isMap(item) ? item.get(key) : item,
-            lastSeen || 0,
-          ])
-        );
-      if (List.isList(entry.get('addresses'))) {
-        entry = entry.update('addresses', (list) => migrate(list, 'value'));
-      }
-      if (List.isList(entry.get('signatures'))) {
-        entry = entry.update('signatures', (list) => migrate(list));
+      // addresses/signatures are Map<id, lastSeen>. Dumps from before that
+      // stored plain arrays, which the enrichers can't update — discard them
+      // and let the counts rebuild from live traffic.
+      for (const key of ['addresses', 'signatures']) {
+        if (List.isList(entry.get(key))) {
+          entry = entry.delete(key);
+        }
       }
       entry = entry
         .setIn(['speed', 'per_minute'], Speed.fromJSON(speed.per_minute))
