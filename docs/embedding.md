@@ -4,6 +4,7 @@ Hyperwatch can run inside an existing Express application (Express 4 or 5), inst
 
 ```javascript
 const express = require('express');
+const basicAuth = require('express-basic-auth');
 const hyperwatch = require('@hyperwatch/hyperwatch');
 
 const app = express();
@@ -23,7 +24,11 @@ app.use(expressInput.middleware());
 hyperwatch.pipeline.registerInput(expressInput);
 
 // Expose the API and live streams (HTTP and WebSocket), behind authentication
-app.use('/_hyperwatch', authenticate, hyperwatch.app.api);
+const { HYPERWATCH_USERNAME = 'hyperwatch', HYPERWATCH_PASSWORD } = process.env;
+const auth = basicAuth({
+  users: { [HYPERWATCH_USERNAME]: HYPERWATCH_PASSWORD },
+});
+app.use('/_hyperwatch', auth, hyperwatch.app.api);
 
 // ... your middlewares and routes
 
@@ -50,8 +55,8 @@ A watcher can then subscribe to the live logs with a WebSocket input:
 input.websocket.create({
   type: 'client',
   address: 'wss://example.org/_hyperwatch/logs/raw',
-  username: 'hyperwatch',
-  password: process.env.HYPERWATCH_SECRET,
+  username: process.env.HYPERWATCH_USERNAME || 'hyperwatch',
+  password: process.env.HYPERWATCH_PASSWORD,
   reconnectOnClose: true,
 });
 ```
