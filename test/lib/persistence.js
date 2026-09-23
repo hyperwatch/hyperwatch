@@ -320,3 +320,25 @@ describe('persistence dump / load', () => {
     // Should not throw
   });
 });
+
+describe('persistence safeName', () => {
+  const persistence = require('../../src/lib/persistence');
+
+  it('keeps plain node names unchanged', () => {
+    assert.strictEqual(persistence.safeName('main'), 'main');
+    assert.strictEqual(persistence.safeName('input-1'), 'input-1');
+  });
+
+  it('encodes characters register() would reject', () => {
+    const name = persistence.safeName('api@v2/ü');
+    assert.strictEqual(name, 'api_40_v2_2f__fc_');
+    assert.match(name, /^[A-Za-z0-9._-]+$/);
+  });
+
+  it('does not collide with names already containing the escape', () => {
+    assert.notStrictEqual(
+      persistence.safeName('a@b'),
+      persistence.safeName('a_40_b')
+    );
+  });
+});

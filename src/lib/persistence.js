@@ -9,6 +9,16 @@ const aggregators = Object.create(null);
 
 const SAFE_NAME = /^[A-Za-z0-9._-]+$/;
 
+// Encode any string into a name accepted by register(). Characters outside
+// [A-Za-z0-9.-], including '_' itself, become _<hex code point>_, so distinct
+// inputs never map to the same name.
+function safeName(name) {
+  return String(name).replace(
+    /[^A-Za-z0-9.-]/gu,
+    (c) => `_${c.codePointAt(0).toString(16)}_`
+  );
+}
+
 function register(name, aggregator) {
   if (!SAFE_NAME.test(name)) {
     throw new Error(`Invalid aggregator name for persistence: "${name}"`);
@@ -69,4 +79,4 @@ function load(dir) {
   }
 }
 
-module.exports = { register, dump, load };
+module.exports = { register, dump, load, safeName };

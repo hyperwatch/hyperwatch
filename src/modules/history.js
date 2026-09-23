@@ -12,7 +12,7 @@ function start() {
   function registerNodeHistory(name, node) {
     const buffer = new LogBuffer(capacity);
     buffers[name] = buffer;
-    persistence.register(`history-${name}`, buffer);
+    persistence.register(`history-${persistence.safeName(name)}`, buffer);
 
     node.map((log) => {
       buffer.push(log);
