@@ -8,6 +8,12 @@ const express = require('express');
 const basicAuth = require('express-basic-auth');
 const hyperwatch = require('@hyperwatch/hyperwatch');
 
+const {
+  PORT = 3000,
+  HYPERWATCH_USERNAME = 'hyperwatch',
+  HYPERWATCH_SECRET,
+} = process.env;
+
 const app = express();
 const server = http.createServer(app);
 
@@ -19,12 +25,7 @@ app.use(input.middleware());
 hyperwatch.pipeline.registerInput(input);
 
 // Mount the Hyperwatch API and live streams, behind authentication
-const auth = basicAuth({
-  users: {
-    [process.env.HYPERWATCH_USERNAME || 'hyperwatch']:
-      process.env.HYPERWATCH_SECRET,
-  },
-});
+const auth = basicAuth({ users: { [HYPERWATCH_USERNAME]: HYPERWATCH_SECRET } });
 
 hyperwatch.app.mount(app, {
   server,
@@ -36,7 +37,7 @@ hyperwatch.app.mount(app, {
 
 hyperwatch.modules.start();
 hyperwatch.pipeline.start();
-server.listen(3000);
+server.listen(PORT);
 ```
 
 Don't call `hyperwatch.start()`: it would start the standalone Hyperwatch server.
@@ -109,11 +110,13 @@ This is a version-specific workaround, not a stable integration contract. Next.j
 A watcher can subscribe to the logs with a WebSocket input:
 
 ```javascript
+const { HYPERWATCH_USERNAME = 'hyperwatch', HYPERWATCH_SECRET } = process.env;
+
 input.websocket.create({
   type: 'client',
   address: 'wss://example.org/_hyperwatch/logs/raw',
-  username: process.env.HYPERWATCH_USERNAME || 'hyperwatch',
-  password: process.env.HYPERWATCH_SECRET,
+  username: HYPERWATCH_USERNAME,
+  password: HYPERWATCH_SECRET,
   reconnectOnClose: true,
 });
 ```
