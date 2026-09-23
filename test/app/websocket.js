@@ -321,7 +321,7 @@ describe('WebSocket integration', () => {
     });
   });
   describe('Embedding in an Express app', () => {
-    const credentials = `Basic ${Buffer.from('watcher:secret').toString('base64')}`;
+    const credentials = `Basic ${Buffer.from('hyperwatch:secret').toString('base64')}`;
     const headers = { authorization: credentials };
 
     const auth = (req, res, next) => {

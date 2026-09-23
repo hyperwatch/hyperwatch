@@ -50,7 +50,7 @@ A watcher can then subscribe to the live logs with a WebSocket input:
 input.websocket.create({
   type: 'client',
   address: 'wss://example.org/_hyperwatch/logs/raw',
-  username: 'watcher',
+  username: 'hyperwatch',
   password: process.env.HYPERWATCH_SECRET,
   reconnectOnClose: true,
 });
