@@ -11,15 +11,16 @@ const sync = require('../lib/firewall/sync');
 const USAGE = `Usage: hyperwatch firewall <command> [options]
 
 Commands:
-  sync     Two-way sync of Cloudflare-linked lists with their custom rules
-  check    Validate firewall.json and each linked list's expression length
-  migrate  Convert a legacy rule-based firewall.json into lists
+  sync up    Apply firewall.json changes to the linked Cloudflare rules
+  sync down  Apply Cloudflare rule changes to firewall.json
+             (run "sync down" then "sync up" for a full sync)
+  check      Validate firewall.json and each linked list's expression length
+  migrate    Convert a legacy rule-based firewall.json into lists
 
 Options:
   --file <path>        firewall.json to use (default: ./firewall.json)
   --state <path>       sync state file (default: next to --file, .sync.json)
   --dry-run            sync: show the plan, change nothing
-  --prefer <side>      sync: resolve action/description conflicts (local|remote)
   --list <id>          sync: only this list
   --out <path>         migrate: output file (default: ./firewall.json)
   --force              migrate: overwrite existing output files
@@ -30,7 +31,6 @@ const PARSE_OPTIONS = {
   file: { type: 'string', default: 'firewall.json' },
   state: { type: 'string' },
   'dry-run': { type: 'boolean', default: false },
-  prefer: { type: 'string' },
   list: { type: 'string' },
   out: { type: 'string', default: 'firewall.json' },
   force: { type: 'boolean', default: false },
@@ -43,8 +43,7 @@ const COMMANDS = ['sync', 'check', 'migrate'];
 let options;
 let args;
 
-const statePath = (file) =>
-  options.state || `${file.replace(/\.json$/, '')}.sync.json`;
+const statePath = (file) => options.state || sync.defaultStatePath(file);
 
 const short = (id) => (id ? id.slice(0, 8) : '');
 
@@ -61,11 +60,16 @@ function printPlan(items) {
         console.log(`  ${label}: ${changes.join('  ')}`);
       }
     };
-    line('to Cloudflare', item.toRemote);
-    line('to firewall.json', item.toLocal);
+    const down = item.direction === 'down';
+    if (down) {
+      line('to firewall.json', item.toLocal);
+    } else {
+      line('to Cloudflare', item.toRemote);
+    }
     for (const c of item.conflicts) {
+      const [from, to] = down ? [c.local, c.remote] : [c.remote, c.local];
       console.log(
-        `  conflict: ${c.field} is ${JSON.stringify(c.local)} locally, ${JSON.stringify(c.remote)} in Cloudflare`
+        `  ${c.field}: ${JSON.stringify(from)} -> ${JSON.stringify(to)} ${down ? 'in firewall.json' : 'in Cloudflare'}`
       );
     }
     for (const warning of item.warnings) {
@@ -81,8 +85,11 @@ function printPlan(items) {
 }
 
 async function runSync() {
-  if (options.prefer && !['local', 'remote'].includes(options.prefer)) {
-    throw new Error('--prefer must be "local" or "remote"');
+  const [direction] = args;
+  if (!sync.DIRECTIONS.includes(direction)) {
+    throw new Error(
+      'sync needs a direction: "sync up" (firewall.json to Cloudflare) or "sync down" (Cloudflare to firewall.json)'
+    );
   }
   const file = options.file;
   const data = lists.load(file);
@@ -94,7 +101,7 @@ async function runSync() {
     data,
     state,
     ruleset,
-    prefer: options.prefer,
+    direction,
     only: options.list,
   });
   printPlan(items);
@@ -122,14 +129,10 @@ async function runSync() {
       );
     }
   }
-  if (result.localWritten) {
+  if (result.items.some((item) => item.applied)) {
     sync.saveState(statePath(file), result.state);
-    console.log(`${file} and ${statePath(file)} updated.`);
-  } else if (result.items.some((item) => item.applied)) {
-    console.log(
-      `${file} changed during the sync and was left alone; run sync again to finish.`
-    );
-    return 1;
+    const updated = result.localWritten ? `${file} and ` : '';
+    console.log(`${updated}${statePath(file)} updated.`);
   }
   return failed || result.items.some((item) => item.skipped) ? 1 : 0;
 }

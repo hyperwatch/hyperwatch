@@ -55,12 +55,26 @@ function fakeCloudflare(rules) {
   };
 }
 
-const planOne = (data, rules, st = { lists: {} }, opts = {}) =>
-  sync.plan({ data, state: st, ruleset: { id: 'ruleset', rules }, ...opts })[0];
+const planOne = (data, rules, st = { lists: {} }, direction = 'down') =>
+  sync.plan({
+    data,
+    state: st,
+    ruleset: { id: 'ruleset', rules },
+    direction,
+  })[0];
+
+const values = (data) => data.lists[0].entries.map((e) => e.value).sort();
 
 describe('firewall sync', () => {
   describe('plan', () => {
-    it('imports everything from Cloudflare on the first sync', () => {
+    it('needs a direction', () => {
+      assert.throws(
+        () => planOne(firewall([]), [ipRule(['1.1.1.1'])], undefined, 'both'),
+        /"up" or "down"/
+      );
+    });
+
+    it('down imports everything from Cloudflare on the first sync', () => {
       const item = planOne(firewall([]), [ipRule(['1.1.1.1', '2.2.2.2'])]);
       assert.deepStrictEqual(item.toLocal, {
         add: ['1.1.1.1', '2.2.2.2'],
@@ -73,46 +87,102 @@ describe('firewall sync', () => {
       assert.strictEqual(imported.reason, 'added in Cloudflare');
     });
 
-    it('unions both sides on the first sync', () => {
-      const item = planOne(firewall(['1.1.1.1', '3.3.3.3']), [
-        ipRule(['1.1.1.1', '2.2.2.2']),
-      ]);
-      assert.deepStrictEqual(item.toLocal.add, ['2.2.2.2']);
-      assert.deepStrictEqual(item.toRemote.add, ['3.3.3.3']);
+    it('goes one way only on the first sync', () => {
+      const data = firewall(['1.1.1.1', '3.3.3.3']);
+      const rules = [ipRule(['1.1.1.1', '2.2.2.2'])];
+
+      const down = planOne(data, rules, undefined, 'down');
+      assert.deepStrictEqual(down.toLocal.add, ['2.2.2.2']);
+      assert.strictEqual(down.patch, undefined);
+      assert.deepStrictEqual(down.values, ['1.1.1.1', '2.2.2.2']);
+
+      const up = planOne(data, rules, undefined, 'up');
+      assert.deepStrictEqual(up.toRemote.add, ['3.3.3.3']);
+      assert.strictEqual(up.list, undefined);
       assert.strictEqual(
-        item.patch.expression,
+        up.patch.expression,
         '(ip.src in {1.1.1.1 2.2.2.2 3.3.3.3})'
       );
+      assert.deepStrictEqual(up.values, ['1.1.1.1', '3.3.3.3']);
     });
 
-    it('merges adds and removals from both sides against the base', () => {
+    it('down then up merges both sides against the base', () => {
       // base: 1, 2, 3
       // local: removed 2, added 4
       // remote: removed 3, added 5
-      const item = planOne(
+      const st = state(['1.1.1.1', '2.2.2.2', '3.3.3.3']);
+      const rule = ipRule(['1.1.1.1', '2.2.2.2', '5.5.5.5']);
+
+      const down = planOne(
         firewall(['1.1.1.1', '3.3.3.3', '4.4.4.4']),
-        [ipRule(['1.1.1.1', '2.2.2.2', '5.5.5.5'])],
-        state(['1.1.1.1', '2.2.2.2', '3.3.3.3'])
+        [rule],
+        st,
+        'down'
       );
-      assert.deepStrictEqual(item.values, ['1.1.1.1', '4.4.4.4', '5.5.5.5']);
-      assert.deepStrictEqual(item.toRemote, {
-        add: ['4.4.4.4'],
-        remove: ['2.2.2.2'],
-      });
-      assert.deepStrictEqual(item.toLocal, {
+      assert.deepStrictEqual(down.toLocal, {
         add: ['5.5.5.5'],
         remove: ['3.3.3.3'],
       });
+      assert.deepStrictEqual(values({ lists: [down.list] }), [
+        '1.1.1.1',
+        '4.4.4.4',
+        '5.5.5.5',
+      ]);
+
+      const up = planOne(
+        { lists: [down.list] },
+        [rule],
+        state(down.values),
+        'up'
+      );
+      assert.deepStrictEqual(up.toRemote, {
+        add: ['4.4.4.4'],
+        remove: ['2.2.2.2'],
+      });
+      assert.strictEqual(
+        up.patch.expression,
+        '(ip.src in {1.1.1.1 4.4.4.4 5.5.5.5})'
+      );
+    });
+
+    it("never undoes the other side's pending changes", () => {
+      // Local removed 2 since the base: down keeps it removed, up removes it
+      const removedLocally = [
+        firewall(['1.1.1.1']),
+        [ipRule(['1.1.1.1', '2.2.2.2'])],
+        state(['1.1.1.1', '2.2.2.2']),
+      ];
+      assert.ok(!sync.hasChanges(planOne(...removedLocally, 'down')));
+      assert.deepStrictEqual(planOne(...removedLocally, 'up').toRemote, {
+        add: [],
+        remove: ['2.2.2.2'],
+      });
+
+      // Cloudflare added 5 since the base: up leaves it, down imports it
+      const addedRemotely = [
+        firewall(['1.1.1.1']),
+        [ipRule(['1.1.1.1', '5.5.5.5'])],
+        state(['1.1.1.1']),
+      ];
+      const up = planOne(...addedRemotely, 'up');
+      assert.ok(!sync.hasChanges(up));
+      assert.deepStrictEqual(up.values, ['1.1.1.1']);
+      assert.deepStrictEqual(planOne(...addedRemotely, 'down').toLocal.add, [
+        '5.5.5.5',
+      ]);
     });
 
     it('treats the same value added on both sides as one add', () => {
-      const item = planOne(
-        firewall(['1.1.1.1', '9.9.9.9']),
-        [ipRule(['1.1.1.1', '9.9.9.9'])],
-        state(['1.1.1.1'])
-      );
-      assert.ok(!sync.hasChanges(item));
-      assert.deepStrictEqual(item.values, ['1.1.1.1', '9.9.9.9']);
+      for (const direction of ['up', 'down']) {
+        const item = planOne(
+          firewall(['1.1.1.1', '9.9.9.9']),
+          [ipRule(['1.1.1.1', '9.9.9.9'])],
+          state(['1.1.1.1']),
+          direction
+        );
+        assert.ok(!sync.hasChanges(item));
+        assert.deepStrictEqual(item.values, ['1.1.1.1', '9.9.9.9']);
+      }
     });
 
     it('keeps local entry metadata', () => {
@@ -153,40 +223,63 @@ describe('firewall sync', () => {
       assert.match(missing.errors[0], /not found/);
     });
 
-    it('refuses to empty a rule', () => {
-      const item = planOne(
+    it('refuses to empty a rule going up, but empties a list going down', () => {
+      const up = planOne(
         firewall([]),
         [ipRule(['1.1.1.1'])],
-        state(['1.1.1.1'])
+        state(['1.1.1.1']),
+        'up'
       );
-      assert.match(item.errors[0], /empty/);
+      assert.match(up.errors[0], /empty/);
+
+      const down = planOne(
+        firewall(['1.1.1.1']),
+        [ipRule(['2.2.2.2'])],
+        state(['1.1.1.1', '2.2.2.2']),
+        'down'
+      );
+      assert.deepStrictEqual(down.errors, []);
+      assert.deepStrictEqual(down.list.entries, []);
     });
 
-    it('reports metadata conflicts until a side is preferred', () => {
+    it('takes metadata from the side it syncs from', () => {
       const rules = [ipRule(['1.1.1.1'], { action: 'managed_challenge' })];
-      const data = firewall(['1.1.1.1']);
+      const data = firewall(['1.1.1.1'], { description: 'Local name' });
       const st = state(['1.1.1.1']);
 
-      const blocked = planOne(data, rules, st);
-      assert.deepStrictEqual(blocked.conflicts, [
+      const down = planOne(data, rules, st, 'down');
+      assert.deepStrictEqual(down.conflicts, [
         { field: 'action', local: 'block', remote: 'managed_challenge' },
+        {
+          field: 'description',
+          local: 'Local name',
+          remote: 'Block IP blacklist',
+        },
       ]);
-      assert.match(blocked.errors[0], /--prefer/);
+      assert.strictEqual(down.patch, undefined);
+      assert.strictEqual(down.list.action, 'challenge');
+      assert.strictEqual(down.list.description, 'Block IP blacklist');
+      assert.ok(down.localChanged);
 
-      const local = planOne(data, rules, st, { prefer: 'local' });
-      assert.strictEqual(local.patch.action, 'block');
+      const up = planOne(data, rules, st, 'up');
+      assert.strictEqual(up.patch.action, 'block');
+      assert.strictEqual(up.patch.description, 'Local name');
+      assert.strictEqual(up.patch.expression, '(ip.src in {1.1.1.1})');
+    });
 
-      const remote = planOne(data, rules, st, { prefer: 'remote' });
-      assert.strictEqual(remote.patch, undefined);
-      assert.strictEqual(remote.list.action, 'challenge');
-      assert.ok(remote.localChanged);
+    it('refuses a Cloudflare action lists cannot hold going down', () => {
+      const item = planOne(firewall(['1.1.1.1']), [
+        ipRule(['1.1.1.1'], { action: 'log' }),
+      ]);
+      assert.match(item.errors[0], /no firewall list equivalent/);
     });
 
     it('keeps the rule disabled and warns', () => {
       const item = planOne(
         firewall(['1.1.1.1', '2.2.2.2']),
         [ipRule(['1.1.1.1'], { enabled: false })],
-        state(['1.1.1.1'])
+        state(['1.1.1.1']),
+        'up'
       );
       assert.strictEqual(item.patch.enabled, false);
       assert.match(item.warnings[0], /disabled/);
@@ -215,6 +308,7 @@ describe('firewall sync', () => {
         data,
         state: { lists: {} },
         ruleset: { rules: [rule] },
+        direction: 'up',
       })[0];
       assert.strictEqual(
         item.patch.expression,
@@ -224,8 +318,8 @@ describe('firewall sync', () => {
   });
 
   describe('apply', () => {
-    function run(data, cf, st, { changedLocally = false } = {}) {
-      const items = sync.plan({ data, state: st, ruleset: cf.zone });
+    function run(data, cf, st, direction, { changedLocally = false } = {}) {
+      const items = sync.plan({ data, state: st, ruleset: cf.zone, direction });
       let written = null;
       return sync
         .apply(items, {
@@ -243,13 +337,14 @@ describe('firewall sync', () => {
         .then((result) => ({ result, written, items }));
     }
 
-    it('patches Cloudflare, then writes firewall.json and the state', async () => {
+    it('up patches Cloudflare and records the local values', async () => {
       const cf = fakeCloudflare([ipRule(['1.1.1.1', '5.5.5.5'])]);
       const st = state(['1.1.1.1']);
       const { result, written } = await run(
         firewall(['1.1.1.1', '4.4.4.4']),
         cf,
-        st
+        st,
+        'up'
       );
 
       assert.strictEqual(cf.calls.length, 1);
@@ -259,33 +354,60 @@ describe('firewall sync', () => {
         description: 'Block IP blacklist',
         enabled: true,
       });
-      assert.ok(result.localWritten);
-      assert.deepStrictEqual(
-        written.lists[0].entries.map((e) => e.value).sort(),
-        ['1.1.1.1', '4.4.4.4', '5.5.5.5']
-      );
+      assert.strictEqual(result.localWritten, false);
+      assert.strictEqual(written, null);
       assert.deepStrictEqual(st.lists['block-ips'].values, [
         '1.1.1.1',
         '4.4.4.4',
-        '5.5.5.5',
       ]);
       assert.strictEqual(st.lists['block-ips'].version, '4');
     });
 
-    it('records the base even when nothing changed', async () => {
-      const cf = fakeCloudflare([ipRule(['1.1.1.1'])]);
-      const st = { lists: {} };
-      const { result } = await run(firewall(['1.1.1.1']), cf, st);
+    it('down writes firewall.json and records the Cloudflare values', async () => {
+      const cf = fakeCloudflare([ipRule(['1.1.1.1', '5.5.5.5'])]);
+      const st = state(['1.1.1.1']);
+      const { result, written } = await run(
+        firewall(['1.1.1.1', '4.4.4.4']),
+        cf,
+        st,
+        'down'
+      );
+
       assert.strictEqual(cf.calls.length, 0);
       assert.ok(result.localWritten);
-      assert.deepStrictEqual(st.lists['block-ips'].values, ['1.1.1.1']);
+      assert.deepStrictEqual(values(written), [
+        '1.1.1.1',
+        '4.4.4.4',
+        '5.5.5.5',
+      ]);
+      assert.deepStrictEqual(st.lists['block-ips'].values, [
+        '1.1.1.1',
+        '5.5.5.5',
+      ]);
+      assert.strictEqual(st.lists['block-ips'].version, '3');
+    });
+
+    it('records the base even when nothing changed', async () => {
+      for (const direction of ['up', 'down']) {
+        const cf = fakeCloudflare([ipRule(['1.1.1.1'])]);
+        const st = { lists: {} };
+        const { result } = await run(firewall(['1.1.1.1']), cf, st, direction);
+        assert.strictEqual(cf.calls.length, 0);
+        assert.strictEqual(result.localWritten, false);
+        assert.deepStrictEqual(st.lists['block-ips'].values, ['1.1.1.1']);
+      }
     });
 
     it('skips a rule that changed since the plan', async () => {
       const cf = fakeCloudflare([ipRule(['1.1.1.1'])]);
       const data = firewall(['1.1.1.1', '2.2.2.2']);
       const st = state(['1.1.1.1']);
-      const items = sync.plan({ data, state: st, ruleset: cf.zone });
+      const items = sync.plan({
+        data,
+        state: st,
+        ruleset: cf.zone,
+        direction: 'up',
+      });
       cf.zone.rules[0].version = '9';
       await sync.apply(items, {
         client: cf.client,
@@ -296,20 +418,22 @@ describe('firewall sync', () => {
       });
       assert.strictEqual(cf.calls.length, 0);
       assert.match(items[0].skipped, /changed since the plan/);
+      assert.deepStrictEqual(st.lists['block-ips'].values, ['1.1.1.1']);
     });
 
-    it('leaves firewall.json alone when it changed during the sync', async () => {
-      const cf = fakeCloudflare([ipRule(['1.1.1.1'])]);
+    it('down leaves firewall.json alone when it changed during the sync', async () => {
+      const cf = fakeCloudflare([ipRule(['1.1.1.1', '2.2.2.2'])]);
       const st = state(['1.1.1.1']);
-      const { result, written } = await run(
-        firewall(['1.1.1.1', '2.2.2.2']),
+      const { result, written, items } = await run(
+        firewall(['1.1.1.1']),
         cf,
         st,
+        'down',
         { changedLocally: true }
       );
-      assert.strictEqual(cf.calls.length, 1);
       assert.strictEqual(result.localWritten, false);
       assert.strictEqual(written, null);
+      assert.match(items[0].skipped, /firewall.json changed/);
       assert.deepStrictEqual(st.lists['block-ips'].values, ['1.1.1.1']);
     });
 
@@ -317,19 +441,19 @@ describe('firewall sync', () => {
       const cf = fakeCloudflare([
         ipRule([], { expression: '(ip.src in $list)' }),
       ]);
-      const { result, items } = await run(firewall(['1.1.1.1']), cf, {
-        lists: {},
-      });
+      const st = { lists: {} };
+      const { result, items } = await run(firewall(['1.1.1.1']), cf, st, 'up');
       assert.strictEqual(cf.calls.length, 0);
       assert.strictEqual(items[0].skipped, 'errors');
       assert.strictEqual(result.localWritten, false);
+      assert.deepStrictEqual(st.lists, {});
     });
 
     it('fails loudly if Cloudflare does not reflect the update', async () => {
       const cf = fakeCloudflare([ipRule(['1.1.1.1'])]);
       cf.client.patchRule = async () => JSON.parse(JSON.stringify(cf.zone));
       await assert.rejects(
-        run(firewall(['1.1.1.1', '2.2.2.2']), cf, state(['1.1.1.1'])),
+        run(firewall(['1.1.1.1', '2.2.2.2']), cf, state(['1.1.1.1']), 'up'),
         /doesn't show the new expression/
       );
     });
