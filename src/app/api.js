@@ -11,9 +11,14 @@ const pipeline = require('../lib/pipeline');
 const { formatTable } = require('../lib/util');
 const stylesheet = require('../stylesheet');
 
+const wsServer = require('./ws-server');
+
 const script = fs.readFileSync(path.join(__dirname, '..', 'script.js'));
 
 const app = express();
+
+// WebSocket upgrades forwarded by attach() when Hyperwatch is embedded
+app.use(wsServer.middleware);
 
 app.use(express.json());
 

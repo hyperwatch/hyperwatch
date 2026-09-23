@@ -4,6 +4,7 @@ const http = require('http');
 const express = require('express');
 const WebSocket = require('ws');
 
+const api = require('../../src/app/api');
 const websocket = require('../../src/app/websocket');
 const wsServer = require('../../src/app/ws-server');
 const websocketInput = require('../../src/input/websocket');
@@ -317,6 +318,155 @@ describe('WebSocket integration', () => {
       assert.strictEqual(msg, 'test');
 
       client.close();
+    });
+  });
+  describe('Embedding in an Express app', () => {
+    const credentials = `Basic ${Buffer.from('watcher:secret').toString('base64')}`;
+    const headers = { authorization: credentials };
+
+    const auth = (req, res, next) => {
+      if (req.headers.authorization === credentials) {
+        return next();
+      }
+      res.status(401).send('Unauthorized');
+    };
+
+    /**
+     * A host application embedding Hyperwatch under /_hyperwatch, behind
+     * authentication, with a catch-all route like a Next.js custom server.
+     */
+    function createEmbeddedServer(...hyperwatchMiddlewares) {
+      const host = express();
+      host.use('/_hyperwatch', auth, ...hyperwatchMiddlewares);
+      host.use((req, res) => res.status(404).send('Host page not found'));
+      const server = http.createServer(host);
+      wsServer.attach(server, host);
+      return server;
+    }
+
+    function streamTo(endpoint) {
+      let emit;
+      const originalSetInterval = global.setInterval;
+      global.setInterval = () => undefined;
+      try {
+        websocket.streamToWebsocket(endpoint, {
+          map(fn) {
+            emit = fn;
+          },
+        });
+      } finally {
+        global.setInterval = originalSetInterval;
+      }
+      return (log) => emit(log);
+    }
+
+    function connectWithOptions(url, options) {
+      return new Promise((resolve, reject) => {
+        const client = new WebSocket(url, options);
+        client.on('open', () => resolve(client));
+        client.on('unexpected-response', (req, res) =>
+          reject(new Error(`Unexpected server response: ${res.statusCode}`))
+        );
+        client.on('error', reject);
+      });
+    }
+
+    it('can be mounted with app.use (regression: express-ws removal)', () => {
+      assert.doesNotThrow(() => express().use('/_hyperwatch', auth, websocket));
+    });
+
+    it('streams logs under the mount path of the API', async () => {
+      const emit = streamTo('/logs/embedded');
+      httpServer = createEmbeddedServer(api);
+      baseUrl = await listen(httpServer);
+
+      const client = await connectWithOptions(
+        `${baseUrl.replace('http', 'ws')}/_hyperwatch/logs/embedded`,
+        { headers }
+      );
+      const message = nextMessage(client);
+      emit({ request: { url: '/' } });
+      assert.deepStrictEqual(JSON.parse(await message), {
+        request: { url: '/' },
+      });
+      client.close();
+    });
+
+    it('streams logs with the websocket middleware mounted explicitly', async () => {
+      const emit = streamTo('/logs/embedded-explicit');
+      httpServer = createEmbeddedServer(websocket, api);
+      baseUrl = await listen(httpServer);
+
+      const client = await connectWithOptions(
+        `${baseUrl.replace('http', 'ws')}/_hyperwatch/logs/embedded-explicit`,
+        { headers }
+      );
+      const message = nextMessage(client);
+      emit({ ok: true });
+      assert.deepStrictEqual(JSON.parse(await message), { ok: true });
+      client.close();
+    });
+
+    it('runs the host middlewares, rejecting unauthenticated upgrades', async () => {
+      streamTo('/logs/embedded-auth');
+      httpServer = createEmbeddedServer(api);
+      baseUrl = await listen(httpServer);
+
+      await assert.rejects(
+        () =>
+          connectWithOptions(
+            `${baseUrl.replace('http', 'ws')}/_hyperwatch/logs/embedded-auth`
+          ),
+        /Unexpected server response: 401/
+      );
+    });
+
+    it('answers 404 when the route is not under the mount path', async () => {
+      streamTo('/logs/embedded-404');
+      httpServer = createEmbeddedServer(api);
+      baseUrl = await listen(httpServer);
+
+      await assert.rejects(
+        () =>
+          connectWithOptions(
+            `${baseUrl.replace('http', 'ws')}/elsewhere/logs/embedded-404`,
+            { headers }
+          ),
+        /Unexpected server response: 404/
+      );
+    });
+
+    it('leaves other upgrades to other listeners', async () => {
+      httpServer = createEmbeddedServer(api);
+      const other = new WebSocket.Server({ noServer: true });
+      httpServer.on('upgrade', (req, socket, head) => {
+        if (req.url === '/other') {
+          other.handleUpgrade(req, socket, head, (client) =>
+            client.send('other')
+          );
+        }
+      });
+      baseUrl = await listen(httpServer);
+
+      const client = new WebSocket(`${baseUrl.replace('http', 'ws')}/other`);
+      assert.strictEqual(await nextMessage(client), 'other');
+      client.close();
+      other.close();
+    });
+
+    it('still serves the HTTP API under the mount path', async () => {
+      httpServer = createEmbeddedServer(api);
+      baseUrl = await listen(httpServer);
+
+      const status = await new Promise((resolve, reject) => {
+        http
+          .get(`${baseUrl}/_hyperwatch/nodes.json`, { headers }, (res) => {
+            res.resume();
+            resolve(res.statusCode);
+          })
+          .on('error', reject);
+      });
+      assert.strictEqual(status, 200);
     });
   });
 });

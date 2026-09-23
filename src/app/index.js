@@ -28,4 +28,4 @@ function stop() {
   httpServer.close();
 }
 
-module.exports = { api, start, stop, websocket };
+module.exports = { api, attach: wsServer.attach, start, stop, websocket };
