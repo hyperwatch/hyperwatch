@@ -24,9 +24,9 @@ app.use(expressInput.middleware());
 hyperwatch.pipeline.registerInput(expressInput);
 
 // Expose the API and live streams (HTTP and WebSocket), behind authentication
-const { HYPERWATCH_USERNAME = 'hyperwatch', HYPERWATCH_PASSWORD } = process.env;
+const { HYPERWATCH_USERNAME = 'hyperwatch', HYPERWATCH_SECRET } = process.env;
 const auth = basicAuth({
-  users: { [HYPERWATCH_USERNAME]: HYPERWATCH_PASSWORD },
+  users: { [HYPERWATCH_USERNAME]: HYPERWATCH_SECRET },
 });
 app.use('/_hyperwatch', auth, hyperwatch.app.api);
 
@@ -56,7 +56,7 @@ input.websocket.create({
   type: 'client',
   address: 'wss://example.org/_hyperwatch/logs/raw',
   username: process.env.HYPERWATCH_USERNAME || 'hyperwatch',
-  password: process.env.HYPERWATCH_PASSWORD,
+  password: process.env.HYPERWATCH_SECRET,
   reconnectOnClose: true,
 });
 ```
