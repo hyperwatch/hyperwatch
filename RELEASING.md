@@ -65,8 +65,10 @@ This updates `package.json` and `package-lock.json`, commits them as `version X.
 ## 6. Push to main
 
 ```bash
-git push origin HEAD:main vX.Y.Z
+git push --atomic origin HEAD:main vX.Y.Z
 ```
+
+`--atomic` pushes the commit and the tag together or not at all. Without it, if `main` moved since step 1, the branch update is rejected but the tag is still pushed, on a commit that isn't on `main`. If the push is rejected, drop the local tag and version commit (`git tag -d vX.Y.Z && git fetch origin && git reset --hard origin/main`) and start again from step 2, since the release notes may need the new commits.
 
 Push the version commit straight to `main`. Don't open a PR that gets squash- or rebase-merged: that rewrites the commit, and the tag ends up pointing at a commit that isn't on `main` (this happened with `v4.3.1`). If it really has to go through a PR, merge it with a merge commit and push the tag after the merge.
 
