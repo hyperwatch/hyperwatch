@@ -77,7 +77,13 @@ function augment(log) {
     case 'SiteAuditBot':
     case 'SplitSignalBot':
     case 'RyteBot':
-      if (verifiedHostname && verifiedHostname.endsWith('.semrush.com')) {
+      // Some SemrushBot addresses have the generic PTR bot.semrush.com, which
+      // doesn't resolve back to them: accept Semrush's own range too
+      // (85.208.98.0/24, announced by AS209366)
+      if (
+        (verifiedHostname && verifiedHostname.endsWith('.semrush.com')) ||
+        (address && new IPCIDR('85.208.98.0/24').contains(address))
+      ) {
         return log.set('identity', 'Semrush');
       }
       break;

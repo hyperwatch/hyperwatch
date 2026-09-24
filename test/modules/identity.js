@@ -175,6 +175,20 @@ describe('identity', () => {
       assert.strictEqual(result.get('identity'), undefined);
     });
 
+    it('should identify SemrushBot from the Semrush range without a hostname', () => {
+      const result = identity.augment(
+        log({ family: 'SemrushBot', address: '85.208.98.18' })
+      );
+      assert.strictEqual(result.get('identity'), 'Semrush');
+    });
+
+    it('should not identify SemrushBot outside the Semrush range', () => {
+      const result = identity.augment(
+        log({ family: 'SemrushBot', address: '85.208.99.18' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
     it('should identify an unlisted crawler by its semrush.com hostname', () => {
       const result = identity.augment(
         log({
