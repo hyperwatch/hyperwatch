@@ -13,11 +13,12 @@ const claudeFamilies = [
   'anthropic-ai',
 ];
 
-function log({ family, address, hostname }) {
+function log({ family, address, hostname, verified }) {
   return fromJS({
     request: { address },
     address: { value: address, hostname },
     agent: { family },
+    ...(verified !== undefined && { hostname: { value: hostname, verified } }),
   });
 }
 
@@ -86,14 +87,143 @@ describe('identity', () => {
           family: 'Reflectionbot',
           address: '16.216.88.112',
           hostname: 'reflectionbot-88-112.reflection.ai',
+          verified: true,
         })
       );
       assert.strictEqual(result.get('identity'), 'Reflection');
     });
 
-    it('should not identify an unverified hostname', () => {
+    it('should not identify an unconfirmed hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'Reflectionbot',
+          address: '8.8.8.8',
+          hostname: 'reflectionbot-88-112.reflection.ai',
+        })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should not identify without a hostname', () => {
       const result = identity.augment(
         log({ family: 'Reflectionbot', address: '8.8.8.8' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
+  describe('SEOkicks', () => {
+    it('should identify a seokicks.de hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'SEOkicks',
+          address: '135.181.210.147',
+          hostname: 'c10.seokicks.de',
+          verified: true,
+        })
+      );
+      assert.strictEqual(result.get('identity'), 'SEOkicks');
+    });
+
+    it('should not identify an unconfirmed hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'SEOkicks',
+          address: '8.8.8.8',
+          hostname: 'c10.seokicks.de',
+        })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should not identify without a hostname', () => {
+      const result = identity.augment(
+        log({ family: 'SEOkicks', address: '8.8.8.8' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
+  describe('Semrush', () => {
+    it('should identify SiteAuditBot by its semrush.com hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'SiteAuditBot',
+          address: '85.208.98.194',
+          hostname: '66.siteaudit.bot.semrush.com',
+          verified: true,
+        })
+      );
+      assert.strictEqual(result.get('identity'), 'Semrush');
+    });
+
+    it('should not identify an unconfirmed hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'SiteAuditBot',
+          address: '8.8.8.8',
+          hostname: '66.siteaudit.bot.semrush.com',
+        })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should not identify SiteAuditBot without a semrush.com hostname', () => {
+      const result = identity.augment(
+        log({ family: 'SiteAuditBot', address: '8.8.8.8' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should identify SemrushBot from the Semrush range without a hostname', () => {
+      const result = identity.augment(
+        log({ family: 'SemrushBot', address: '85.208.98.18' })
+      );
+      assert.strictEqual(result.get('identity'), 'Semrush');
+    });
+
+    it('should not identify SemrushBot outside the Semrush range', () => {
+      const result = identity.augment(
+        log({ family: 'SemrushBot', address: '85.208.99.18' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should identify an unlisted crawler by its semrush.com hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'SemrushBot-XYZ',
+          address: '85.208.98.194',
+          hostname: '1.bot.semrush.com',
+          verified: true,
+        })
+      );
+      assert.strictEqual(result.get('identity'), 'Semrush');
+    });
+
+    it('should not identify an unlisted crawler with an unconfirmed hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'SemrushBot-XYZ',
+          address: '8.8.8.8',
+          hostname: '1.bot.semrush.com',
+        })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
+  describe('Linkup', () => {
+    it('should identify an address in the published list', () => {
+      const result = identity.augment(
+        log({ family: 'LinkupBot', address: '35.198.113.100' })
+      );
+      assert.strictEqual(result.get('identity'), 'Linkup');
+    });
+
+    it('should not identify an address outside the published list', () => {
+      const result = identity.augment(
+        log({ family: 'LinkupBot', address: '35.198.113.101' })
       );
       assert.strictEqual(result.get('identity'), undefined);
     });

@@ -22,6 +22,11 @@ const claudeBotCidrs = claudeBotIps.map((cidr) => new IPCIDR(cidr));
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
   const hostname = log.getIn(['address', 'hostname']);
+  // Reverse DNS confirmed by a forward lookup back to the same address. The
+  // older identities below still use the unconfirmed hostname.
+  const verifiedHostname = log.getIn(['hostname', 'verified'])
+    ? hostname
+    : undefined;
   const address =
     log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
   const signature = log.getIn(['signature', 'id']);
@@ -62,8 +67,23 @@ function augment(log) {
       return hostname && hostname.endsWith('.yandex.com')
         ? log.set('identity', 'Yandex')
         : log;
+    // https://www.semrush.com/bot/ (SemrushBot-BA and SemrushBot-SI parse
+    // as SemrushBot)
     case 'SemrushBot':
-      if (hostname && hostname.endsWith('.semrush.com')) {
+    case 'SemrushBot-SWA':
+    case 'SemrushBot-OCOB':
+    case 'SemrushBot-FT':
+    case 'SemrushBot-ESI':
+    case 'SiteAuditBot':
+    case 'SplitSignalBot':
+    case 'RyteBot':
+      // Some SemrushBot addresses have the generic PTR bot.semrush.com, which
+      // doesn't resolve back to them: accept Semrush's own range too
+      // (85.208.98.0/24, announced by AS209366)
+      if (
+        (verifiedHostname && verifiedHostname.endsWith('.semrush.com')) ||
+        (address && new IPCIDR('85.208.98.0/24').contains(address))
+      ) {
         return log.set('identity', 'Semrush');
       }
       break;
@@ -187,8 +207,13 @@ function augment(log) {
         : log;
     case 'Reflectionbot':
       // https://reflection.ai/bot
-      return hostname && hostname.endsWith('.reflection.ai')
+      return verifiedHostname && verifiedHostname.endsWith('.reflection.ai')
         ? log.set('identity', 'Reflection')
+        : log;
+    case 'SEOkicks':
+      // https://www.seokicks.de/robot.html
+      return verifiedHostname && verifiedHostname.endsWith('.seokicks.de')
+        ? log.set('identity', 'SEOkicks')
         : log;
     case 'bnf.fr bot':
       return hostname && hostname.endsWith('.bnf.fr')
@@ -304,6 +329,11 @@ function augment(log) {
     case 'Daum':
       return address && new IPCIDR('203.133.160.0/19').contains(address)
         ? log.set('identity', family)
+        : log;
+    case 'LinkupBot':
+      // https://www.linkup.so/linkupbot-ips.txt
+      return address && new IPCIDR('35.198.113.100/32').contains(address)
+        ? log.set('identity', 'Linkup')
         : log;
     case 'OAI-SearchBot':
       return openaiSearchbotIps.some((cidr) =>
@@ -462,6 +492,10 @@ function augment(log) {
     }
     if (hostname.endsWith('.qwant.com')) {
       return log.set('identity', 'Qwant');
+    }
+    // Semrush crawlers not named above
+    if (verifiedHostname && verifiedHostname.endsWith('.semrush.com')) {
+      return log.set('identity', 'Semrush');
     }
   }
 

@@ -1,4 +1,5 @@
 const dns = require('dns').promises;
+const net = require('net');
 
 const debug = require('debug')('hyperwatch:hostname');
 
@@ -11,6 +12,12 @@ if (process.env.HYPERWATCH_DNS_SERVER) {
 
 function ignoreError() {
   return null;
+}
+
+// Compare addresses in canonical form: DNS and logs may write the same IPv6
+// address differently (zero compression, case)
+function canonical(ip) {
+  return net.isIPv6(ip) ? new URL(`http://[${ip}]`).hostname : ip;
 }
 
 function isValid(hostname) {
@@ -40,11 +47,12 @@ async function lookup(ip, { fast = false } = {}) {
     if (isValid(reverse)) {
       entry.value = reverse;
       debug(`Resolve ${reverse} ...`);
-      const reverseIps = await dns.resolve(reverse).catch(ignoreError);
+      const reverseIps = await (
+        net.isIPv6(ip) ? dns.resolve6(reverse) : dns.resolve4(reverse)
+      ).catch(ignoreError);
       if (reverseIps) {
-        const reverseIp = reverseIps[0];
-        debug(`Resolve ${reverse}: ${reverseIp}`);
-        if (reverseIp === ip) {
+        debug(`Resolve ${reverse}: ${reverseIps.join(', ')}`);
+        if (reverseIps.map(canonical).includes(canonical(ip))) {
           entry.verified = true;
         }
       } else {
