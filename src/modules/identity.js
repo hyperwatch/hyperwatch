@@ -22,6 +22,11 @@ const claudeBotCidrs = claudeBotIps.map((cidr) => new IPCIDR(cidr));
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
   const hostname = log.getIn(['address', 'hostname']);
+  // Reverse DNS confirmed by a forward lookup back to the same address. The
+  // older identities below still use the unconfirmed hostname.
+  const verifiedHostname = log.getIn(['hostname', 'verified'])
+    ? hostname
+    : undefined;
   const address =
     log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
   const signature = log.getIn(['signature', 'id']);
@@ -72,7 +77,7 @@ function augment(log) {
     case 'SiteAuditBot':
     case 'SplitSignalBot':
     case 'RyteBot':
-      if (hostname && hostname.endsWith('.semrush.com')) {
+      if (verifiedHostname && verifiedHostname.endsWith('.semrush.com')) {
         return log.set('identity', 'Semrush');
       }
       break;
@@ -196,12 +201,12 @@ function augment(log) {
         : log;
     case 'Reflectionbot':
       // https://reflection.ai/bot
-      return hostname && hostname.endsWith('.reflection.ai')
+      return verifiedHostname && verifiedHostname.endsWith('.reflection.ai')
         ? log.set('identity', 'Reflection')
         : log;
     case 'SEOkicks':
       // https://www.seokicks.de/robot.html
-      return hostname && hostname.endsWith('.seokicks.de')
+      return verifiedHostname && verifiedHostname.endsWith('.seokicks.de')
         ? log.set('identity', 'SEOkicks')
         : log;
     case 'bnf.fr bot':
@@ -483,7 +488,7 @@ function augment(log) {
       return log.set('identity', 'Qwant');
     }
     // Semrush crawlers not named above
-    if (hostname.endsWith('.semrush.com')) {
+    if (verifiedHostname && verifiedHostname.endsWith('.semrush.com')) {
       return log.set('identity', 'Semrush');
     }
   }
