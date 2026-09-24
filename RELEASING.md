@@ -43,10 +43,11 @@ List what changed since the last release:
 git log --no-merges vX.Y.Z..origin/main
 ```
 
-Write the notes in Markdown, in these sections:
+Write the notes in Markdown, in these sections (skip the empty ones):
 
 - **Breaking changes**
 - **Features**
+- **Fixes**
 - **Identities**
 - **Dependencies & tooling**, with the dependabot bumps summarized in one line
 
