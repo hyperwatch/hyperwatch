@@ -19,12 +19,14 @@ function create({
   heartbeatInterval = 30000,
 }) {
   let client;
+  let keepAlive;
+  let reconnectTimer;
+  let stopped = false;
 
   let reconnectAttempts = 0;
 
   const setupWebSocketClient = ({ status, success, reject }) => {
     let isAlive;
-    let keepAlive;
 
     if (username && password) {
       options.headers = options.headers || {};
@@ -81,7 +83,7 @@ function create({
       if (keepAlive) {
         clearInterval(keepAlive);
       }
-      if (reconnectOnClose) {
+      if (reconnectOnClose && !stopped) {
         reconnectAttempts++;
         const delay = Math.min(
           10 * 1000 * Math.pow(2, reconnectAttempts - 1),
@@ -91,7 +93,7 @@ function create({
           null,
           `Reconnecting Websocket in ${delay / 1000}s (attempt ${reconnectAttempts})`
         );
-        setTimeout(() => {
+        reconnectTimer = setTimeout(() => {
           setupWebSocketClient({ status, success, reject });
         }, delay);
       }
@@ -126,9 +128,27 @@ function create({
         log(new Error(errMsg), 'error');
       }
     },
+    // Never throws: a failing input must not prevent the others from stopping,
+    // nor Hyperwatch from persisting its data on shutdown.
     stop: () => {
-      if (client) {
-        client.close();
+      stopped = true;
+      clearTimeout(reconnectTimer);
+      clearInterval(keepAlive);
+      if (!client) {
+        return;
+      }
+      try {
+        if (client.readyState === WebSocket.CONNECTING) {
+          // close() throws while the connection is not established yet
+          client.terminate();
+        } else if (client.readyState === WebSocket.OPEN) {
+          client.close();
+        }
+      } catch (err) {
+        console.error(
+          `${name}: error while closing the Websocket:`,
+          err.message
+        );
       }
     },
   };

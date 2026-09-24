@@ -45,7 +45,12 @@ function start() {
 }
 
 async function stop() {
-  await pipeline.stop();
+  try {
+    await pipeline.stop();
+  } catch (err) {
+    console.error('Error stopping the pipeline:', err.message);
+  }
+  // Persist even if stopping the inputs failed
   try {
     if (constants.persistence.enabled) {
       persistence.dump(getPersistenceDir());

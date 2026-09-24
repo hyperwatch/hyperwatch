@@ -311,9 +311,12 @@ class Pipeline extends Builder {
     });
   }
 
+  // Stops every input, even if some of them throw or reject
   stop() {
-    return Promise.all(
-      this.inputs.filter((input) => input.stop).map((input) => input.stop())
+    return Promise.allSettled(
+      this.inputs
+        .filter((input) => input.stop)
+        .map((input) => Promise.resolve().then(() => input.stop()))
     );
   }
 
