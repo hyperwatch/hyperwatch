@@ -80,10 +80,10 @@ Check the result with `npm view @hyperwatch/hyperwatch dist-tags`: `latest` shou
 
 ## 8. Create the GitHub release
 
-Save the notes from step 4 to a file, then:
+Save the notes from step 4 to a file outside the worktree (an untracked file there would block the cleanup in step 9), then:
 
 ```bash
-gh release create vX.Y.Z --repo hyperwatch/hyperwatch --title "X.Y.Z" --notes-file notes.md --latest --verify-tag
+gh release create vX.Y.Z --repo hyperwatch/hyperwatch --title "X.Y.Z" --notes-file ../hyperwatch-vX.Y.Z-notes.md --latest --verify-tag
 ```
 
 ## 9. Clean up
