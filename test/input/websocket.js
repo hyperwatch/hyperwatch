@@ -48,6 +48,35 @@ describe('websocket input', () => {
     }
   });
 
+  it('ignores the late close of a connection stopped just before a restart', async () => {
+    const server = await listen();
+    let connections = 0;
+    server.on('connection', () => connections++);
+    const statuses = [];
+    const input = websocket.create({
+      address: `ws://127.0.0.1:${server.address().port}`,
+      reconnectOnClose: true,
+    });
+
+    try {
+      startInput(input, statuses);
+      await wait(20);
+      // Back to back: the first socket's close event fires after the restart
+      input.stop();
+      startInput(input, statuses);
+      await wait(100);
+
+      assert.ok(
+        !statuses.some((msg) => /Reconnecting/.test(msg)),
+        `the obsolete connection scheduled a reconnect: ${statuses.join(', ')}`
+      );
+      assert.strictEqual(connections, 2);
+    } finally {
+      input.stop();
+      server.close();
+    }
+  });
+
   it('reconnects again after being stopped and started', async () => {
     const server = await listen({ drop: true });
     const statuses = [];
