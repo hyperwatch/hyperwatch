@@ -185,6 +185,11 @@ function augment(log) {
       return hostname && hostname.endsWith('.babbar.eu')
         ? log.set('identity', 'Babbar')
         : log;
+    case 'Reflectionbot':
+      // https://reflection.ai/bot
+      return hostname && hostname.endsWith('.reflection.ai')
+        ? log.set('identity', 'Reflection')
+        : log;
     case 'bnf.fr bot':
       return hostname && hostname.endsWith('.bnf.fr')
         ? log.set('identity', 'BnF.fr')
