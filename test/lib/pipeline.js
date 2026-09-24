@@ -69,3 +69,44 @@ describe('Pipeline tree', () => {
     }
   });
 });
+
+describe('Pipeline stop', () => {
+  it('stops every input, then rejects with the errors of those that failed', async () => {
+    const originalInputs = pipeline.inputs;
+    const stopped = [];
+
+    try {
+      pipeline.inputs = [
+        {
+          stop: () => {
+            throw new Error('WebSocket was closed before the connection');
+          },
+        },
+        { stop: () => Promise.reject(new Error('rejected')) },
+        { stop: () => stopped.push('sync') },
+        { stop: async () => stopped.push('async') },
+        {},
+      ];
+
+      await assert.rejects(pipeline.stop(), (err) => {
+        assert.ok(err instanceof AggregateError);
+        assert.strictEqual(err.errors.length, 2);
+        assert.match(err.message, /2 input\(s\) failed to stop/);
+        return true;
+      });
+      assert.deepStrictEqual(stopped.sort(), ['async', 'sync']);
+    } finally {
+      pipeline.inputs = originalInputs;
+    }
+  });
+
+  it('resolves when every input stops', async () => {
+    const originalInputs = pipeline.inputs;
+    try {
+      pipeline.inputs = [{ stop: () => {} }, { stop: async () => {} }];
+      await pipeline.stop();
+    } finally {
+      pipeline.inputs = originalInputs;
+    }
+  });
+});

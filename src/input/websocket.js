@@ -19,12 +19,20 @@ function create({
   heartbeatInterval = 30000,
 }) {
   let client;
+  let keepAlive;
+  let reconnectTimer;
+  // Each connection belongs to a generation. stop() and every new connection
+  // move to the next one, so events from an obsolete socket (a late close
+  // after a restart, its heartbeat) can't reconnect or touch the current one.
+  let generation = 0;
 
   let reconnectAttempts = 0;
 
   const setupWebSocketClient = ({ status, success, reject }) => {
+    const current = ++generation;
+    const isCurrent = () => current === generation;
     let isAlive;
-    let keepAlive;
+    let heartbeat;
 
     if (username && password) {
       options.headers = options.headers || {};
@@ -33,32 +41,37 @@ function create({
       ).toString('base64')}`;
     }
 
-    client = new WebSocket(address, [], options);
+    const socket = new WebSocket(address, [], options);
+    client = socket;
     status(null, `Waiting for connection to ${address}`);
 
-    client.on('open', () => {
+    socket.on('open', () => {
+      if (!isCurrent()) {
+        return;
+      }
       isAlive = true;
       reconnectAttempts = 0;
       status(null, `Listening to ${address}`);
 
       // Heartbeat: detect stale connections
-      keepAlive = setInterval(() => {
+      heartbeat = setInterval(() => {
         if (isAlive === false) {
-          client.terminate();
-          clearInterval(keepAlive);
+          socket.terminate();
+          clearInterval(heartbeat);
         } else {
           try {
-            client.ping();
+            socket.ping();
           } catch (err) {
             status(err, 'Websocket error');
           }
           isAlive = false;
         }
       }, heartbeatInterval);
+      keepAlive = heartbeat;
     });
 
-    client.on('message', (message) => {
-      if (sample !== 1 && Math.random() > sample) {
+    socket.on('message', (message) => {
+      if (!isCurrent() || (sample !== 1 && Math.random() > sample)) {
         return;
       }
       try {
@@ -68,19 +81,22 @@ function create({
       }
     });
 
-    client.on('error', (err) => {
-      status(err, 'Websocket error');
+    socket.on('error', (err) => {
+      if (isCurrent()) {
+        status(err, 'Websocket error');
+      }
     });
 
-    client.on('pong', () => {
+    socket.on('pong', () => {
       isAlive = true;
     });
 
-    client.on('close', () => {
-      status(null, 'Websocket connection has been closed');
-      if (keepAlive) {
-        clearInterval(keepAlive);
+    socket.on('close', () => {
+      clearInterval(heartbeat);
+      if (!isCurrent()) {
+        return;
       }
+      status(null, 'Websocket connection has been closed');
       if (reconnectOnClose) {
         reconnectAttempts++;
         const delay = Math.min(
@@ -91,7 +107,7 @@ function create({
           null,
           `Reconnecting Websocket in ${delay / 1000}s (attempt ${reconnectAttempts})`
         );
-        setTimeout(() => {
+        reconnectTimer = setTimeout(() => {
           setupWebSocketClient({ status, success, reject });
         }, delay);
       }
@@ -117,6 +133,7 @@ function create({
   return {
     name: `${name} ${type}`,
     start: ({ success, reject, status, log }) => {
+      reconnectAttempts = 0;
       if (type === 'client') {
         setupWebSocketClient({ status, success, reject });
       } else if (type === 'server') {
@@ -126,9 +143,28 @@ function create({
         log(new Error(errMsg), 'error');
       }
     },
+    // Never throws: a failing input must not prevent the others from stopping,
+    // nor Hyperwatch from persisting its data on shutdown.
     stop: () => {
-      if (client) {
-        client.close();
+      // Obsoletes the current connection: its close won't reconnect
+      generation++;
+      clearTimeout(reconnectTimer);
+      clearInterval(keepAlive);
+      if (!client) {
+        return;
+      }
+      try {
+        if (client.readyState === WebSocket.CONNECTING) {
+          // close() throws while the connection is not established yet
+          client.terminate();
+        } else if (client.readyState === WebSocket.OPEN) {
+          client.close();
+        }
+      } catch (err) {
+        console.error(
+          `${name}: error while closing the Websocket:`,
+          err.message
+        );
       }
     },
   };

@@ -311,10 +311,25 @@ class Pipeline extends Builder {
     });
   }
 
-  stop() {
-    return Promise.all(
-      this.inputs.filter((input) => input.stop).map((input) => input.stop())
+  // Stops every input, even if some of them throw or reject, then rejects
+  // with their errors if any failed
+  async stop() {
+    const results = await Promise.allSettled(
+      this.inputs
+        .filter((input) => input.stop)
+        .map((input) => Promise.resolve().then(() => input.stop()))
     );
+    const errors = results
+      .filter((result) => result.status === 'rejected')
+      .map((result) => result.reason);
+    if (errors.length > 0) {
+      throw new AggregateError(
+        errors,
+        `${errors.length} input(s) failed to stop: ${errors
+          .map((err) => err.message)
+          .join('; ')}`
+      );
+    }
   }
 
   registerNode(name, node) {
