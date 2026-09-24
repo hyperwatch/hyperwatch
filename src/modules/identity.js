@@ -62,7 +62,16 @@ function augment(log) {
       return hostname && hostname.endsWith('.yandex.com')
         ? log.set('identity', 'Yandex')
         : log;
+    // https://www.semrush.com/bot/ (SemrushBot-BA and SemrushBot-SI parse
+    // as SemrushBot)
     case 'SemrushBot':
+    case 'SemrushBot-SWA':
+    case 'SemrushBot-OCOB':
+    case 'SemrushBot-FT':
+    case 'SemrushBot-ESI':
+    case 'SiteAuditBot':
+    case 'SplitSignalBot':
+    case 'RyteBot':
       if (hostname && hostname.endsWith('.semrush.com')) {
         return log.set('identity', 'Semrush');
       }
@@ -190,6 +199,11 @@ function augment(log) {
       return hostname && hostname.endsWith('.reflection.ai')
         ? log.set('identity', 'Reflection')
         : log;
+    case 'SEOkicks':
+      // https://www.seokicks.de/robot.html
+      return hostname && hostname.endsWith('.seokicks.de')
+        ? log.set('identity', 'SEOkicks')
+        : log;
     case 'bnf.fr bot':
       return hostname && hostname.endsWith('.bnf.fr')
         ? log.set('identity', 'BnF.fr')
@@ -304,6 +318,11 @@ function augment(log) {
     case 'Daum':
       return address && new IPCIDR('203.133.160.0/19').contains(address)
         ? log.set('identity', family)
+        : log;
+    case 'LinkupBot':
+      // https://www.linkup.so/linkupbot-ips.txt
+      return address && new IPCIDR('35.198.113.100/32').contains(address)
+        ? log.set('identity', 'Linkup')
         : log;
     case 'OAI-SearchBot':
       return openaiSearchbotIps.some((cidr) =>
@@ -462,6 +481,10 @@ function augment(log) {
     }
     if (hostname.endsWith('.qwant.com')) {
       return log.set('identity', 'Qwant');
+    }
+    // Semrush crawlers not named above
+    if (hostname.endsWith('.semrush.com')) {
+      return log.set('identity', 'Semrush');
     }
   }
 
