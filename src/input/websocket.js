@@ -119,6 +119,9 @@ function create({
   return {
     name: `${name} ${type}`,
     start: ({ success, reject, status, log }) => {
+      // A restarted input reconnects again
+      stopped = false;
+      reconnectAttempts = 0;
       if (type === 'client') {
         setupWebSocketClient({ status, success, reject });
       } else if (type === 'server') {
