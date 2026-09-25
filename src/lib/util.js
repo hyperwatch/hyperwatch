@@ -56,6 +56,14 @@ exports.formatDuration = (ms) => {
   return `${totalSeconds.toFixed(1)}s`;
 };
 
+// A table cell: numbers with thousands separators (1,234), empty for 0
+const formatCell = (value) =>
+  typeof value === 'number'
+    ? value
+      ? value.toLocaleString('en-US')
+      : ''
+    : value || '';
+
 // heading(key) renders the content of a column heading, the key by default
 exports.formatTable = (data, { heading = (key) => key } = {}) => {
   if (!data || data.length === 0) {
@@ -70,7 +78,7 @@ exports.formatTable = (data, { heading = (key) => key } = {}) => {
     .map(
       (entry) =>
         `<tr>${Object.values(entry)
-          .map((value) => `<td>${value || ''}</td>`)
+          .map((value) => `<td>${formatCell(value)}</td>`)
           .join('')}</tr>`
     )
     .join('\n');

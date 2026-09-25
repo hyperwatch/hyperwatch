@@ -146,22 +146,30 @@ describe('API navigation', () => {
 describe('API aggregator columns', () => {
   let server;
   let baseUrl;
+  // Replaces the default rows in a test
+  let rows;
+
+  afterEach(() => {
+    rows = undefined;
+  });
 
   before(async () => {
     api.registerAggregator('columns-test', {
       ...aggregator,
       sorters: { count15m: () => 0, count24h: () => 0, latest: () => 0 },
       getData: () =>
-        fromJS([
-          {
-            name: 'bot',
-            count15m: 5,
-            count24h: 8,
-            '2xx15m': 3,
-            os: 'Linux',
-            lastSeen: '',
-          },
-        ]),
+        fromJS(
+          rows || [
+            {
+              name: 'bot',
+              count15m: 5,
+              count24h: 8,
+              '2xx15m': 3,
+              os: 'Linux',
+              lastSeen: '',
+            },
+          ]
+        ),
     });
 
     server = http.createServer(api);
@@ -201,6 +209,14 @@ describe('API aggregator columns', () => {
       await fetch(`${baseUrl}/columns-test?sort=nope`)
     ).text();
     assert.match(body, /sort=count15m" class="sorted">count15m ▾/);
+  });
+
+  it('separates thousands in HTML, not in JSON', async () => {
+    rows = [{ name: 'big', count15m: 1234567, count24h: 0 }];
+    const body = await (await fetch(`${baseUrl}/columns-test`)).text();
+    assert.match(body, /<td>1,234,567<\/td><td><\/td>/);
+    const json = await (await fetch(`${baseUrl}/columns-test.json`)).json();
+    assert.strictEqual(json[0].count15m, 1234567);
   });
 
   it('keeps the hidden columns in JSON', async () => {
