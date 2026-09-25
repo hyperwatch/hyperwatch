@@ -54,10 +54,6 @@ const constants = {
       active: false,
       priority: 700,
     },
-    sparkline: {
-      active: false,
-      priority: 800,
-    },
   },
   persistence: {
     enabled: false,

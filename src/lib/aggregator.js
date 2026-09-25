@@ -9,11 +9,17 @@ const {
   md5,
 } = require('../lib/util');
 
-const lastSeen = (entry) => {
+// ISO 8601 in text (JSON, CSV), shorter in HTML and on one line:
+// 2026-09-25 12:51:07
+const lastSeen = (entry, output) => {
   const ts =
     entry.getIn(['speed', 'per_minute']) &&
     entry.getIn(['speed', 'per_minute']).latest;
-  return ts ? new Date(ts * 1000).toISOString() : '';
+  if (!ts) {
+    return '';
+  }
+  const iso = new Date(ts * 1000).toISOString();
+  return output === 'html' ? iso.slice(0, 19).replace('T', '&nbsp;') : iso;
 };
 
 const statusCount = (key) => (entry) =>

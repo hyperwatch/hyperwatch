@@ -2,6 +2,8 @@ const assert = require('assert');
 
 const { fromJS } = require('immutable');
 
+const html = require('../../src/app/html');
+const { logMatches } = require('../../src/lib/util');
 const claudeBotIps = require('../../src/data/claude-bot-ips.json');
 const identity = require('../../src/modules/identity.js');
 
@@ -227,5 +229,73 @@ describe('identity', () => {
       );
       assert.strictEqual(result.get('identity'), undefined);
     });
+  });
+});
+
+describe('identity aggregator', () => {
+  before(() => identity.start());
+
+  it('links identities and addresses to their logs in HTML', () => {
+    html.registerSection('logs');
+    const { aggregator } = identity;
+    aggregator.processLog(
+      fromJS({
+        request: { address: '66.249.66.1' },
+        address: { value: '66.249.66.1' },
+        identity: 'Googlebot',
+        executionTime: 1,
+      })
+    );
+
+    const entry = aggregator.entries.first();
+    const formatted = aggregator.formatter.formatObject(entry, 'html');
+    assert.match(
+      formatted.identity,
+      /<a href="logs\/main\?identity=Googlebot">Googlebot<\/a>/
+    );
+    assert.match(
+      formatted.address,
+      /<a href="logs\/main\?address=66\.249\.66\.1">66\.249\.66\.1<\/a>/
+    );
+    const text = aggregator.formatter.formatObject(entry, 'text');
+    assert.strictEqual(text.identity, 'Googlebot');
+  });
+
+  it('shows and links the key of unnamed identities in HTML', () => {
+    const { aggregator } = identity;
+    aggregator.reset();
+    aggregator.processLog(
+      fromJS({
+        request: { address: '10.0.0.5' },
+        address: { value: '10.0.0.5' },
+        executionTime: 1,
+      })
+    );
+
+    const entry = aggregator.entries.first();
+    assert.match(
+      aggregator.formatter.formatObject(entry, 'html').identity,
+      /<a href="logs\/main\?identity=10\.0\.0\.5" class="grey">10\.0\.0\.5<\/a>/
+    );
+    assert.strictEqual(
+      aggregator.formatter.formatObject(entry, 'text').identity,
+      ''
+    );
+  });
+});
+
+describe('identity filter', () => {
+  const named = fromJS({ identity: 'Bing', address: { value: '1.1.1.1' } });
+  const unnamed = fromJS({ address: { value: '1.1.1.1' } });
+
+  it('keeps the logs of a named identity', () => {
+    assert.ok(logMatches(named, { identity: 'Bing' }));
+    assert.ok(!logMatches(unnamed, { identity: 'Bing' }));
+  });
+
+  it('keeps the logs of an unnamed identity by its address', () => {
+    assert.ok(logMatches(unnamed, { identity: '1.1.1.1' }));
+    // Logs with a name belong to that identity, not to the address
+    assert.ok(!logMatches(named, { identity: '1.1.1.1' }));
   });
 });

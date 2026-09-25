@@ -90,7 +90,7 @@ export default [
   },
   // Browser script: add browser globals and disable node rules
   {
-    files: ["src/script.js"],
+    files: ["src/app/html/scripts/**/*.js"],
     languageOptions: {
       globals: {
         ...globals.browser,

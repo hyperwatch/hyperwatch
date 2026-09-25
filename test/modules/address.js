@@ -2,6 +2,7 @@ const assert = require('assert');
 
 const { fromJS } = require('immutable');
 
+const html = require('../../src/app/html');
 const { now } = require('../../src/lib/util');
 const address = require('../../src/modules/address');
 
@@ -23,6 +24,32 @@ describe('address aggregator', () => {
   });
 
   beforeEach(() => aggregator.reset());
+
+  it('starts with the address, lastIdentity after the hostname', () => {
+    const keys = aggregator.formatter.formats.map(([key]) => key);
+    assert.strictEqual(keys[0], 'address');
+    assert.strictEqual(
+      keys.indexOf('lastIdentity'),
+      keys.indexOf('hostname') + 1
+    );
+    assert.ok(!keys.includes('identity'));
+  });
+
+  it('links addresses to their logs in HTML', () => {
+    aggregator.processLog(log('1.2.3.4', 'sig-a'));
+    const entry = aggregator.entries.first();
+    const format = () => aggregator.formatter.formatObject(entry, 'html');
+
+    html.registerSection('logs');
+    assert.match(
+      format().address,
+      /<a href="logs\/main\?address=1\.2\.3\.4">1\.2\.3\.4<\/a>/
+    );
+    assert.strictEqual(
+      aggregator.formatter.formatObject(entry, 'text').address,
+      '1.2.3.4'
+    );
+  });
 
   it('counts distinct signatures over 15m and 24h', () => {
     aggregator.processLog(log('1.2.3.4', 'sig-a'));

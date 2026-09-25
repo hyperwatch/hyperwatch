@@ -1,6 +1,12 @@
 const assert = require('assert');
 
-const { Aggregator, defaultFormatter } = require('../../src/lib/aggregator');
+const { fromJS } = require('immutable');
+
+const {
+  Aggregator,
+  defaultFormatter,
+  lastSeen,
+} = require('../../src/lib/aggregator');
 
 describe('Aggregator formatter isolation', () => {
   it('gives each aggregator its own formatter', () => {
@@ -55,5 +61,23 @@ describe('Aggregator entryGc', () => {
     assert.strictEqual(agg.entries.getIn(['a', 'n']), 10);
     assert.strictEqual(agg.entries.getIn(['b', 'n']), 20);
     assert.strictEqual(agg.entries.size, 2);
+  });
+});
+
+describe('Aggregator lastSeen', () => {
+  const entry = fromJS({ speed: {} }).setIn(['speed', 'per_minute'], {
+    latest: Date.UTC(2026, 8, 25, 12, 51, 7) / 1000,
+  });
+
+  it('is ISO 8601 in text output', () => {
+    assert.strictEqual(lastSeen(entry, 'text'), '2026-09-25T12:51:07.000Z');
+  });
+
+  it('is shorter in HTML output', () => {
+    assert.strictEqual(lastSeen(entry, 'html'), '2026-09-25&nbsp;12:51:07');
+  });
+
+  it('is empty when never seen', () => {
+    assert.strictEqual(lastSeen(fromJS({ speed: {} }), 'html'), '');
   });
 });

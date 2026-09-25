@@ -8,6 +8,7 @@ const { touch, prune, countRecent } = require('../lib/recent-map');
 const {
   aggregateCount,
   aggregateSum,
+  escapeHtml,
   formatDuration,
   md5,
 } = require('../lib/util');
@@ -44,6 +45,44 @@ function normalisedIdentityHeader(headers) {
 const addressCount15m = (entry) => countRecent(entry.get('addresses'), 15 * 60);
 const addressCount24h = (entry) => countRecent(entry.get('addresses'));
 
+// Number of addresses listed in HTML tables, the rest being summarised
+const htmlAddressLimit = 3;
+
+const signatureFormat = (entry, output) => {
+  const id = entry.getIn(['signature', 'id']);
+  return output === 'html' && id
+    ? `<span title="${id}">${id.slice(0, 8)}</span>`
+    : id;
+};
+
+const addressesFormat = (entry, output) => {
+  if (!entry.has('addresses')) {
+    return '';
+  }
+  const addresses = entry.get('addresses').keySeq();
+  if (output !== 'html') {
+    return addresses.slice(0, 10).join('<br>');
+  }
+  const more = addresses.size - htmlAddressLimit;
+  return [
+    ...addresses.slice(0, htmlAddressLimit).map(escapeHtml),
+    ...(more > 0 ? [`<span class="grey">+${more} more</span>`] : []),
+  ].join('<br>');
+};
+
+const headersFormat = (entry, output) => {
+  const headers = Object.entries(entry.getIn(['signature', 'headers']));
+  if (output !== 'html') {
+    return headers.map((header) => header.join(':')).join('<br>');
+  }
+  return headers
+    .map(
+      ([key, value]) =>
+        `<span class="grey">${escapeHtml(key)}:</span> ${escapeHtml(value)}`
+    )
+    .join('<br>');
+};
+
 function computeSignature(headers) {
   const string = Object.keys(headers)
     .map((key) => [key, headers[key]].join(':'))
@@ -79,17 +118,11 @@ function start() {
   const signatureFormatter = new Formatter();
 
   signatureFormatter.setFormats([
-    ['signature', (entry) => entry.getIn(['signature', 'id'])],
+    ['signature', signatureFormat],
     ['identity', (entry) => entry.get('identity')],
     ['addressCount15m', addressCount15m],
     ['addressCount24h', addressCount24h],
-    [
-      'addresses',
-      (entry) =>
-        entry.has('addresses')
-          ? entry.get('addresses').keySeq().slice(0, 10).join('<br>')
-          : '',
-    ],
+    ['addresses', addressesFormat],
     [
       'lastAddress',
       (entry) => {
@@ -101,17 +134,8 @@ function start() {
       },
     ],
 
-    [
-      'headers',
-      (entry) => {
-        const headers = entry.getIn(['signature', 'headers']);
-        return Object.entries(headers)
-          .map((entry) => entry.join(':'))
-          .join('<br>');
-      },
-    ],
+    ['headers', headersFormat],
 
-    ['lastSeen', lastSeen],
     ['count15m', (entry) => aggregateCount(entry, 'per_minute')],
     ['count24h', (entry) => aggregateCount(entry, 'per_hour')],
 
@@ -125,6 +149,8 @@ function start() {
       (entry) => formatDuration(aggregateSum(entry, 'per_minute')),
     ],
     ['execTime24h', (entry) => formatDuration(aggregateSum(entry, 'per_hour'))],
+
+    ['lastSeen', lastSeen],
   ]);
 
   signatureFormatter.insertFormat('agent', agentFormat, {
@@ -166,7 +192,8 @@ function start() {
     .getNode('main')
     .map((log) => aggregator.processLog(log), 'aggregator');
 
-  api.registerAggregator('signatures', aggregator);
+  // The User-Agent header is already in the headers column
+  api.registerAggregator('signatures', aggregator, { hide: ['agent'] });
 }
 
 module.exports = {
