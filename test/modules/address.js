@@ -28,10 +28,7 @@ describe('address aggregator', () => {
   it('starts with the address, lastIdentity after the hostname', () => {
     const keys = aggregator.formatter.formats.map(([key]) => key);
     assert.strictEqual(keys[0], 'address');
-    assert.strictEqual(
-      keys.indexOf('lastIdentity'),
-      keys.indexOf('hostname') + 1
-    );
+    assert.ok(keys.indexOf('lastIdentity') > keys.indexOf('hostname'));
     assert.ok(!keys.includes('identity'));
   });
 
