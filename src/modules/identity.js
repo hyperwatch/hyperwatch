@@ -537,6 +537,13 @@ function start() {
     formatter.insertFormat('country', country[1], { after: 'hostname' });
   }
 
+  // The agent comes from the latest log with one. Format entries are
+  // shared with other formatters: replace, don't mutate.
+  formatter.formats = formatter.formats.map(([key, fn]) =>
+    key === 'agent' ? ['lastAgent', fn] : [key, fn]
+  );
+  formatter.colors.lastAgent = formatter.colors.agent;
+
   // In HTML, identities link to their logs
   aggregator.formatter.replaceFormat('identity', (entry, output) => {
     const identity = entry.get('identity') || '';

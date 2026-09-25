@@ -255,6 +255,7 @@ describe('identity aggregator', () => {
     );
     const text = aggregator.formatter.formatObject(entry, 'text');
     assert.strictEqual(text.identity, 'Googlebot');
+    assert.ok(!('agent' in text));
   });
 
   it('shows and links the key of unnamed identities in HTML', () => {
