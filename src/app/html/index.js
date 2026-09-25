@@ -28,8 +28,8 @@ function hasSection(name) {
 }
 
 // A link to the main logs kept by a filter (address, identity, signature),
-// or the plain value when logs aren't served. The link is relative, so it
-// works from any page at the root of the mount path.
+// or the plain value when logs aren't served. The link is relative to the
+// <base> of every page (the mount path), so formats don't need the request.
 function logsLink(filter, value, className) {
   const text = escapeHtml(value || '');
   const classAttribute = className ? ` class="${className}"` : '';
@@ -50,8 +50,11 @@ function isUnder(pathname, path) {
 function nav(req) {
   const base = req.baseUrl || '';
   const home = req.path === '/' || isUnder(req.path, '/status');
+  // The home page is the status page, when the status module is active
   const links = [
-    `<a href="${base}/"${home ? ' class="active"' : ''}>hyperwatch</a>`,
+    sections.has('status')
+      ? `<a href="${base}/"${home ? ' class="active"' : ''}>hyperwatch</a>`
+      : '<span>hyperwatch</span>',
   ];
   for (const name of order.filter((name) => sections.has(name))) {
     const path = `/${name}`;
@@ -70,6 +73,7 @@ function head(req, { title, bodyClass } = {}) {
 <head>
 <meta charset="utf-8">
 <title>hyperwatch${title ? ` · ${title}` : ''}</title>
+<base href="${escapeHtml(req.baseUrl || '')}/">
 <style>${stylesheet}</style>
 </head>
 <body${bodyClass ? ` class="${bodyClass}"` : ''}>${nav(req)}`;
@@ -187,9 +191,11 @@ function sortHeading(req, sorters, sort) {
     }
     const query = new URLSearchParams(req.query);
     query.set('sort', key);
+    // A full path: relative links resolve from <base>, the mount path
+    const href = escapeHtml(`${req.baseUrl}${req.path}?${query}`);
     return key === sort
-      ? `<a href="?${escapeHtml(query)}" class="sorted">${column} ▾</a>`
-      : `<a href="?${escapeHtml(query)}">${column}</a>`;
+      ? `<a href="${href}" class="sorted">${column} ▾</a>`
+      : `<a href="${href}">${column}</a>`;
   };
 }
 

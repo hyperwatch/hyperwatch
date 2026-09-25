@@ -58,12 +58,13 @@ nav {
   margin-bottom: 8px;
   border-bottom: 1px solid #494949;
 }
-nav a {
+nav a,
+nav span {
   color: #797979;
   text-decoration: none;
   margin-right: 14px;
 }
-nav a:first-child {
+nav > :first-child {
   font-weight: bold;
 }
 nav a.active,
