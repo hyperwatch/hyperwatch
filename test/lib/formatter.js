@@ -2,7 +2,7 @@ const assert = require('assert');
 
 const { fromJS } = require('immutable');
 
-const { address } = require('../../src/lib/formatter');
+const { address, executionTime } = require('../../src/lib/formatter');
 
 describe('address format', () => {
   const log = (hostname, verified) =>
@@ -40,5 +40,24 @@ describe('address format', () => {
       address(log('<b>x</b>', false), 'html'),
       '&lt;b&gt;x&lt;/b&gt;'
     );
+  });
+});
+
+describe('executionTime format', () => {
+  const log = (ms) => fromJS({ executionTime: ms });
+
+  it('separates thousands in HTML', () => {
+    assert.strictEqual(
+      executionTime(log(1016), 'html'),
+      '<span class="red">1,016ms</span>'
+    );
+    assert.strictEqual(
+      executionTime(log(42), 'html'),
+      '<span class="green">42ms</span>'
+    );
+  });
+
+  it('keeps the raw number in text', () => {
+    assert.strictEqual(executionTime(log(1016), 'text'), '1016ms');
   });
 });
