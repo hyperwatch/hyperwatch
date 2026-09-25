@@ -193,6 +193,21 @@ function sortHeading(req, sorters, sort) {
   };
 }
 
+// lastSeen is "YYYY-MM-DD hh:mm:ss" (UTC) in HTML. When every row was seen
+// today, only the time is shown, like in the logs.
+function shortenLastSeen(rows) {
+  const today = new Date().toISOString().slice(0, 10);
+  const allToday = rows.every(
+    (row) => !row.lastSeen || row.lastSeen.startsWith(today)
+  );
+  if (!allToday) {
+    return rows;
+  }
+  return rows.map((row) =>
+    row.lastSeen ? { ...row, lastSeen: row.lastSeen.slice(-8) } : row
+  );
+}
+
 /**
  * The HTML view of an aggregator: render(req, { rows, sorters, sort }).
  * - nav: link the page in the top navigation
@@ -209,7 +224,7 @@ function aggregatorView(name, { nav = false, hide = [] } = {}) {
       { title: name },
       rows.length > 0
         ? formatTable(
-            rows.map((row) => omit(row, hidden)),
+            shortenLastSeen(rows).map((row) => omit(row, hidden)),
             { heading: sortHeading(req, sorters, sort) }
           )
         : '<p class="grey">No entries yet: they appear as logs come in.</p>'

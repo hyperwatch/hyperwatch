@@ -283,3 +283,45 @@ describe('API log streams', () => {
     assert.doesNotMatch(body, /<div>[abc]<\/div>/);
   });
 });
+
+describe('API lastSeen', () => {
+  let server;
+  let baseUrl;
+  let rows;
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  before(async () => {
+    api.registerAggregator('dates-test', {
+      ...aggregator,
+      getData: () => fromJS(rows),
+    });
+
+    server = http.createServer(api);
+    const port = await listen(server);
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  after(async () => {
+    await close(server);
+  });
+
+  it('only shows the time when every row is from today', async () => {
+    rows = [
+      { name: 'a', lastSeen: `${today}&nbsp;12:51:07` },
+      { name: 'b', lastSeen: '' },
+    ];
+    const body = await (await fetch(`${baseUrl}/dates-test`)).text();
+    assert.match(body, /<td>12:51:07<\/td>/);
+  });
+
+  it('shows dates when a row is from another day', async () => {
+    rows = [
+      { name: 'a', lastSeen: `${today}&nbsp;12:51:07` },
+      { name: 'b', lastSeen: '2020-01-01&nbsp;08:00:00' },
+    ];
+    const body = await (await fetch(`${baseUrl}/dates-test`)).text();
+    assert.match(body, new RegExp(`<td>${today}&nbsp;12:51:07</td>`));
+    assert.match(body, /<td>2020-01-01&nbsp;08:00:00<\/td>/);
+  });
+});
