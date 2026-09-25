@@ -126,6 +126,21 @@ describe('API navigation', () => {
     assert.match(root, /<base href="\/">/);
   });
 
+  it('encodes and escapes node names in the logs index', () => {
+    html.registerSection('logs');
+    const req = {
+      protocol: 'http',
+      get: () => 'example.org',
+      baseUrl: '',
+      path: '/logs',
+      query: {},
+    };
+    const body = html.logsPage(req, ['a#<b>']);
+    assert.match(body, /<a href="\/logs\/a%23%3Cb%3E">a#&lt;b&gt;<\/a>/);
+    assert.match(body, /<td>ws:\/\/example\.org\/logs\/a%23%3Cb%3E<\/td>/);
+    assert.doesNotMatch(body, /<b>/);
+  });
+
   it('only links the registered sections', async () => {
     const body = await (await fetch(`${baseUrl}/`)).text();
     assert.doesNotMatch(body, /href="\/format-test"/);
