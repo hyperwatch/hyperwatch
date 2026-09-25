@@ -544,6 +544,9 @@ function start() {
   );
   formatter.colors.lastAgent = formatter.colors.agent;
 
+  // Like on addresses, the hostname is in cyan
+  formatter.colors.hostname = 'cyan';
+
   // In HTML, identities link to their logs
   aggregator.formatter.replaceFormat('identity', (entry, output) => {
     const identity = entry.get('identity') || '';
