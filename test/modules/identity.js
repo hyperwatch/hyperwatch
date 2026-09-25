@@ -3,8 +3,8 @@ const assert = require('assert');
 const { fromJS } = require('immutable');
 
 const html = require('../../src/app/html');
-const { logMatches } = require('../../src/lib/util');
 const claudeBotIps = require('../../src/data/claude-bot-ips.json');
+const { logMatches } = require('../../src/lib/util');
 const identity = require('../../src/modules/identity.js');
 
 const claudeFamilies = [

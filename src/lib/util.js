@@ -107,7 +107,9 @@ exports.identityKey = identityKey;
 exports.logMatches = (log, { identity, signature, address } = {}) =>
   (!identity || identityKey(log) === identity) &&
   (!signature || log.getIn(['signature', 'id']) === signature) &&
-  (!address || log.getIn(['address', 'value']) === address);
+  (!address ||
+    (log.getIn(['address', 'value']) || log.getIn(['request', 'address'])) ===
+      address);
 
 exports.escapeHtml = (string) =>
   String(string)

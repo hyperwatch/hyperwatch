@@ -3,6 +3,7 @@ const assert = require('assert');
 const { fromJS } = require('immutable');
 
 const { address, executionTime } = require('../../src/lib/formatter');
+const { logMatches } = require('../../src/lib/util');
 
 describe('address format', () => {
   const log = (hostname, verified) =>
@@ -59,5 +60,13 @@ describe('executionTime format', () => {
 
   it('keeps the raw number in text', () => {
     assert.strictEqual(executionTime(log(1016), 'text'), '1016ms');
+  });
+});
+
+describe('log filters', () => {
+  it('matches the request address without the address module', () => {
+    const log = fromJS({ request: { address: '10.0.0.1' } });
+    assert.ok(logMatches(log, { address: '10.0.0.1' }));
+    assert.ok(!logMatches(log, { address: '10.0.0.12' }));
   });
 });

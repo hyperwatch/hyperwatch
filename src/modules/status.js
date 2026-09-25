@@ -53,6 +53,7 @@ function handler(req, res) {
 
 function start() {
   // The status page is also the home page
+  html.registerSection('status');
   api.get('/', handler);
   api.get('/status{.:format}', handler);
 }

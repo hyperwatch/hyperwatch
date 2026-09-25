@@ -5,8 +5,8 @@ const express = require('express');
 const { List, fromJS } = require('immutable');
 
 const api = require('../../src/app/api');
-const monitoring = require('../../src/lib/monitoring');
 const html = require('../../src/app/html');
+const monitoring = require('../../src/lib/monitoring');
 const { logMatches } = require('../../src/lib/util');
 const status = require('../../src/modules/status');
 
@@ -117,6 +117,15 @@ describe('API navigation', () => {
     assert.match(body, /<tr><td>busy-test<\/td>/);
   });
 
+  it('resolves relative links from the mount path', async () => {
+    const body = await (
+      await fetch(`${baseUrl}/_hyperwatch/identities/`)
+    ).text();
+    assert.match(body, /<base href="\/_hyperwatch\/">/);
+    const root = await (await fetch(`${baseUrl}/identities`)).text();
+    assert.match(root, /<base href="\/">/);
+  });
+
   it('only links the registered sections', async () => {
     const body = await (await fetch(`${baseUrl}/`)).text();
     assert.doesNotMatch(body, /href="\/format-test"/);
@@ -209,13 +218,16 @@ describe('API aggregator columns', () => {
     assert.match(body, /<th>name<\/th>/);
     assert.match(
       body,
-      /<th><a href="\?limit=5&amp;sort=count15m">count15m<\/a><\/th>/
+      /<th><a href="\/columns-test\?limit=5&amp;sort=count15m">count15m<\/a><\/th>/
     );
     assert.match(
       body,
-      /<th><a href="\?limit=5&amp;sort=count24h" class="sorted">count24h ▾<\/a><\/th>/
+      /<th><a href="\/columns-test\?limit=5&amp;sort=count24h" class="sorted">count24h ▾<\/a><\/th>/
     );
-    assert.match(body, /<a href="\?limit=5&amp;sort=latest">lastSeen<\/a>/);
+    assert.match(
+      body,
+      /<a href="\/columns-test\?limit=5&amp;sort=latest">lastSeen<\/a>/
+    );
   });
 
   it('marks count15m as sorted when the sort is unknown', async () => {
