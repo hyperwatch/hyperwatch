@@ -5,6 +5,7 @@ const express = require('express');
 const { List, fromJS } = require('immutable');
 
 const api = require('../../src/app/api');
+const monitoring = require('../../src/lib/monitoring');
 const html = require('../../src/app/html');
 const { logMatches } = require('../../src/lib/util');
 const status = require('../../src/modules/status');
@@ -101,6 +102,19 @@ describe('API navigation', () => {
   it('says when an aggregator has no entries yet', async () => {
     const body = await (await fetch(`${baseUrl}/identities`)).text();
     assert.match(body, /No entries yet/);
+  });
+
+  it('greys status entries without recent traffic', async () => {
+    monitoring.register({ name: 'idle-test', speeds: ['processed'] });
+    const busy = monitoring.register({
+      name: 'busy-test',
+      speeds: ['processed'],
+    });
+    busy.hit();
+
+    const body = await (await fetch(`${baseUrl}/`)).text();
+    assert.match(body, /<tr class="grey"><td>idle-test<\/td>/);
+    assert.match(body, /<tr><td>busy-test<\/td>/);
   });
 
   it('only links the registered sections', async () => {

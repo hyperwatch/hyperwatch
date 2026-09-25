@@ -43,7 +43,11 @@ function handler(req, res) {
     res.send(data);
   } else {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(html.page(req, { title: 'status' }, formatTable(data)));
+    // Entries without traffic in the last 15 minutes are grey
+    const rowClass = (entry) => (entry.count15m ? null : 'grey');
+    res.send(
+      html.page(req, { title: 'status' }, formatTable(data, { rowClass }))
+    );
   }
 }
 
