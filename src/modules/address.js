@@ -97,6 +97,23 @@ function start() {
   );
   formatter.colors.lastAgent = formatter.colors.agent;
 
+  // In HTML, lastIdentity falls back to the agent, in grey, and the lastAgent
+  // column is hidden (JSON and CSV keep both)
+  const lastIdentity = formatter.formats.find(
+    ([key]) => key === 'lastIdentity'
+  );
+  const lastAgent = formatter.formats.find(([key]) => key === 'lastAgent');
+  if (lastIdentity && lastAgent) {
+    formatter.replaceFormat('lastIdentity', (entry, output) => {
+      const value = lastIdentity[1](entry, output);
+      if (value || output !== 'html') {
+        return value;
+      }
+      const agent = lastAgent[1](entry, output);
+      return agent ? `<span class="grey">${agent}</span>` : '';
+    });
+  }
+
   aggregator.formatter.insertFormat('signatureCount15m', signatureCount15m, {
     before: 'count15m',
   });
@@ -111,7 +128,10 @@ function start() {
     .getNode('main')
     .map((log) => aggregator.processLog(log), 'aggregator');
 
-  api.registerAggregator('addresses', aggregator, { nav: true });
+  api.registerAggregator('addresses', aggregator, {
+    nav: true,
+    hide: ['lastAgent'],
+  });
 }
 
 module.exports = {
