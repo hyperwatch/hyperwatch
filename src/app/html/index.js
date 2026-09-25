@@ -242,13 +242,12 @@ function aggregatorView(name, { nav = false, hide = [] } = {}) {
 // The logs index: the HTTP and WebSocket streams of each pipeline node
 function logsPage(req, nodes) {
   const ws = `${req.protocol === 'https' ? 'wss' : 'ws'}://${req.get('host')}`;
-  const rows = nodes.map((name) => {
-    const path = `${req.baseUrl}/logs/${name}`;
-    return {
-      node: `<a href="${path}">${name}</a>`,
-      websocket: `${ws}${path}`,
-    };
-  });
+  const rows = nodes.map((name) => ({
+    node: nodeLink(req, name),
+    websocket: escapeHtml(
+      `${ws}${req.baseUrl}/logs/${encodeURIComponent(name)}`
+    ),
+  }));
   return page(req, { title: 'logs' }, formatTable(rows));
 }
 
