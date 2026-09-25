@@ -81,6 +81,10 @@ function start() {
     formatter.insertFormat('country', country[1], { after: 'hostname' });
   }
 
+  // The hostname is the highlight here, the address a plain link
+  formatter.colors.hostname = formatter.colors.address;
+  delete formatter.colors.address;
+
   // In HTML, addresses link to their logs
   formatter.replaceFormat('address', (entry, output) => {
     const address = entry.getIn(['address', 'value']) || '';
