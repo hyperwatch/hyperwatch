@@ -258,6 +258,10 @@ describe('identity aggregator', () => {
     assert.ok(!('agent' in text));
   });
 
+  it('colors the hostname', () => {
+    assert.strictEqual(identity.aggregator.formatter.colors.hostname, 'cyan');
+  });
+
   it('shows and links the key of unnamed identities in HTML', () => {
     const { aggregator } = identity;
     aggregator.reset();
