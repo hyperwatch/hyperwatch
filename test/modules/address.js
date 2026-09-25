@@ -48,6 +48,11 @@ describe('address aggregator', () => {
     );
   });
 
+  it('colors the hostname, not the address', () => {
+    assert.strictEqual(aggregator.formatter.colors.hostname, 'cyan');
+    assert.ok(!aggregator.formatter.colors.address);
+  });
+
   it('counts distinct signatures over 15m and 24h', () => {
     aggregator.processLog(log('1.2.3.4', 'sig-a'));
     aggregator.processLog(log('1.2.3.4', 'sig-b'));
