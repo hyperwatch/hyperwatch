@@ -113,6 +113,12 @@ nav a:hover {
   display: flex;
   flex-direction: column-reverse;
 }
+/* One line per log, cut at the edge of the screen (still copied whole) */
+.stream > div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* Pipeline tree (/pipeline) */
 .tree ul {
