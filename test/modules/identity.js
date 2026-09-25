@@ -235,7 +235,7 @@ describe('identity', () => {
 describe('identity aggregator', () => {
   before(() => identity.start());
 
-  it('links identities and addresses to their logs in HTML', () => {
+  it('links identities to their logs in HTML', () => {
     html.registerSection('logs');
     const { aggregator } = identity;
     aggregator.processLog(
@@ -252,10 +252,6 @@ describe('identity aggregator', () => {
     assert.match(
       formatted.identity,
       /<a href="logs\/main\?identity=Googlebot">Googlebot<\/a>/
-    );
-    assert.match(
-      formatted.address,
-      /<a href="logs\/main\?address=66\.249\.66\.1">66\.249\.66\.1<\/a>/
     );
     const text = aggregator.formatter.formatObject(entry, 'text');
     assert.strictEqual(text.identity, 'Googlebot');

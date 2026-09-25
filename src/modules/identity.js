@@ -528,28 +528,28 @@ function start() {
 
   aggregator.setIdentifier(identityKey);
 
-  // In HTML, identities and addresses link to their logs
-  aggregator.formatter
-    .replaceFormat('identity', (entry, output) => {
-      const identity = entry.get('identity') || '';
-      if (output !== 'html') {
-        return identity;
-      }
-      // Unnamed identities show their key (the address) in grey
-      return identity
-        ? html.logsLink('identity', identity)
-        : html.logsLink('identity', entry.get('identifier'), 'grey');
-    })
-    .replaceFormat('address', (entry, output) => {
-      const address = entry.getIn(['address', 'value']) || '';
-      return output === 'html' ? html.logsLink('address', address) : address;
-    });
+  // In HTML, identities link to their logs
+  aggregator.formatter.replaceFormat('identity', (entry, output) => {
+    const identity = entry.get('identity') || '';
+    if (output !== 'html') {
+      return identity;
+    }
+    // Unnamed identities show their key (the address) in grey
+    return identity
+      ? html.logsLink('identity', identity)
+      : html.logsLink('identity', entry.get('identifier'), 'grey');
+  });
 
   pipeline
     .getNode('main')
     .map((log) => aggregator.processLog(log), 'aggregator');
 
-  api.registerAggregator('identities', aggregator, { nav: true });
+  // Unnamed identities already show their address, and the hostname column
+  // the last one of the others
+  api.registerAggregator('identities', aggregator, {
+    nav: true,
+    hide: ['address'],
+  });
 }
 
 module.exports = {
