@@ -74,6 +74,13 @@ function start() {
       color: formatter.colors.identity,
     });
   }
+  // The country reads better after the hostname, like on identities
+  const country = formatter.formats.find(([key]) => key === 'country');
+  if (country) {
+    formatter.formats = formatter.formats.filter((f) => f !== country);
+    formatter.insertFormat('country', country[1], { after: 'hostname' });
+  }
+
   // In HTML, addresses link to their logs
   formatter.replaceFormat('address', (entry, output) => {
     const address = entry.getIn(['address', 'value']) || '';
