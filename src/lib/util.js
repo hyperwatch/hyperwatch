@@ -64,8 +64,12 @@ const formatCell = (value) =>
       : ''
     : value || '';
 
-// heading(key) renders the content of a column heading, the key by default
-exports.formatTable = (data, { heading = (key) => key } = {}) => {
+// heading(key) renders the content of a column heading, the key by default.
+// rowClass(entry) gives an optional class to a row.
+exports.formatTable = (
+  data,
+  { heading = (key) => key, rowClass = () => null } = {}
+) => {
   if (!data || data.length === 0) {
     return '';
   }
@@ -75,12 +79,14 @@ exports.formatTable = (data, { heading = (key) => key } = {}) => {
     .join('')}</tr>`;
 
   const rows = data
-    .map(
-      (entry) =>
-        `<tr>${Object.values(entry)
-          .map((value) => `<td>${formatCell(value)}</td>`)
-          .join('')}</tr>`
-    )
+    .map((entry) => {
+      const className = rowClass(entry);
+      return `<tr${className ? ` class="${className}"` : ''}>${Object.values(
+        entry
+      )
+        .map((value) => `<td>${formatCell(value)}</td>`)
+        .join('')}</tr>`;
+    })
     .join('\n');
 
   return `<table>\n${headings}\n${rows}\n</table>`;
