@@ -37,15 +37,19 @@ const request = (log) => {
   return `"${method} ${url} ${status}"`;
 };
 
+// Milliseconds, with thousands separators (1,016ms) except in plain text
 const executionTime = (log, output) => {
-  if (!log.get('executionTime')) {
+  const ms = log.get('executionTime');
+  if (!ms) {
     return;
   }
-  return log.get('executionTime') <= 100
-    ? colorize('green', `${log.get('executionTime')}ms`, output)
-    : log.get('executionTime') >= 1000
-      ? colorize('red', `${log.get('executionTime')}ms`, output)
-      : colorize('yellow', `${log.get('executionTime')}ms`, output);
+  const text = `${
+    output === 'html' || output === 'console'
+      ? Number(ms).toLocaleString('en-US')
+      : ms
+  }ms`;
+  const color = ms <= 100 ? 'green' : ms >= 1000 ? 'red' : 'yellow';
+  return colorize(color, text, output);
 };
 
 const identity = (log) => log.getIn(['identity'], '');
