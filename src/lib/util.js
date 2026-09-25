@@ -56,13 +56,14 @@ exports.formatDuration = (ms) => {
   return `${totalSeconds.toFixed(1)}s`;
 };
 
-exports.formatTable = (data) => {
+// heading(key) renders the content of a column heading, the key by default
+exports.formatTable = (data, { heading = (key) => key } = {}) => {
   if (!data || data.length === 0) {
     return '';
   }
 
   const headings = `<tr>${Object.keys(data[0])
-    .map((key) => `<th>${key}</th>`)
+    .map((key) => `<th>${heading(key)}</th>`)
     .join('')}</tr>`;
 
   const rows = data
@@ -78,3 +79,25 @@ exports.formatTable = (data) => {
 };
 
 exports.md5 = (string) => crypto.createHash('md5').update(string).digest('hex');
+
+// The key of a log in the identities: its identity, or its address when it
+// has none
+const identityKey = (log) =>
+  log.get('identity') ||
+  log.getIn(['address', 'value']) ||
+  log.getIn(['request', 'address']);
+exports.identityKey = identityKey;
+
+// Whether a log matches the given filters, e.g. from a query string. The
+// identity filter takes an identity key, so it also finds unnamed ones.
+exports.logMatches = (log, { identity, signature, address } = {}) =>
+  (!identity || identityKey(log) === identity) &&
+  (!signature || log.getIn(['signature', 'id']) === signature) &&
+  (!address || log.getIn(['address', 'value']) === address);
+
+exports.escapeHtml = (string) =>
+  String(string)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');

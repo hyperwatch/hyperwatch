@@ -1,6 +1,4 @@
 const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
 
 const { stringify } = require('csv-stringify/sync');
 const express = require('express');
@@ -8,12 +6,10 @@ const express = require('express');
 const monitoring = require('../lib/monitoring');
 const persistence = require('../lib/persistence');
 const pipeline = require('../lib/pipeline');
-const { formatTable } = require('../lib/util');
-const stylesheet = require('../stylesheet');
+const { logMatches } = require('../lib/util');
 
+const html = require('./html');
 const wsServer = require('./ws-server');
-
-const script = fs.readFileSync(path.join(__dirname, '..', 'script.js'));
 
 const app = express();
 
@@ -21,56 +17,6 @@ const app = express();
 app.use(wsServer.middleware);
 
 app.use(express.json());
-
-function renderHtmlTree(node) {
-  const label = [];
-  if (node.name) {
-    label.push(`<strong>${node.name}</strong>`);
-  }
-  if (node.op) {
-    label.push(`<span class="op">[${node.op}]</span>`);
-  }
-  if (node.module) {
-    label.push(`<span class="module">(${node.module})</span>`);
-  }
-  if (node.fnName) {
-    label.push(`<span class="fn">${node.fnName}</span>`);
-  }
-  if (node.label) {
-    label.push(`<span class="label">${node.label}</span>`);
-  }
-
-  let html = `<li>${label.join(' ')}`;
-  if (node.children && node.children.length > 0) {
-    html += '<ul>';
-    for (const child of node.children) {
-      html += renderHtmlTree(child);
-    }
-    html += '</ul>';
-  }
-  html += '</li>';
-  return html;
-}
-
-function renderHtmlInputs(inputs) {
-  if (!inputs || inputs.length === 0) {
-    return '';
-  }
-  let html = '<ul>';
-  for (const input of inputs) {
-    html += `<li><strong>${input.name}</strong> <span class="op">[input]</span>`;
-    if (input.status) {
-      html += ` <span class="module">(${input.status})</span>`;
-    }
-    html += ` accepted: ${input.accepted}, rejected: ${input.rejected}`;
-    if (input.tree) {
-      html += `<ul>${renderHtmlTree(input.tree)}</ul>`;
-    }
-    html += '</li>';
-  }
-  html += '</ul>';
-  return html;
-}
 
 app.get('/nodes{.:format}', (req, res) => {
   const nodes = Object.keys(pipeline.nodes);
@@ -101,42 +47,32 @@ app.get('/nodes{.:format}', (req, res) => {
     }
   } else {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    if (view === 'tree') {
-      const tree = pipeline.getTree();
-      res.send(
-        `<!DOCTYPE html>
-<html>
-<head>
-<style>${stylesheet}
-.op { color: #666; }
-.module { color: #0a0; }
-.fn { color: #00a; }
-.label { color: #a50; }
-ul { list-style: none; padding-left: 1.5em; }
-</style>
-</head>
-<body>${renderHtmlInputs(tree.inputs)}<ul>${renderHtmlTree(tree)}</ul></body>
-</html>`
-      );
-    } else {
-      res.send(
-        `<!DOCTYPE html>
-<html>
-<head>
-<style>${stylesheet}</style>
-</head>
-<body>${formatTable(nodes.map((name) => ({ name })))}</body>
-</html>`
-      );
-    }
+    res.send(
+      view === 'tree'
+        ? html.pipelinePage(req, pipeline.getTree())
+        : html.nodesPage(req, nodes)
+    );
   }
+});
+
+// The pipeline tree: inputs, nodes and what runs on them
+html.registerSection('pipeline');
+app.get('/pipeline', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html.pipelinePage(req, pipeline.getTree()));
 });
 
 app.streamToHttp = (
   endpoint,
   stream,
   formatter,
-  { name = `HTTP: ${endpoint}`, monitoringEnabled = false } = {}
+  {
+    name = `HTTP: ${endpoint}`,
+    monitoringEnabled = false,
+    // history(limit, filters): the latest logs matching the filters, newest
+    // first, shown before live ones
+    history,
+  } = {}
 ) => {
   const requests = {};
 
@@ -164,6 +100,19 @@ app.streamToHttp = (
 
   updateMonitoringStatus();
 
+  // ?identity=, ?signature=, ?address= keep matching logs, ?grep= lines
+  // including the given text
+  const writeLog = (req, res, log) => {
+    if (!logMatches(log, req.query)) {
+      return;
+    }
+    const grep = req.query.grep;
+    const line = formatter.format(log, 'html');
+    if (!grep || line.includes(grep)) {
+      res.write(html.streamLine(line));
+    }
+  };
+
   app.get(endpoint, (req, res) => {
     const requestId = crypto.randomUUID();
     requests[requestId] = [req, res];
@@ -177,40 +126,40 @@ app.streamToHttp = (
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
 
-    res.write(
-      `<!DOCTYPE html>
-<html>
-<head>
-<style>
-${stylesheet}
-body { display: flex; flex-direction: column-reverse; }
-</style>
-</head>
-<body>`
-    );
+    res.write(html.streamHead(req, { title: endpoint.slice(1) }));
+
+    // The latest logs first, oldest first like live ones: ?history=<n>
+    // (default 100), ?history=0 to only show live logs
+    if (history) {
+      const limit = parseInt(req.query.history, 10);
+      const logs = history(limit >= 0 ? limit : 100, req.query);
+      for (const log of logs.reverse()) {
+        writeLog(req, res, log);
+      }
+    }
 
     req.on('close', close);
     res.on('close', close);
   });
 
   stream.map((log) => {
-    Object.values(requests).forEach(([req, res]) => {
-      const grep = req.query.grep;
-      const line = formatter.format(log, 'html');
-      if (!grep || line.includes(grep)) {
-        res.write(`<div>${line}</div>\n`);
-      }
-    });
+    Object.values(requests).forEach(([req, res]) => writeLog(req, res, log));
   }, `http:${endpoint}`);
 };
 
-app.registerAggregator = (name, aggregator) => {
+// htmlOptions: see html.aggregatorView()
+app.registerAggregator = (name, aggregator, htmlOptions) => {
+  const htmlView = html.aggregatorView(name, htmlOptions);
   persistence.register(name, aggregator);
   app.get(`/${name}{.:format}`, (req, res) => {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
     const limit = req.query.limit || 100;
-    const sort = req.query.sort || 'count15m';
+    // Unknown sorts fall back to count15m, like in aggregator.getData()
+    const sort =
+      aggregator.sorters && aggregator.sorters[req.query.sort]
+        ? req.query.sort
+        : 'count15m';
 
     if (format && !['csv', 'json'].includes(format)) {
       res.sendStatus(404);
@@ -226,10 +175,10 @@ app.registerAggregator = (name, aggregator) => {
 
     if (format === 'csv') {
       const rows = data.toJS();
-      const columns = Object.keys(rows[0] || {}).filter(
-        (k) => k !== 'activity'
-      );
-      const csv = stringify(rows, { header: true, columns });
+      const csv = stringify(rows, {
+        header: true,
+        columns: Object.keys(rows[0] || {}),
+      });
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader(
         'Content-Disposition',
@@ -241,14 +190,7 @@ app.registerAggregator = (name, aggregator) => {
     } else {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.send(
-        `<!DOCTYPE html>
-<html>
-<head>
-<style>${stylesheet}</style>
-<script>${script}</script>
-</head>
-<body>${formatTable(data.toJS())}</body>
-</html>`
+        htmlView(req, { rows: data.toJS(), sorters: aggregator.sorters, sort })
       );
     }
   });

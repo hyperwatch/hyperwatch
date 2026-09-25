@@ -1,5 +1,7 @@
 const { default: chalk } = require('chalk');
 
+const { escapeHtml } = require('./util');
+
 const colorize = (name, value, output) => {
   if (output === 'console') {
     return chalk[name](value);
@@ -11,10 +13,18 @@ const colorize = (name, value, output) => {
 
 const time = (log) => log.getIn(['request', 'time']).slice(11, -5);
 
-const address = (log) => {
+// Hostnames confirmed by a forward lookup end with '+'. In HTML, the
+// stylesheet adds a ✓ instead, which isn't copied with the hostname.
+const address = (log, output) => {
   if (log.hasIn(['address', 'hostname'])) {
+    const hostname = log.getIn(['address', 'hostname']);
     const verified = log.getIn(['hostname', 'verified']);
-    return `${log.getIn(['address', 'hostname'])}${verified ? '+' : ''}`;
+    if (output === 'html') {
+      return verified
+        ? `<span class="verified" title="Verified: the hostname resolves back to this address">${escapeHtml(hostname)}</span>`
+        : escapeHtml(hostname);
+    }
+    return `${hostname}${verified ? '+' : ''}`;
   } else {
     return log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
   }
@@ -94,7 +104,7 @@ class Formatter {
 
   replaceFormat(key, fn) {
     const index = this.formats.findIndex(([k]) => k == key);
-    if (index) {
+    if (index !== -1) {
       this.formats[index] = [key, fn];
     }
 

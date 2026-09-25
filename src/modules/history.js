@@ -3,11 +3,14 @@ const constants = require('../constants');
 const LogBuffer = require('../lib/log-buffer');
 const persistence = require('../lib/persistence');
 const pipeline = require('../lib/pipeline');
+const { logMatches } = require('../lib/util');
+
+// Log buffers per pipeline node, once started
+const buffers = {};
 
 function start() {
   const capacity =
     (constants.modules.history && constants.modules.history.capacity) || 1000;
-  const buffers = {};
 
   function registerNodeHistory(name, node) {
     const buffer = new LogBuffer(capacity);
@@ -20,28 +23,9 @@ function start() {
     });
 
     api.get(`/history/${name}.json`, (req, res) => {
-      const { identity, signature, address } = req.query;
       const limit = parseInt(req.query.limit, 10) || 100;
 
-      let logs = buffer.toArray();
-
-      if (identity) {
-        logs = logs.filter((log) => log.get('identity') === identity);
-      }
-      if (signature) {
-        logs = logs.filter(
-          (log) => log.getIn(['signature', 'id']) === signature
-        );
-      }
-      if (address) {
-        logs = logs.filter(
-          (log) => log.getIn(['address', 'value']) === address
-        );
-      }
-
-      logs = logs.slice(0, limit);
-
-      res.json(logs);
+      res.json(latest(name, limit, req.query));
     });
   }
 
@@ -59,4 +43,16 @@ function start() {
   };
 }
 
-module.exports = { start };
+// The latest logs of a pipeline node matching `filters` (see logMatches),
+// newest first, or [] without history
+function latest(name, limit, filters) {
+  if (!buffers[name]) {
+    return [];
+  }
+  return buffers[name]
+    .toArray()
+    .filter((log) => logMatches(log, filters))
+    .slice(0, limit);
+}
+
+module.exports = { start, latest };

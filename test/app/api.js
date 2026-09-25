@@ -1,9 +1,12 @@
 const assert = require('assert');
 const http = require('http');
 
-const { List } = require('immutable');
+const express = require('express');
+const { List, fromJS } = require('immutable');
 
 const api = require('../../src/app/api');
+const html = require('../../src/app/html');
+const { logMatches } = require('../../src/lib/util');
 const status = require('../../src/modules/status');
 
 function listen(server) {
@@ -18,17 +21,19 @@ function close(server) {
   return new Promise((resolve) => server.close(resolve));
 }
 
+const aggregator = {
+  dump: () => [],
+  getData: () => List(),
+  load() {},
+  reset() {},
+};
+
 describe('API format routes', () => {
   let server;
   let baseUrl;
 
   before(async () => {
-    api.registerAggregator('format-test', {
-      dump: () => [],
-      getData: () => List(),
-      load() {},
-      reset() {},
-    });
+    api.registerAggregator('format-test', aggregator);
     status.start();
 
     server = http.createServer(api);
@@ -63,4 +68,218 @@ describe('API format routes', () => {
       assert.strictEqual(response.status, 200);
     });
   }
+});
+
+describe('API navigation', () => {
+  let server;
+  let baseUrl;
+
+  before(async () => {
+    api.registerAggregator('identities', aggregator, { nav: true });
+    status.start();
+
+    const app = express();
+    app.use(api);
+    app.use('/_hyperwatch', api);
+    server = http.createServer(app);
+    const port = await listen(server);
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  after(async () => {
+    await close(server);
+  });
+
+  it('serves the status page at the root, with the navigation', async () => {
+    const response = await fetch(`${baseUrl}/`);
+    assert.strictEqual(response.status, 200);
+    const body = await response.text();
+    assert.match(body, /<nav><a href="\/" class="active">hyperwatch<\/a>/);
+    assert.match(body, /<a href="\/identities">identities<\/a>/);
+  });
+
+  it('says when an aggregator has no entries yet', async () => {
+    const body = await (await fetch(`${baseUrl}/identities`)).text();
+    assert.match(body, /No entries yet/);
+  });
+
+  it('only links the registered sections', async () => {
+    const body = await (await fetch(`${baseUrl}/`)).text();
+    assert.doesNotMatch(body, /href="\/format-test"/);
+  });
+
+  it('marks the current section as active', async () => {
+    const body = await (await fetch(`${baseUrl}/identities`)).text();
+    assert.match(body, /<a href="\/identities" class="active">identities/);
+    assert.match(body, /<a href="\/">hyperwatch/);
+  });
+
+  it('serves the pipeline tree, linked from the navigation', async () => {
+    const response = await fetch(`${baseUrl}/pipeline`);
+    assert.strictEqual(response.status, 200);
+    const body = await response.text();
+    assert.match(body, /<a href="\/pipeline" class="active">pipeline<\/a>/);
+    assert.match(body, /<div class="tree">/);
+  });
+
+  it('links pipeline nodes to their logs, once logs are served', async () => {
+    html.registerSection('logs');
+    const body = await (await fetch(`${baseUrl}/_hyperwatch/pipeline`)).text();
+    assert.match(
+      body,
+      /<strong><a href="\/_hyperwatch\/logs\/raw">raw<\/a><\/strong>/
+    );
+  });
+
+  it('prefixes the links with the mount path', async () => {
+    const body = await (
+      await fetch(`${baseUrl}/_hyperwatch/identities`)
+    ).text();
+    assert.match(body, /<a href="\/_hyperwatch\/">hyperwatch/);
+    assert.match(
+      body,
+      /<a href="\/_hyperwatch\/identities" class="active">identities/
+    );
+  });
+});
+
+describe('API aggregator columns', () => {
+  let server;
+  let baseUrl;
+
+  before(async () => {
+    api.registerAggregator('columns-test', {
+      ...aggregator,
+      sorters: { count15m: () => 0, count24h: () => 0, latest: () => 0 },
+      getData: () =>
+        fromJS([
+          {
+            name: 'bot',
+            count15m: 5,
+            count24h: 8,
+            '2xx15m': 3,
+            os: 'Linux',
+            lastSeen: '',
+          },
+        ]),
+    });
+
+    server = http.createServer(api);
+    const port = await listen(server);
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  after(async () => {
+    await close(server);
+  });
+
+  it('leaves the hidden columns out of the HTML table', async () => {
+    const body = await (await fetch(`${baseUrl}/columns-test`)).text();
+    assert.match(body, /count15m/);
+    assert.doesNotMatch(body, /2xx15m/);
+    assert.doesNotMatch(body, /<th>os<\/th>/);
+  });
+
+  it('links sortable headings, marking the current sort', async () => {
+    const body = await (
+      await fetch(`${baseUrl}/columns-test?limit=5&sort=count24h`)
+    ).text();
+    assert.match(body, /<th>name<\/th>/);
+    assert.match(
+      body,
+      /<th><a href="\?limit=5&amp;sort=count15m">count15m<\/a><\/th>/
+    );
+    assert.match(
+      body,
+      /<th><a href="\?limit=5&amp;sort=count24h" class="sorted">count24h ▾<\/a><\/th>/
+    );
+    assert.match(body, /<a href="\?limit=5&amp;sort=latest">lastSeen<\/a>/);
+  });
+
+  it('marks count15m as sorted when the sort is unknown', async () => {
+    const body = await (
+      await fetch(`${baseUrl}/columns-test?sort=nope`)
+    ).text();
+    assert.match(body, /sort=count15m" class="sorted">count15m ▾/);
+  });
+
+  it('keeps the hidden columns in JSON', async () => {
+    const rows = await (await fetch(`${baseUrl}/columns-test.json`)).json();
+    assert.strictEqual(rows[0]['2xx15m'], 3);
+    assert.strictEqual(rows[0].os, 'Linux');
+  });
+});
+
+describe('API log streams', () => {
+  let server;
+  let baseUrl;
+  let emit;
+
+  before(async () => {
+    const stream = {
+      map(fn) {
+        emit = fn;
+      },
+    };
+    const formatter = { format: (log) => log.get('line') };
+    const logs = ['c', 'b', 'a'].map((line, i) =>
+      fromJS({ line, address: { value: `10.0.0.${3 - i}` } })
+    );
+    api.streamToHttp('/stream-test', stream, formatter, {
+      // Newest first, like history.latest()
+      history: (limit, filters) =>
+        logs.filter((log) => logMatches(log, filters)).slice(0, limit),
+    });
+
+    server = http.createServer(api);
+    const port = await listen(server);
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  after(async () => {
+    await close(server);
+  });
+
+  // Reads the stream until it includes `until`, then closes it
+  async function read(path, until) {
+    const controller = new AbortController();
+    const response = await fetch(`${baseUrl}${path}`, {
+      signal: controller.signal,
+    });
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let body = '';
+    while (!body.includes(until)) {
+      const { value } = await reader.read();
+      body += decoder.decode(value);
+      if (body.includes('<main class="stream">')) {
+        emit(fromJS({ line: 'live', address: { value: '10.0.0.2' } }));
+      }
+    }
+    controller.abort();
+    return body.slice(body.indexOf('</nav>'));
+  }
+
+  it('starts with the latest history, oldest first', async () => {
+    const body = await read('/stream-test', '<div>live</div>');
+    assert.match(body, /<div>a<\/div><div>b<\/div><div>c<\/div>.*live/);
+  });
+
+  it('limits the history with ?history=', async () => {
+    const body = await read('/stream-test?history=1', '<div>live</div>');
+    assert.doesNotMatch(body, /<div>b<\/div>/);
+    assert.match(body, /<div>c<\/div>/);
+  });
+
+  it('keeps the logs of one address with ?address=', async () => {
+    const body = await read('/stream-test?address=10.0.0.2', '<div>live</div>');
+    assert.match(body, /Only logs with address 10\.0\.0\.2/);
+    assert.match(body, /<div>b<\/div>/);
+    assert.doesNotMatch(body, /<div>[ac]<\/div>/);
+  });
+
+  it('skips the history with ?history=0', async () => {
+    const body = await read('/stream-test?history=0', '<div>live</div>');
+    assert.doesNotMatch(body, /<div>[abc]<\/div>/);
+  });
 });

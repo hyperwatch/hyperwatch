@@ -27,8 +27,6 @@ function get(module) {
       return require('./language');
     case 'logs':
       return require('./logs');
-    case 'sparkline':
-      return require('./sparkline');
     case 'signature':
       return require('./signature');
     case 'status':

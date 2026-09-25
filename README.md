@@ -50,7 +50,7 @@ Modules (live log streams, User-Agent parsing, GeoIP, aggregations, …) and a f
 npm start config/custom
 ```
 
-The Hyperwatch API and WebSocket will be served from port `3000` by default. Open `http://localhost:3000/status` to check the status of your inputs.
+The Hyperwatch API and WebSocket will be served from port `3000` by default. Open `http://localhost:3000/` to check the status of your inputs. The top navigation links to the addresses, identities and logs pages of the active modules, and to `/pipeline`, which shows how the pipeline is set up: inputs, nodes, and what runs on each.
 
 You can change that using an environment variable:
 

@@ -1,6 +1,7 @@
 const IPCIDR = require('ip-cidr').default;
 
 const api = require('../app/api');
+const html = require('../app/html');
 // Bot IP lists for identity verification
 // Run `node scripts/fetch-openai-ips.js` to update OpenAI lists
 // Run `node scripts/fetch-anthropic-ips.js` to update the Claude list
@@ -13,6 +14,7 @@ const gptbotIps = require('../data/gptbot-ips.json');
 const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
 const { Aggregator } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
+const { identityKey } = require('../lib/util');
 
 // Anthropic publishes one list of ranges covering all Claude crawlers.
 // Reverse DNS is not usable here: Claude crawlers run on shared cloud
@@ -515,29 +517,46 @@ function augment(log) {
   return log;
 }
 
-const identifier = (log) =>
-  log.getIn(['identity']) ||
-  log.getIn(['address', 'value']) ||
-  log.getIn(['request', 'address']);
-
 function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 }
 
-function start() {
-  const aggregator = new Aggregator();
+let _aggregator;
 
-  aggregator.setIdentifier(identifier);
+function start() {
+  const aggregator = (_aggregator = new Aggregator());
+
+  aggregator.setIdentifier(identityKey);
+
+  // In HTML, identities and addresses link to their logs
+  aggregator.formatter
+    .replaceFormat('identity', (entry, output) => {
+      const identity = entry.get('identity') || '';
+      if (output !== 'html') {
+        return identity;
+      }
+      // Unnamed identities show their key (the address) in grey
+      return identity
+        ? html.logsLink('identity', identity)
+        : html.logsLink('identity', entry.get('identifier'), 'grey');
+    })
+    .replaceFormat('address', (entry, output) => {
+      const address = entry.getIn(['address', 'value']) || '';
+      return output === 'html' ? html.logsLink('address', address) : address;
+    });
 
   pipeline
     .getNode('main')
     .map((log) => aggregator.processLog(log), 'aggregator');
 
-  api.registerAggregator('identities', aggregator);
+  api.registerAggregator('identities', aggregator, { nav: true });
 }
 
 module.exports = {
   augment,
   init,
   start,
+  get aggregator() {
+    return _aggregator;
+  },
 };

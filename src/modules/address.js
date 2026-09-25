@@ -1,6 +1,7 @@
 const { is } = require('immutable');
 
 const api = require('../app/api');
+const html = require('../app/html');
 const { Aggregator } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
 const { touch, prune, countRecent } = require('../lib/recent-map');
@@ -62,6 +63,29 @@ function start() {
     entry.has('signatures') ? entry.update('signatures', prune) : entry
   );
 
+  // Rows are addresses: the address comes first. Identity and agent come
+  // from the latest log with one: lastIdentity next to lastAgent.
+  const { formatter } = aggregator;
+  const identity = formatter.formats.find(([key]) => key === 'identity');
+  if (identity) {
+    formatter.formats = formatter.formats.filter((f) => f !== identity);
+    formatter.insertFormat('lastIdentity', identity[1], {
+      after: 'hostname',
+      color: formatter.colors.identity,
+    });
+  }
+  // In HTML, addresses link to their logs
+  formatter.replaceFormat('address', (entry, output) => {
+    const address = entry.getIn(['address', 'value']) || '';
+    return output === 'html' ? html.logsLink('address', address) : address;
+  });
+
+  // Format entries are shared with other formatters: replace, don't mutate
+  formatter.formats = formatter.formats.map(([key, fn]) =>
+    key === 'agent' ? ['lastAgent', fn] : [key, fn]
+  );
+  formatter.colors.lastAgent = formatter.colors.agent;
+
   aggregator.formatter.insertFormat('signatureCount15m', signatureCount15m, {
     before: 'count15m',
   });
@@ -76,7 +100,7 @@ function start() {
     .getNode('main')
     .map((log) => aggregator.processLog(log), 'aggregator');
 
-  api.registerAggregator('addresses', aggregator);
+  api.registerAggregator('addresses', aggregator, { nav: true });
 }
 
 module.exports = {
