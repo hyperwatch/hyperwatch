@@ -528,6 +528,15 @@ function start() {
 
   aggregator.setIdentifier(identityKey);
 
+  // Without the address column (hidden below), the country reads better
+  // after the hostname
+  const { formatter } = aggregator;
+  const country = formatter.formats.find(([key]) => key === 'country');
+  if (country) {
+    formatter.formats = formatter.formats.filter((f) => f !== country);
+    formatter.insertFormat('country', country[1], { after: 'hostname' });
+  }
+
   // In HTML, identities link to their logs
   aggregator.formatter.replaceFormat('identity', (entry, output) => {
     const identity = entry.get('identity') || '';
