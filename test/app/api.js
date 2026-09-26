@@ -194,6 +194,31 @@ describe('API navigation', () => {
     assert.match(body, /<div class="tree">/);
   });
 
+  it('shows the full addresses of log streams in the pipeline', async () => {
+    const pipelineHtml = html.pipelinePage(
+      {
+        protocol: 'https',
+        get: () => 'example.org',
+        baseUrl: '/hw',
+        path: '/pipeline',
+        query: {},
+      },
+      {
+        name: 'raw',
+        children: [
+          { op: 'map', label: 'http:/logs/main', children: [] },
+          { op: 'map', label: 'ws:/logs/main', children: [] },
+        ],
+        inputs: [],
+      }
+    );
+    assert.match(
+      pipelineHtml,
+      /<a href="\/hw\/logs\/main">https:\/\/example\.org\/hw\/logs\/main<\/a>/
+    );
+    assert.match(pipelineHtml, />wss:\/\/example\.org\/hw\/logs\/main</);
+  });
+
   it('links pipeline nodes to their logs, once logs are served', async () => {
     html.registerSection('logs');
     const body = await (await fetch(`${baseUrl}/_hyperwatch/pipeline`)).text();
