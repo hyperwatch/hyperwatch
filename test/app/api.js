@@ -349,6 +349,16 @@ describe('API aggregator columns', () => {
     assert.doesNotMatch(body, /count15m/);
   });
 
+  it('keeps the period in the links to aggregator pages', async () => {
+    const day = await (
+      await fetch(`${baseUrl}/columns-test?period=24h`)
+    ).text();
+    assert.match(day, /<a href="identities\?period=24h">identities<\/a>/);
+    assert.match(day, /<a href="pipeline">pipeline<\/a>/);
+    const quarter = await (await fetch(`${baseUrl}/columns-test`)).text();
+    assert.match(quarter, /<a href="identities">identities<\/a>/);
+  });
+
   it('resets the sort when switching period', async () => {
     const body = await (
       await fetch(`${baseUrl}/columns-test?sort=count15m&limit=5`)
