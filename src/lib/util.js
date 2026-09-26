@@ -56,25 +56,74 @@ exports.formatDuration = (ms) => {
   return `${totalSeconds.toFixed(1)}s`;
 };
 
-exports.formatTable = (data) => {
+// A table cell: numbers with thousands separators (1,234), empty for 0
+const formatCell = (value) =>
+  typeof value === 'number'
+    ? value
+      ? value.toLocaleString('en-US')
+      : ''
+    : value || '';
+
+// heading(key) renders the content of a column heading, the key by default.
+// rowClass(entry) gives an optional class to a row.
+exports.formatTable = (
+  data,
+  { heading = (key) => key, rowClass = () => null } = {}
+) => {
   if (!data || data.length === 0) {
     return '';
   }
 
   const headings = `<tr>${Object.keys(data[0])
-    .map((key) => `<th>${key}</th>`)
+    .map((key) => `<th>${heading(key)}</th>`)
     .join('')}</tr>`;
 
   const rows = data
-    .map(
-      (entry) =>
-        `<tr>${Object.values(entry)
-          .map((value) => `<td>${value || ''}</td>`)
-          .join('')}</tr>`
-    )
+    .map((entry) => {
+      const className = rowClass(entry);
+      return `<tr${className ? ` class="${className}"` : ''}>${Object.values(
+        entry
+      )
+        .map((value) => `<td>${formatCell(value)}</td>`)
+        .join('')}</tr>`;
+    })
     .join('\n');
 
   return `<table>\n${headings}\n${rows}\n</table>`;
 };
 
 exports.md5 = (string) => crypto.createHash('md5').update(string).digest('hex');
+
+// The key of a log in the identities: its identity, or its address when it
+// has none
+const identityKey = (log) =>
+  log.get('identity') ||
+  log.getIn(['address', 'value']) ||
+  log.getIn(['request', 'address']);
+exports.identityKey = identityKey;
+
+// Whether a log matches the given filters, e.g. from a query string. The
+// identity filter takes an identity key, so it also finds unnamed ones.
+exports.logMatches = (log, { identity, signature, address } = {}) =>
+  (!identity || identityKey(log) === identity) &&
+  (!signature || log.getIn(['signature', 'id']) === signature) &&
+  (!address ||
+    (log.getIn(['address', 'value']) || log.getIn(['request', 'address'])) ===
+      address);
+
+// Inputs report where they listen as "http://__HOST__/input/log", as only
+// requests know the host (and mount path) they are reached on.
+// addressFor(scheme) gives it, e.g. "https://example.org/_hyperwatch".
+exports.fillHost = (text, addressFor) =>
+  typeof text === 'string'
+    ? text.replace(/\b(http|ws):\/\/__HOST__/g, (match, scheme) =>
+        addressFor(scheme)
+      )
+    : text;
+
+exports.escapeHtml = (string) =>
+  String(string)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');

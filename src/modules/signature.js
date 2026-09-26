@@ -8,6 +8,7 @@ const { touch, prune, countRecent } = require('../lib/recent-map');
 const {
   aggregateCount,
   aggregateSum,
+  escapeHtml,
   formatDuration,
   md5,
 } = require('../lib/util');
@@ -43,6 +44,25 @@ function normalisedIdentityHeader(headers) {
 
 const addressCount15m = (entry) => countRecent(entry.get('addresses'), 15 * 60);
 const addressCount24h = (entry) => countRecent(entry.get('addresses'));
+
+// Addresses and headers come from requests: escaped in HTML
+const addressesFormat = (entry, output) => {
+  if (!entry.has('addresses')) {
+    return '';
+  }
+  return entry
+    .get('addresses')
+    .keySeq()
+    .slice(0, 10)
+    .map((address) => (output === 'html' ? escapeHtml(address) : address))
+    .join('<br>');
+};
+
+const headersFormat = (entry, output) =>
+  Object.entries(entry.getIn(['signature', 'headers']))
+    .map((header) => header.join(':'))
+    .map((header) => (output === 'html' ? escapeHtml(header) : header))
+    .join('<br>');
 
 function computeSignature(headers) {
   const string = Object.keys(headers)
@@ -83,13 +103,7 @@ function start() {
     ['identity', (entry) => entry.get('identity')],
     ['addressCount15m', addressCount15m],
     ['addressCount24h', addressCount24h],
-    [
-      'addresses',
-      (entry) =>
-        entry.has('addresses')
-          ? entry.get('addresses').keySeq().slice(0, 10).join('<br>')
-          : '',
-    ],
+    ['addresses', addressesFormat],
     [
       'lastAddress',
       (entry) => {
@@ -101,17 +115,8 @@ function start() {
       },
     ],
 
-    [
-      'headers',
-      (entry) => {
-        const headers = entry.getIn(['signature', 'headers']);
-        return Object.entries(headers)
-          .map((entry) => entry.join(':'))
-          .join('<br>');
-      },
-    ],
+    ['headers', headersFormat],
 
-    ['lastSeen', lastSeen],
     ['count15m', (entry) => aggregateCount(entry, 'per_minute')],
     ['count24h', (entry) => aggregateCount(entry, 'per_hour')],
 
@@ -125,6 +130,8 @@ function start() {
       (entry) => formatDuration(aggregateSum(entry, 'per_minute')),
     ],
     ['execTime24h', (entry) => formatDuration(aggregateSum(entry, 'per_hour'))],
+
+    ['lastSeen', lastSeen],
   ]);
 
   signatureFormatter.insertFormat('agent', agentFormat, {
@@ -166,7 +173,20 @@ function start() {
     .getNode('main')
     .map((log) => aggregator.processLog(log), 'aggregator');
 
-  api.registerAggregator('signatures', aggregator);
+  // No agent column: the User-Agent header is in the headers column
+  api.registerAggregator('signatures', aggregator, {
+    columns: [
+      'signature',
+      'identity',
+      'addressCount',
+      'addresses',
+      'lastAddress',
+      'headers',
+      'count',
+      'execTime',
+      'lastSeen',
+    ],
+  });
 }
 
 module.exports = {
