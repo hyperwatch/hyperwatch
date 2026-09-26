@@ -3,7 +3,7 @@ const assert = require('assert');
 const { fromJS } = require('immutable');
 
 const { address, executionTime } = require('../../src/lib/formatter');
-const { logMatches } = require('../../src/lib/util');
+const { fillHost, logMatches } = require('../../src/lib/util');
 
 describe('address format', () => {
   const log = (hostname, verified) =>
@@ -68,5 +68,24 @@ describe('log filters', () => {
     const log = fromJS({ request: { address: '10.0.0.1' } });
     assert.ok(logMatches(log, { address: '10.0.0.1' }));
     assert.ok(!logMatches(log, { address: '10.0.0.12' }));
+  });
+});
+
+describe('fillHost', () => {
+  it('fills the host placeholder of input statuses', () => {
+    assert.strictEqual(
+      fillHost('Listening on http://__HOST__/input/log', {
+        host: 'example.org/hw',
+      }),
+      'Listening on http://example.org/hw/input/log'
+    );
+    assert.strictEqual(
+      fillHost('Listening on ws://__HOST__/input/log', {
+        host: 'example.org',
+        secure: true,
+      }),
+      'Listening on wss://example.org/input/log'
+    );
+    assert.strictEqual(fillHost(null, { host: 'example.org' }), null);
   });
 });

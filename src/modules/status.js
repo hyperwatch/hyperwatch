@@ -1,7 +1,7 @@
 const { api } = require('../app');
 const html = require('../app/html');
 const monitoring = require('../lib/monitoring');
-const { formatTable } = require('../lib/util');
+const { escapeHtml, fillHost, formatTable } = require('../lib/util');
 
 const aggregateCount = (entry, path) =>
   entry.hasIn(path) ? entry.getIn(path).reduce((p, c) => p + c, 0) : null;
@@ -38,15 +38,28 @@ function handler(req, res) {
   }
 
   const data = raw ? rawData : rawData.map((entry) => mapper(entry, format));
+  const host = `${req.get('host')}${req.baseUrl}`;
+  const secure = req.protocol === 'https';
 
   if (format === 'json') {
-    res.send(data);
+    res.send(
+      raw
+        ? data
+        : data.map((row) => ({
+            ...row,
+            status: fillHost(row.status, { host, secure }),
+          }))
+    );
   } else {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     // Entries without traffic in the last 15 minutes are grey
     const rowClass = (entry) => (entry.count15m ? null : 'grey');
+    const rows = data.map((row) => ({
+      ...row,
+      status: fillHost(row.status, { host: escapeHtml(host), secure }),
+    }));
     res.send(
-      html.page(req, { title: 'status' }, formatTable(data, { rowClass }))
+      html.page(req, { title: 'status' }, formatTable(rows, { rowClass }))
     );
   }
 }

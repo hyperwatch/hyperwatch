@@ -111,6 +111,16 @@ exports.logMatches = (log, { identity, signature, address } = {}) =>
     (log.getIn(['address', 'value']) || log.getIn(['request', 'address'])) ===
       address);
 
+// Inputs report where they listen with a __HOST__ placeholder, as only
+// requests know the host (and mount path) they are reached on
+exports.fillHost = (text, { host, secure = false }) =>
+  typeof text === 'string'
+    ? text.replace(
+        /\b(http|ws):\/\/__HOST__/g,
+        (match, scheme) => `${scheme}${secure ? 's' : ''}://${host}`
+      )
+    : text;
+
 exports.escapeHtml = (string) =>
   String(string)
     .replace(/&/g, '&amp;')
