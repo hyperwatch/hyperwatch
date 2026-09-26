@@ -246,7 +246,7 @@ describe('API aggregator columns', () => {
 
   it('links sortable headings, marking the current sort', async () => {
     const body = await (
-      await fetch(`${baseUrl}/columns-test?limit=5&sort=count24h`)
+      await fetch(`${baseUrl}/columns-test?limit=5&sort=latest`)
     ).text();
     assert.match(body, /<th>name<\/th>/);
     assert.match(
@@ -255,11 +255,36 @@ describe('API aggregator columns', () => {
     );
     assert.match(
       body,
-      /<th><a href="\/columns-test\?limit=5&amp;sort=count24h" class="sorted">count24h ▾<\/a><\/th>/
+      /<th><a href="\/columns-test\?limit=5&amp;sort=latest" class="sorted">lastSeen ▾<\/a><\/th>/
     );
+  });
+
+  it('shows the columns of the last 15 minutes by default', async () => {
+    const body = await (await fetch(`${baseUrl}/columns-test`)).text();
+    assert.match(body, /<strong>15m<\/strong>/);
+    assert.match(body, /<a href="\/columns-test\?period=24h">24h<\/a>/);
+    assert.match(body, /count15m/);
+    assert.doesNotMatch(body, /count24h/);
+  });
+
+  it('shows the columns of the last 24 hours with ?period=24h', async () => {
+    const body = await (
+      await fetch(`${baseUrl}/columns-test?period=24h`)
+    ).text();
+    assert.match(body, /<strong>24h<\/strong>/);
+    assert.match(body, /<a href="\/columns-test">15m<\/a>/);
+    // Sorted by the count of the period by default
+    assert.match(body, /class="sorted">count24h ▾/);
+    assert.doesNotMatch(body, /count15m/);
+  });
+
+  it('moves the sort to the other period when switching', async () => {
+    const body = await (
+      await fetch(`${baseUrl}/columns-test?sort=count15m&limit=5`)
+    ).text();
     assert.match(
       body,
-      /<a href="\/columns-test\?limit=5&amp;sort=latest">lastSeen<\/a>/
+      /<a href="\/columns-test\?sort=count24h&amp;limit=5&amp;period=24h">24h<\/a>/
     );
   });
 
@@ -273,7 +298,7 @@ describe('API aggregator columns', () => {
   it('separates thousands in HTML, not in JSON', async () => {
     rows = [{ name: 'big', count15m: 1234567, count24h: 0 }];
     const body = await (await fetch(`${baseUrl}/columns-test`)).text();
-    assert.match(body, /<td>1,234,567<\/td><td><\/td>/);
+    assert.match(body, /<td>1,234,567<\/td>/);
     const json = await (await fetch(`${baseUrl}/columns-test.json`)).json();
     assert.strictEqual(json[0].count15m, 1234567);
   });

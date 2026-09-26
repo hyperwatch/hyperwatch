@@ -162,11 +162,14 @@ app.registerAggregator = (name, aggregator, htmlOptions) => {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
     const limit = req.query.limit || 100;
-    // Unknown sorts fall back to count15m, like in aggregator.getData()
+    // Unknown sorts fall back to the count of the period (?period=24h for
+    // the last 24 hours, 15 minutes by default)
     const sort =
       aggregator.sorters && aggregator.sorters[req.query.sort]
         ? req.query.sort
-        : 'count15m';
+        : req.query.period === '24h'
+          ? 'count24h'
+          : 'count15m';
 
     if (format && !['csv', 'json'].includes(format)) {
       res.sendStatus(404);

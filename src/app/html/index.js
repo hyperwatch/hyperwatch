@@ -216,27 +216,77 @@ function shortenLastSeen(rows) {
   );
 }
 
+// Aggregator pages show the last 15 minutes, or 24 hours with ?period=24h
+const periods = ['15m', '24h'];
+
+function periodOf(req) {
+  return req.query.period === '24h' ? '24h' : '15m';
+}
+
+// Links to the other period keep the query, and move a sort on a period
+// column (count15m) to the same column of the other period (count24h)
+function periodSwitch(req, sorters) {
+  const current = periodOf(req);
+  const links = periods.map((period) => {
+    if (period === current) {
+      return `<strong>${period}</strong>`;
+    }
+    const query = new URLSearchParams(req.query);
+    if (period === '15m') {
+      query.delete('period');
+    } else {
+      query.set('period', period);
+    }
+    const sort = query.get('sort');
+    if (sort && sort.endsWith(current)) {
+      const moved = `${sort.slice(0, -current.length)}${period}`;
+      if (sorters && sorters[moved]) {
+        query.set('sort', moved);
+      }
+    }
+    const search = query.toString();
+    return `<a href="${escapeHtml(
+      `${req.baseUrl}${req.path}${search ? `?${search}` : ''}`
+    )}">${period}</a>`;
+  });
+  return `<div class="subnav">${links.join(
+    '<span class="grey"> · </span>'
+  )}</div>`;
+}
+
 /**
  * The HTML view of an aggregator: render(req, { rows, sorters, sort }).
  * - nav: link the page in the top navigation
  * - hide: more columns to leave out of the table
  */
 function aggregatorView(name, { nav = false, hide = [] } = {}) {
-  const hidden = [...hiddenColumns, ...hide];
   if (nav) {
     registerSection(name);
   }
-  return (req, { rows, sorters, sort }) =>
-    page(
+  return (req, { rows, sorters, sort }) => {
+    if (rows.length === 0) {
+      return page(
+        req,
+        { title: name },
+        '<p class="grey">No entries yet: they appear as logs come in.</p>'
+      );
+    }
+    // Only the columns of the selected period (…15m or …24h) are shown
+    const other = periodOf(req) === '15m' ? '24h' : '15m';
+    const hidden = [
+      ...hiddenColumns,
+      ...hide,
+      ...Object.keys(rows[0]).filter((key) => key.endsWith(other)),
+    ];
+    return page(
       req,
       { title: name },
-      rows.length > 0
-        ? formatTable(
-            shortenLastSeen(rows).map((row) => omit(row, hidden)),
-            { heading: sortHeading(req, sorters, sort) }
-          )
-        : '<p class="grey">No entries yet: they appear as logs come in.</p>'
+      `${periodSwitch(req, sorters)}${formatTable(
+        shortenLastSeen(rows).map((row) => omit(row, hidden)),
+        { heading: sortHeading(req, sorters, sort) }
+      )}`
     );
+  };
 }
 
 // Logs
@@ -297,7 +347,7 @@ function nodesNav(req, name, tree) {
     `<strong>${escapeHtml(name)}</strong>`,
   ].join('<span class="grey"> › </span>');
   const children = namedChildren(found.node);
-  return `<div class="nodes">${path}${
+  return `<div class="subnav">${path}${
     children.length > 0
       ? `<span class="grey"> → </span>${children
           .map(link)
