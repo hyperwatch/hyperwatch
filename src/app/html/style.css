@@ -120,7 +120,8 @@ nav a:hover {
 .periods {
   position: absolute;
   top: 8px;
-  right: 8px;
+  /* Clear of scrollbars drawn over the page (macOS) */
+  right: 24px;
   margin: 0;
 }
 .stream-page nav {
