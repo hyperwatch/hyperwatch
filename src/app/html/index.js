@@ -249,7 +249,7 @@ function periodSwitch(req, sorters) {
       `${req.baseUrl}${req.path}${search ? `?${search}` : ''}`
     )}">${period}</a>`;
   });
-  return `<div class="subnav">${links.join(
+  return `<div class="subnav periods">${links.join(
     '<span class="grey"> · </span>'
   )}</div>`;
 }

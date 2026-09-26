@@ -115,6 +115,13 @@ nav a:hover {
 .subnav a:hover {
   color: #eeeeee;
 }
+/* The period switch of aggregator pages, top right on the navigation line */
+.periods {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  margin: 0;
+}
 .stream-page nav {
   position: sticky;
   top: 0;
