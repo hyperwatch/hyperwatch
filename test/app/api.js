@@ -126,19 +126,37 @@ describe('API navigation', () => {
     assert.match(root, /<base href="\/">/);
   });
 
-  it('encodes and escapes node names in the logs index', () => {
-    html.registerSection('logs');
-    const req = {
-      protocol: 'http',
-      get: () => 'example.org',
-      baseUrl: '',
-      path: '/logs',
-      query: {},
+  it('shows the path to a node and the nodes below it', () => {
+    const tree = {
+      name: 'raw',
+      children: [
+        {
+          name: 'main',
+          children: [
+            {
+              op: 'filter',
+              children: [{ name: 'a#<b>', children: [] }],
+            },
+            { name: 'slow', children: [{ name: 'extra-slow', children: [] }] },
+          ],
+        },
+      ],
+      inputs: [],
     };
-    const body = html.logsPage(req, ['a#<b>']);
-    assert.match(body, /<a href="\/logs\/a%23%3Cb%3E">a#&lt;b&gt;<\/a>/);
-    assert.match(body, /<td>ws:\/\/example\.org\/logs\/a%23%3Cb%3E<\/td>/);
-    assert.doesNotMatch(body, /<b>/);
+    const req = { baseUrl: '/hw', path: '/logs/main', query: { grep: 'x' } };
+    const body = html.nodesNav(req, 'main', tree);
+    assert.match(
+      body,
+      /<a href="\/hw\/logs\/raw\?grep=x">raw<\/a><span class="grey"> › <\/span><strong>main<\/strong>/
+    );
+    // Named nodes one level below, through unnamed steps, links encoded
+    assert.match(
+      body,
+      /<a href="\/hw\/logs\/a%23%3Cb%3E\?grep=x">a#&lt;b&gt;<\/a>/
+    );
+    assert.match(body, /<a href="\/hw\/logs\/slow\?grep=x">slow<\/a>/);
+    assert.doesNotMatch(body, /extra-slow/);
+    assert.strictEqual(html.nodesNav(req, 'unknown', tree), '');
   });
 
   it('only links the registered sections', async () => {

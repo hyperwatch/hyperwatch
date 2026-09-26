@@ -103,6 +103,17 @@ nav a:hover {
 }
 
 /* Log streams: the nav stays visible, latest lines at the bottom or top */
+.nodes {
+  white-space: normal;
+  margin-bottom: 8px;
+}
+.nodes a {
+  color: #797979;
+  text-decoration: none;
+}
+.nodes a:hover {
+  color: #eeeeee;
+}
 .stream-page nav {
   position: sticky;
   top: 0;

@@ -17,10 +17,11 @@ const followScript = read('scripts/follow.js');
 
 // Sections shown in the top navigation, in this order, once registered
 const order = ['addresses', 'identities', 'logs', 'pipeline'];
-const sections = new Set();
+// Section name → the path its navigation link goes to
+const sections = new Map();
 
-function registerSection(name) {
-  sections.add(name);
+function registerSection(name, path = `/${name}`) {
+  sections.set(name, path);
 }
 
 function hasSection(name) {
@@ -57,10 +58,11 @@ function nav(req) {
       : '<span>hyperwatch</span>',
   ];
   for (const name of order.filter((name) => sections.has(name))) {
-    const path = `/${name}`;
-    const active = isUnder(req.path, path);
+    const active = isUnder(req.path, `/${name}`);
     links.push(
-      `<a href="${base}${path}"${active ? ' class="active"' : ''}>${name}</a>`
+      `<a href="${base}${sections.get(name)}"${
+        active ? ' class="active"' : ''
+      }>${name}</a>`
     );
   }
   return `<nav>${links.join('')}</nav>`;
@@ -239,24 +241,75 @@ function aggregatorView(name, { nav = false, hide = [] } = {}) {
 
 // Logs
 
-// The logs index: the HTTP and WebSocket streams of each pipeline node
-function logsPage(req, nodes) {
-  const ws = `${req.protocol === 'https' ? 'wss' : 'ws'}://${req.get('host')}`;
-  const rows = nodes.map((name) => ({
-    node: nodeLink(req, name),
-    websocket: escapeHtml(
-      `${ws}${req.baseUrl}/logs/${encodeURIComponent(name)}`
-    ),
-  }));
-  return page(req, { title: 'logs' }, formatTable(rows));
-}
-
 // The opening part of a log stream page. Latest lines are at the bottom,
 // like a terminal, or at the top with ?latest=top. The stream container is
 // never closed: lines keep being appended to it.
-function streamHead(req, { title }) {
+// Where a pipeline node is in the tree: its named ancestors and the named
+// nodes one level below it (unnamed steps, like maps and filters, are
+// skipped). Returns null when the node isn't in the tree.
+function findNode(tree, name) {
+  const roots = [tree, ...(tree.inputs || []).map((input) => input.tree)];
+  const search = (node, ancestors) => {
+    if (!node) {
+      return null;
+    }
+    if (node.name === name) {
+      return { ancestors, node };
+    }
+    const path = node.name ? [...ancestors, node.name] : ancestors;
+    for (const child of node.children || []) {
+      const found = search(child, path);
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  };
+  for (const root of roots) {
+    const found = search(root, []);
+    if (found) {
+      return found;
+    }
+  }
+  return null;
+}
+
+function namedChildren(node) {
+  return (node.children || []).flatMap((child) =>
+    child.name ? [child.name] : namedChildren(child)
+  );
+}
+
+// The navigation between log streams: the path to the current node, then
+// the nodes one level below it. Links keep the query (filters, grep).
+function nodesNav(req, name, tree) {
+  const found = findNode(tree, name);
+  if (!found) {
+    return '';
+  }
+  const query = new URLSearchParams(req.query).toString();
+  const link = (node) =>
+    `<a href="${escapeHtml(
+      `${req.baseUrl}/logs/${encodeURIComponent(node)}${query ? `?${query}` : ''}`
+    )}">${escapeHtml(node)}</a>`;
+  const path = [
+    ...found.ancestors.map(link),
+    `<strong>${escapeHtml(name)}</strong>`,
+  ].join('<span class="grey"> › </span>');
+  const children = namedChildren(found.node);
+  return `<div class="nodes">${path}${
+    children.length > 0
+      ? `<span class="grey"> → </span>${children
+          .map(link)
+          .join('<span class="grey"> · </span>')}`
+      : ''
+  }</div>`;
+}
+
+// header: more HTML under the navigation, e.g. nodesNav()
+function streamHead(req, { title, header = '' }) {
   const latestOnTop = req.query.latest === 'top';
-  return `${head(req, { title, bodyClass: 'stream-page' })}${streamFilters(
+  return `${head(req, { title, bodyClass: 'stream-page' })}${header}${streamFilters(
     req
   )}${latestOnTop ? '' : `<script>${followScript}</script>`}<main class="stream${
     latestOnTop ? ' latest-top' : ''
@@ -285,7 +338,7 @@ module.exports = {
   hasSection,
   logsLink,
   head,
-  logsPage,
+  nodesNav,
   nav,
   nodesPage,
   pipelinePage,

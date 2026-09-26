@@ -72,7 +72,7 @@ Only `status` is active by default.
 
 Aggregator endpoints render an HTML table by default, or JSON and CSV with a `.json` or `.csv` extension. They accept `limit` (default `100`) and `sort` (default `count15m`) query parameters. In the HTML table, the headings of sortable columns link to the table sorted by them. A single entry is available at `/<aggregator>/<id>.json`, and `DELETE /<aggregator>` resets it.
 
-The HTTP log streams (`/logs/<node>`) show the latest lines at the bottom, or at the top with `?latest=top`, keep the logs of one `?address=`, `?identity=` or `?signature=` (exact matches, like `/history/<node>.json`; an identity without a name is matched by its address), and lines including `?grep=`. On the addresses and identities pages, addresses and identities link to their logs. When `history` is active, they start with the latest `100` logs of the node: `?history=<n>` changes that number, `?history=0` only shows live logs. WebSocket streams only send live logs.
+The HTTP log streams (`/logs/<node>`, `/logs` opens `main`) link to the nodes above and one level below them in the pipeline, and show the latest lines at the bottom, or at the top with `?latest=top`, keep the logs of one `?address=`, `?identity=` or `?signature=` (exact matches, like `/history/<node>.json`; an identity without a name is matched by its address), and lines including `?grep=`. On the addresses and identities pages, addresses and identities link to their logs. When `history` is active, they start with the latest `100` logs of the node: `?history=<n>` changes that number, `?history=0` only shows live logs. WebSocket streams only send live logs.
 
 To use a custom DNS server for the `hostname` module, set the `HYPERWATCH_DNS_SERVER` environment variable.
 
