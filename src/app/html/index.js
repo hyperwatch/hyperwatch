@@ -63,11 +63,15 @@ function logsLink(filter, value, className) {
 }
 
 // A pipeline node name, linking to its logs when they're served
-function nodeLink(name, query = '') {
+function nodeLink(name, query = '', className) {
   if (!sections.has('logs')) {
     return escapeHtml(name);
   }
-  return link(`logs/${encodeURIComponent(name)}${query}`, escapeHtml(name));
+  return link(
+    `logs/${encodeURIComponent(name)}${query}`,
+    escapeHtml(name),
+    className
+  );
 }
 
 function isUnder(pathname, path) {
@@ -312,27 +316,57 @@ function namedChildren(node) {
   );
 }
 
+const separator = (text) => `<span class="grey"> ${text} </span>`;
+
 // The navigation between log streams: the path to the current node, then
-// the nodes one level below it. Links keep the query (filters, grep).
+// the nodes one level below it. Below main, the nodes under main stay
+// listed, the branch of the current node highlighted. Links keep the query
+// (filters, grep).
 function nodesNav(req, name, tree) {
   const found = findNode(tree, name);
   if (!found) {
     return '';
   }
   const query = new URLSearchParams(req.query).toString();
-  const nodeWithQuery = (node) => nodeLink(node, query ? `?${query}` : '');
-  const path = [
-    ...found.ancestors.map(nodeWithQuery),
-    `<strong>${escapeHtml(name)}</strong>`,
-  ].join('<span class="grey"> › </span>');
-  const children = namedChildren(found.node);
-  return `<div class="subnav">${path}${
-    children.length > 0
-      ? `<span class="grey"> → </span>${children
-          .map(nodeWithQuery)
-          .join('<span class="grey"> · </span>')}`
-      : ''
-  }</div>`;
+  const nodeWithQuery = (node, className) =>
+    nodeLink(node, query ? `?${query}` : '', className);
+  const current = `<strong>${escapeHtml(name)}</strong>`;
+  const below = (node) => {
+    const children = namedChildren(node);
+    return children.length > 0
+      ? `${separator('→')}${children
+          .map((child) => nodeWithQuery(child))
+          .join(separator('·'))}`
+      : '';
+  };
+
+  const main = found.ancestors.indexOf('main');
+  if (main === -1) {
+    const path = [
+      ...found.ancestors.map((node) => nodeWithQuery(node)),
+      current,
+    ];
+    return `<div class="subnav">${path.join(separator('›'))}${below(
+      found.node
+    )}</div>`;
+  }
+
+  // Below main: its nodes, then the path from the branch to the current node
+  const [branch, ...deeper] = [...found.ancestors.slice(main + 1), name];
+  const branches = namedChildren(findNode(tree, 'main').node).map((node) =>
+    node === name
+      ? current
+      : nodeWithQuery(node, node === branch ? 'active' : null)
+  );
+  const path = deeper.map((node) =>
+    node === name ? current : nodeWithQuery(node)
+  );
+  return `<div class="subnav">${found.ancestors
+    .slice(0, main + 1)
+    .map((node) => nodeWithQuery(node))
+    .join(separator('›'))}${separator('→')}${branches.join(separator('·'))}${
+    path.length > 0 ? `${separator('›')}${path.join(separator('›'))}` : ''
+  }${below(found.node)}</div>`;
 }
 
 // A line saying which logs a filtered stream keeps, linking to all of them

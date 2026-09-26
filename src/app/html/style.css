@@ -112,7 +112,8 @@ nav a:hover {
   color: #797979;
   text-decoration: none;
 }
-.subnav a:hover {
+.subnav a:hover,
+.subnav a.active {
   color: #eeeeee;
 }
 /* The period switch of aggregator pages, top right on the navigation line */

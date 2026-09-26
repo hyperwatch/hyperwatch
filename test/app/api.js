@@ -126,6 +126,40 @@ describe('API navigation', () => {
     assert.match(root, /<base href="\/">/);
   });
 
+  it('keeps the nodes under main listed below main', () => {
+    html.registerSection('logs', 'logs/main');
+    const node = (name, ...children) => ({ name, children });
+    const tree = {
+      ...node(
+        'raw',
+        node(
+          'main',
+          node('api', node('api-rest'), node('graphql', node('graphql-slow'))),
+          node('web')
+        )
+      ),
+      inputs: [],
+    };
+    const req = { path: '/logs/x', query: {} };
+    const text = (name) =>
+      html.nodesNav(req, name, tree).replace(/<[^>]*>/g, '');
+    assert.strictEqual(text('main'), 'raw › main → api · web');
+    assert.strictEqual(
+      text('api'),
+      'raw › main → api · web → api-rest · graphql'
+    );
+    assert.strictEqual(
+      text('graphql-slow'),
+      'raw › main → api · web › graphql › graphql-slow'
+    );
+    // The branch of the current node is highlighted, the current node bold
+    assert.match(
+      html.nodesNav(req, 'graphql-slow', tree),
+      /<a href="logs\/api" class="active">api<\/a>/
+    );
+    assert.match(html.nodesNav(req, 'api', tree), /<strong>api<\/strong>/);
+  });
+
   it('shows the path to a node and the nodes below it', () => {
     html.registerSection('logs', 'logs/main');
     const tree = {
