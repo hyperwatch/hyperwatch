@@ -40,23 +40,6 @@ describe('signature aggregator', () => {
     assert.strictEqual(formatted.lastAddress, '9.9.9.9');
   });
 
-  it('shortens the HTML output', () => {
-    for (const address of ['1.1.1.1', '2.2.2.2', '3.3.3.3', '4.4.4.4']) {
-      aggregator.processLog(log(address, 'b3c4d5e6f7a8b9c0'));
-    }
-
-    const entry = aggregator.entries.first();
-    const formatted = aggregator.formatter.formatObject(entry, 'html');
-    assert.strictEqual(
-      formatted.signature,
-      '<span title="b3c4d5e6f7a8b9c0">b3c4d5e6</span>'
-    );
-    assert.strictEqual(
-      formatted.addresses,
-      '1.1.1.1<br>2.2.2.2<br>3.3.3.3<br><span class="grey">+1 more</span>'
-    );
-  });
-
   it('escapes headers in HTML output', () => {
     const entry = log('1.2.3.4').setIn(['signature', 'headers'], {
       'User-Agent': '<script>',
@@ -67,10 +50,7 @@ describe('signature aggregator', () => {
       aggregator.entries.first(),
       'html'
     );
-    assert.strictEqual(
-      formatted.headers,
-      '<span class="grey">User-Agent:</span> &lt;script&gt;'
-    );
+    assert.strictEqual(formatted.headers, 'User-Agent:&lt;script&gt;');
   });
 
   it('formats an entry without addresses', () => {

@@ -528,27 +528,16 @@ function start() {
 
   aggregator.setIdentifier(identityKey);
 
-  // Without the address column (hidden below), the country reads better
-  // after the hostname
-  const { formatter } = aggregator;
-  const country = formatter.formats.find(([key]) => key === 'country');
-  if (country) {
-    formatter.formats = formatter.formats.filter((f) => f !== country);
-    formatter.insertFormat('country', country[1], { after: 'hostname' });
-  }
-
   // The agent comes from the latest log with one. Format entries are
   // shared with other formatters: replace, don't mutate.
+  const { formatter } = aggregator;
   formatter.formats = formatter.formats.map(([key, fn]) =>
     key === 'agent' ? ['lastAgent', fn] : [key, fn]
   );
   formatter.colors.lastAgent = formatter.colors.agent;
 
-  // Like on addresses, the hostname is in cyan
-  formatter.colors.hostname = 'cyan';
-
   // In HTML, identities link to their logs
-  aggregator.formatter.replaceFormat('identity', (entry, output) => {
+  formatter.replaceFormat('identity', (entry, output) => {
     const identity = entry.get('identity') || '';
     if (output !== 'html') {
       return identity;
@@ -563,11 +552,19 @@ function start() {
     .getNode('main')
     .map((log) => aggregator.processLog(log), 'aggregator');
 
-  // Unnamed identities already show their address, and the hostname column
-  // the last one of the others
+  // No address column: unnamed identities show theirs, and the hostname
+  // column the last one of the others
   api.registerAggregator('identities', aggregator, {
     nav: true,
-    hide: ['address'],
+    columns: [
+      'identity',
+      'hostname',
+      'country',
+      'lastAgent',
+      'count',
+      'execTime',
+      'lastSeen',
+    ],
   });
 }
 

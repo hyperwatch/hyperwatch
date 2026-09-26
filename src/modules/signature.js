@@ -45,43 +45,24 @@ function normalisedIdentityHeader(headers) {
 const addressCount15m = (entry) => countRecent(entry.get('addresses'), 15 * 60);
 const addressCount24h = (entry) => countRecent(entry.get('addresses'));
 
-// Number of addresses listed in HTML tables, the rest being summarised
-const htmlAddressLimit = 3;
-
-const signatureFormat = (entry, output) => {
-  const id = entry.getIn(['signature', 'id']);
-  return output === 'html' && id
-    ? `<span title="${id}">${id.slice(0, 8)}</span>`
-    : id;
-};
-
+// Addresses and headers come from requests: escaped in HTML
 const addressesFormat = (entry, output) => {
   if (!entry.has('addresses')) {
     return '';
   }
-  const addresses = entry.get('addresses').keySeq();
-  if (output !== 'html') {
-    return addresses.slice(0, 10).join('<br>');
-  }
-  const more = addresses.size - htmlAddressLimit;
-  return [
-    ...addresses.slice(0, htmlAddressLimit).map(escapeHtml),
-    ...(more > 0 ? [`<span class="grey">+${more} more</span>`] : []),
-  ].join('<br>');
-};
-
-const headersFormat = (entry, output) => {
-  const headers = Object.entries(entry.getIn(['signature', 'headers']));
-  if (output !== 'html') {
-    return headers.map((header) => header.join(':')).join('<br>');
-  }
-  return headers
-    .map(
-      ([key, value]) =>
-        `<span class="grey">${escapeHtml(key)}:</span> ${escapeHtml(value)}`
-    )
+  return entry
+    .get('addresses')
+    .keySeq()
+    .slice(0, 10)
+    .map((address) => (output === 'html' ? escapeHtml(address) : address))
     .join('<br>');
 };
+
+const headersFormat = (entry, output) =>
+  Object.entries(entry.getIn(['signature', 'headers']))
+    .map((header) => header.join(':'))
+    .map((header) => (output === 'html' ? escapeHtml(header) : header))
+    .join('<br>');
 
 function computeSignature(headers) {
   const string = Object.keys(headers)
@@ -118,7 +99,7 @@ function start() {
   const signatureFormatter = new Formatter();
 
   signatureFormatter.setFormats([
-    ['signature', signatureFormat],
+    ['signature', (entry) => entry.getIn(['signature', 'id'])],
     ['identity', (entry) => entry.get('identity')],
     ['addressCount15m', addressCount15m],
     ['addressCount24h', addressCount24h],
@@ -192,8 +173,20 @@ function start() {
     .getNode('main')
     .map((log) => aggregator.processLog(log), 'aggregator');
 
-  // The User-Agent header is already in the headers column
-  api.registerAggregator('signatures', aggregator, { hide: ['agent'] });
+  // No agent column: the User-Agent header is in the headers column
+  api.registerAggregator('signatures', aggregator, {
+    columns: [
+      'signature',
+      'identity',
+      'addressCount',
+      'addresses',
+      'lastAddress',
+      'headers',
+      'count',
+      'execTime',
+      'lastSeen',
+    ],
+  });
 }
 
 module.exports = {

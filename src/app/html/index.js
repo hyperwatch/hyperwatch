@@ -1,12 +1,13 @@
 // HTML views of the API: minimal pages rendered on the server, with one
-// inline stylesheet and small inline scripts. A richer dashboard is a
+// inline stylesheet and a small inline script. A richer dashboard is a
 // separate project.
+//
+// Every page sets <base> to the mount path, and its links are relative to
+// it: "logs/main", "addresses?sort=count24h".
 const fs = require('fs');
 const path = require('path');
 
-const { omit } = require('lodash');
-
-const { escapeHtml, fillHost, formatTable } = require('../../lib/util');
+const { escapeHtml, formatTable } = require('../../lib/util');
 
 const read = (file) => fs.readFileSync(path.join(__dirname, file), 'utf8');
 
@@ -17,53 +18,73 @@ const followScript = read('scripts/follow.js');
 
 // Sections shown in the top navigation, in this order, once registered
 const order = ['addresses', 'identities', 'logs', 'pipeline'];
-// Section name → the path its navigation link goes to
+// Section name → the page its navigation link opens
 const sections = new Map();
 
-function registerSection(name, path = `/${name}`) {
-  sections.set(name, path);
+function registerSection(name, href = name) {
+  sections.set(name, href);
 }
 
 function hasSection(name) {
   return sections.has(name);
 }
 
-// A link to the main logs kept by a filter (address, identity, signature),
-// or the plain value when logs aren't served. The link is relative to the
-// <base> of every page (the mount path), so formats don't need the request.
+// The current page, relative to <base>
+function here(req) {
+  return req.path.slice(1);
+}
+
+// The address of the mount path, e.g. "https://example.org/_hyperwatch",
+// for http or ws
+function baseAddress(req, scheme) {
+  const secure = req.protocol === 'https' ? 's' : '';
+  return `${scheme}${secure}://${req.get('host')}${req.baseUrl}`;
+}
+
+function link(href, text, className) {
+  return `<a href="${escapeHtml(href)}"${
+    className ? ` class="${className}"` : ''
+  }>${text}</a>`;
+}
+
+// Links to the main logs kept by a filter (address, identity, signature),
+// or the plain value when logs aren't served. A class goes on the link, so
+// its underline has the same color.
 function logsLink(filter, value, className) {
   const text = escapeHtml(value || '');
-  const classAttribute = className ? ` class="${className}"` : '';
   if (!value || !sections.has('logs')) {
-    return className ? `<span${classAttribute}>${text}</span>` : text;
+    return className ? `<span class="${className}">${text}</span>` : text;
   }
-  // The class goes on the link, so its underline has the same color
-  return `<a href="logs/main?${filter}=${encodeURIComponent(
-    value
-  )}"${classAttribute}>${text}</a>`;
+  return link(
+    `logs/main?${filter}=${encodeURIComponent(value)}`,
+    text,
+    className
+  );
+}
+
+// A pipeline node name, linking to its logs when they're served
+function nodeLink(name, query = '') {
+  if (!sections.has('logs')) {
+    return escapeHtml(name);
+  }
+  return link(`logs/${encodeURIComponent(name)}${query}`, escapeHtml(name));
 }
 
 function isUnder(pathname, path) {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
-// Links are prefixed with req.baseUrl so they follow the mount path
 function nav(req) {
-  const base = req.baseUrl || '';
   const home = req.path === '/' || isUnder(req.path, '/status');
   // The home page is the status page, when the status module is active
   const links = [
     sections.has('status')
-      ? `<a href="${base}/"${home ? ' class="active"' : ''}>hyperwatch</a>`
+      ? link('./', 'hyperwatch', home ? 'active' : null)
       : '<span>hyperwatch</span>',
   ];
   for (const name of order.filter((name) => sections.has(name))) {
     const active = isUnder(req.path, `/${name}`);
-    links.push(
-      `<a href="${base}${sections.get(name)}"${
-        active ? ' class="active"' : ''
-      }>${name}</a>`
-    );
+    links.push(link(sections.get(name), name, active ? 'active' : null));
   }
   return `<nav>${links.join('')}</nav>`;
 }
@@ -86,37 +107,24 @@ function page(req, options, body) {
 </html>`;
 }
 
-// Pipeline nodes
-
-// A pipeline node name, linking to its logs when they're served
-function nodeLink(req, name) {
-  if (!sections.has('logs')) {
-    return escapeHtml(name);
-  }
-  return `<a href="${req.baseUrl}/logs/${encodeURIComponent(
-    name
-  )}">${escapeHtml(name)}</a>`;
-}
+// Pipeline
 
 // Log streams label their step "http:/logs/main" or "ws:/logs/main": shown
 // as full addresses, the HTTP one linking to the stream
 function streamLabel(req, label) {
-  const match = /^(http|ws):(\/.*)$/.exec(label);
+  const match = /^(http|ws):\/(.*)$/.exec(label);
   if (!match) {
     return escapeHtml(label);
   }
   const [, scheme, path] = match;
-  const secure = req.protocol === 'https' ? 's' : '';
-  const url = `${scheme}${secure}://${req.get('host')}${req.baseUrl}${path}`;
-  return scheme === 'http'
-    ? `<a href="${escapeHtml(`${req.baseUrl}${path}`)}">${escapeHtml(url)}</a>`
-    : escapeHtml(url);
+  const address = escapeHtml(`${baseAddress(req, scheme)}/${path}`);
+  return scheme === 'http' ? link(path, address) : address;
 }
 
 function renderTree(req, node) {
   const label = [];
   if (node.name) {
-    label.push(`<strong>${nodeLink(req, node.name)}</strong>`);
+    label.push(`<strong>${nodeLink(node.name)}</strong>`);
   }
   if (node.op) {
     label.push(`<span class="op">[${node.op}]</span>`);
@@ -130,74 +138,68 @@ function renderTree(req, node) {
   if (node.label) {
     label.push(`<span class="label">${streamLabel(req, node.label)}</span>`);
   }
-
-  let html = `<li>${label.join(' ')}`;
-  if (node.children && node.children.length > 0) {
-    html += '<ul>';
-    for (const child of node.children) {
-      html += renderTree(req, child);
-    }
-    html += '</ul>';
-  }
-  html += '</li>';
-  return html;
+  const children = (node.children || [])
+    .map((child) => renderTree(req, child))
+    .join('');
+  return `<li>${label.join(' ')}${children ? `<ul>${children}</ul>` : ''}</li>`;
 }
 
-function renderInputs(req, inputs) {
-  if (!inputs || inputs.length === 0) {
-    return '';
-  }
-  let html = '<ul>';
-  for (const input of inputs) {
-    html += `<li><strong>${input.name}</strong> <span class="op">[input]</span>`;
-    if (input.status) {
-      const status = fillHost(input.status, {
-        host: escapeHtml(`${req.get('host')}${req.baseUrl}`),
-        secure: req.protocol === 'https',
-      });
-      html += ` <span class="module">(${status})</span>`;
-    }
-    html += ` accepted: ${input.accepted}, rejected: ${input.rejected}`;
-    if (input.tree) {
-      html += `<ul>${renderTree(req, input.tree)}</ul>`;
-    }
-    html += '</li>';
-  }
-  html += '</ul>';
-  return html;
+// statusFor(status) fills the host of input statuses, see fillHost()
+function renderInputs(req, inputs, statusFor) {
+  return (inputs || [])
+    .map(
+      (input) =>
+        `<li><strong>${input.name}</strong> <span class="op">[input]</span>${
+          input.status
+            ? ` <span class="module">(${statusFor(input.status)})</span>`
+            : ''
+        } accepted: ${input.accepted}, rejected: ${input.rejected}${
+          input.tree ? `<ul>${renderTree(req, input.tree)}</ul>` : ''
+        }</li>`
+    )
+    .join('');
 }
 
-function nodesPage(req, nodes) {
-  return page(
-    req,
-    { title: 'nodes' },
-    formatTable(nodes.map((name) => ({ name: nodeLink(req, name) })))
-  );
-}
-
-function pipelinePage(req, tree) {
+function pipelinePage(req, tree, statusFor) {
   return page(
     req,
     { title: 'pipeline' },
-    `<div class="tree">${renderInputs(req, tree.inputs)}<ul>${renderTree(req, tree)}</ul></div>`
+    `<div class="tree"><ul>${renderInputs(
+      req,
+      tree.inputs,
+      statusFor
+    )}</ul><ul>${renderTree(req, tree)}</ul></div>`
   );
 }
 
 // Aggregators
 
-// Columns left out of the aggregator HTML tables to save screen space. They
-// stay in the JSON and CSV formats, and counts can still be used to sort.
-const hiddenColumns = [
-  '2xx15m',
-  '2xx24h',
-  '4xx15m',
-  '4xx24h',
-  'city',
-  'os',
-  'language',
-  'signatureCount15m',
-  'signatureCount24h',
-];
+// Aggregator pages show the last 15 minutes, or 24 hours with ?period=24h
+function periodOf(req) {
+  return req.query.period === '24h' ? '24h' : '15m';
+}
+
+// Switching period keeps the query but the sort, which goes back to the
+// count of the period
+function periodSwitch(req) {
+  const current = periodOf(req);
+  const links = ['15m', '24h'].map((period) => {
+    if (period === current) {
+      return `<strong>${period}</strong>`;
+    }
+    const query = new URLSearchParams(req.query);
+    query.delete('sort');
+    query.delete('period');
+    if (period === '24h') {
+      query.set('period', period);
+    }
+    const search = query.toString();
+    return link(`${here(req)}${search ? `?${search}` : ''}`, period);
+  });
+  return `<div class="subnav periods">${links.join(
+    '<span class="grey"> · </span>'
+  )}</div>`;
+}
 
 // Column sorted by a sorter of another name
 const sortKeys = { lastSeen: 'latest' };
@@ -212,11 +214,8 @@ function sortHeading(req, sorters, sort) {
     }
     const query = new URLSearchParams(req.query);
     query.set('sort', key);
-    // A full path: relative links resolve from <base>, the mount path
-    const href = escapeHtml(`${req.baseUrl}${req.path}?${query}`);
-    return key === sort
-      ? `<a href="${href}" class="sorted">${column} ▾</a>`
-      : `<a href="${href}">${column}</a>`;
+    const text = key === sort ? `${column} ▾` : column;
+    return link(`${here(req)}?${query}`, text, key === sort ? 'sorted' : null);
   };
 }
 
@@ -235,50 +234,15 @@ function shortenLastSeen(rows) {
   );
 }
 
-// Aggregator pages show the last 15 minutes, or 24 hours with ?period=24h
-const periods = ['15m', '24h'];
-
-function periodOf(req) {
-  return req.query.period === '24h' ? '24h' : '15m';
-}
-
-// Links to the other period keep the query, and move a sort on a period
-// column (count15m) to the same column of the other period (count24h)
-function periodSwitch(req, sorters) {
-  const current = periodOf(req);
-  const links = periods.map((period) => {
-    if (period === current) {
-      return `<strong>${period}</strong>`;
-    }
-    const query = new URLSearchParams(req.query);
-    if (period === '15m') {
-      query.delete('period');
-    } else {
-      query.set('period', period);
-    }
-    const sort = query.get('sort');
-    if (sort && sort.endsWith(current)) {
-      const moved = `${sort.slice(0, -current.length)}${period}`;
-      if (sorters && sorters[moved]) {
-        query.set('sort', moved);
-      }
-    }
-    const search = query.toString();
-    return `<a href="${escapeHtml(
-      `${req.baseUrl}${req.path}${search ? `?${search}` : ''}`
-    )}">${period}</a>`;
-  });
-  return `<div class="subnav periods">${links.join(
-    '<span class="grey"> · </span>'
-  )}</div>`;
-}
-
 /**
  * The HTML view of an aggregator: render(req, { rows, sorters, sort }).
  * - nav: link the page in the top navigation
- * - hide: more columns to leave out of the table
+ * - columns: the columns of the table, in order. A column without a period
+ *   ("count") is the one of the selected period ("count15m"), and columns
+ *   the rows don't have (e.g. of an inactive module) are skipped. By
+ *   default, all columns of the selected period.
  */
-function aggregatorView(name, { nav = false, hide = [] } = {}) {
+function aggregatorView(name, { nav = false, columns } = {}) {
   if (nav) {
     registerSection(name);
   }
@@ -290,34 +254,32 @@ function aggregatorView(name, { nav = false, hide = [] } = {}) {
         '<p class="grey">No entries yet: they appear as logs come in.</p>'
       );
     }
-    // Only the columns of the selected period (…15m or …24h) are shown
-    const other = periodOf(req) === '15m' ? '24h' : '15m';
-    const hidden = [
-      ...hiddenColumns,
-      ...hide,
-      ...Object.keys(rows[0]).filter((key) => key.endsWith(other)),
-    ];
+    const period = periodOf(req);
+    const other = period === '15m' ? '24h' : '15m';
+    const keys = columns
+      ? columns
+          .map((column) => (column in rows[0] ? column : `${column}${period}`))
+          .filter((key) => key in rows[0])
+      : Object.keys(rows[0]).filter((key) => !key.endsWith(other));
+    const table = shortenLastSeen(rows).map((row) =>
+      Object.fromEntries(keys.map((key) => [key, row[key]]))
+    );
     return page(
       req,
       { title: name },
-      `${periodSwitch(req, sorters)}${formatTable(
-        shortenLastSeen(rows).map((row) => omit(row, hidden)),
-        { heading: sortHeading(req, sorters, sort) }
-      )}`
+      `${periodSwitch(req)}${formatTable(table, {
+        heading: sortHeading(req, sorters, sort),
+      })}`
     );
   };
 }
 
 // Logs
 
-// The opening part of a log stream page. Latest lines are at the bottom,
-// like a terminal, or at the top with ?latest=top. The stream container is
-// never closed: lines keep being appended to it.
 // Where a pipeline node is in the tree: its named ancestors and the named
 // nodes one level below it (unnamed steps, like maps and filters, are
 // skipped). Returns null when the node isn't in the tree.
 function findNode(tree, name) {
-  const roots = [tree, ...(tree.inputs || []).map((input) => input.tree)];
   const search = (node, ancestors) => {
     if (!node) {
       return null;
@@ -334,6 +296,7 @@ function findNode(tree, name) {
     }
     return null;
   };
+  const roots = [tree, ...(tree.inputs || []).map((input) => input.tree)];
   for (const root of roots) {
     const found = search(root, []);
     if (found) {
@@ -357,32 +320,19 @@ function nodesNav(req, name, tree) {
     return '';
   }
   const query = new URLSearchParams(req.query).toString();
-  const link = (node) =>
-    `<a href="${escapeHtml(
-      `${req.baseUrl}/logs/${encodeURIComponent(node)}${query ? `?${query}` : ''}`
-    )}">${escapeHtml(node)}</a>`;
+  const nodeWithQuery = (node) => nodeLink(node, query ? `?${query}` : '');
   const path = [
-    ...found.ancestors.map(link),
+    ...found.ancestors.map(nodeWithQuery),
     `<strong>${escapeHtml(name)}</strong>`,
   ].join('<span class="grey"> › </span>');
   const children = namedChildren(found.node);
   return `<div class="subnav">${path}${
     children.length > 0
       ? `<span class="grey"> → </span>${children
-          .map(link)
+          .map(nodeWithQuery)
           .join('<span class="grey"> · </span>')}`
       : ''
   }</div>`;
-}
-
-// header: more HTML under the navigation, e.g. nodesNav()
-function streamHead(req, { title, header = '' }) {
-  const latestOnTop = req.query.latest === 'top';
-  return `${head(req, { title, bodyClass: 'stream-page' })}${header}${streamFilters(
-    req
-  )}${latestOnTop ? '' : `<script>${followScript}</script>`}<main class="stream${
-    latestOnTop ? ' latest-top' : ''
-  }">`;
 }
 
 // A line saying which logs a filtered stream keeps, linking to all of them
@@ -393,9 +343,19 @@ function streamFilters(req) {
   if (filters.length === 0) {
     return '';
   }
-  return `<p class="grey">Only logs with ${filters.join(', ')} · <a href="${
-    req.baseUrl
-  }${req.path}">all logs</a></p>`;
+  return `<p class="grey">Only logs with ${filters.join(', ')} · ${link(
+    here(req),
+    'all logs'
+  )}</p>`;
+}
+
+// The opening part of a log stream page, latest lines at the bottom like a
+// terminal. header: more HTML under the navigation, e.g. nodesNav(). The
+// stream container is never closed: lines keep being appended to it.
+function streamHead(req, { title, header = '' }) {
+  return `${head(req, { title, bodyClass: 'stream-page' })}${header}${streamFilters(
+    req
+  )}<script>${followScript}</script><main class="stream">`;
 }
 
 function streamLine(line) {
@@ -404,14 +364,14 @@ function streamLine(line) {
 
 module.exports = {
   aggregatorView,
+  baseAddress,
   hasSection,
-  logsLink,
   head,
-  nodesNav,
+  logsLink,
   nav,
-  nodesPage,
-  pipelinePage,
+  nodesNav,
   page,
+  pipelinePage,
   registerSection,
   streamHead,
   streamLine,

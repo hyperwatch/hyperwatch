@@ -7,7 +7,7 @@ const history = require('./history');
 
 function start() {
   // The logs section opens on the main node, /logs redirects there
-  html.registerSection('logs', '/logs/main');
+  html.registerSection('logs', 'logs/main');
   api.get('/logs', (req, res) => {
     res.redirect(`${req.baseUrl}/logs/main`);
   });

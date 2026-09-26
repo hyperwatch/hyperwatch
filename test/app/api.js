@@ -95,8 +95,8 @@ describe('API navigation', () => {
     const response = await fetch(`${baseUrl}/`);
     assert.strictEqual(response.status, 200);
     const body = await response.text();
-    assert.match(body, /<nav><a href="\/" class="active">hyperwatch<\/a>/);
-    assert.match(body, /<a href="\/identities">identities<\/a>/);
+    assert.match(body, /<nav><a href="\.\/" class="active">hyperwatch<\/a>/);
+    assert.match(body, /<a href="identities">identities<\/a>/);
   });
 
   it('says when an aggregator has no entries yet', async () => {
@@ -127,6 +127,7 @@ describe('API navigation', () => {
   });
 
   it('shows the path to a node and the nodes below it', () => {
+    html.registerSection('logs', 'logs/main');
     const tree = {
       name: 'raw',
       children: [
@@ -147,14 +148,11 @@ describe('API navigation', () => {
     const body = html.nodesNav(req, 'main', tree);
     assert.match(
       body,
-      /<a href="\/hw\/logs\/raw\?grep=x">raw<\/a><span class="grey"> › <\/span><strong>main<\/strong>/
+      /<a href="logs\/raw\?grep=x">raw<\/a><span class="grey"> › <\/span><strong>main<\/strong>/
     );
     // Named nodes one level below, through unnamed steps, links encoded
-    assert.match(
-      body,
-      /<a href="\/hw\/logs\/a%23%3Cb%3E\?grep=x">a#&lt;b&gt;<\/a>/
-    );
-    assert.match(body, /<a href="\/hw\/logs\/slow\?grep=x">slow<\/a>/);
+    assert.match(body, /<a href="logs\/a%23%3Cb%3E\?grep=x">a#&lt;b&gt;<\/a>/);
+    assert.match(body, /<a href="logs\/slow\?grep=x">slow<\/a>/);
     assert.doesNotMatch(body, /extra-slow/);
     assert.strictEqual(html.nodesNav(req, 'unknown', tree), '');
   });
@@ -182,15 +180,15 @@ describe('API navigation', () => {
 
   it('marks the current section as active', async () => {
     const body = await (await fetch(`${baseUrl}/identities`)).text();
-    assert.match(body, /<a href="\/identities" class="active">identities/);
-    assert.match(body, /<a href="\/">hyperwatch/);
+    assert.match(body, /<a href="identities" class="active">identities/);
+    assert.match(body, /<a href="\.\/">hyperwatch/);
   });
 
   it('serves the pipeline tree, linked from the navigation', async () => {
     const response = await fetch(`${baseUrl}/pipeline`);
     assert.strictEqual(response.status, 200);
     const body = await response.text();
-    assert.match(body, /<a href="\/pipeline" class="active">pipeline<\/a>/);
+    assert.match(body, /<a href="pipeline" class="active">pipeline<\/a>/);
     assert.match(body, /<div class="tree">/);
   });
 
@@ -214,7 +212,7 @@ describe('API navigation', () => {
     );
     assert.match(
       pipelineHtml,
-      /<a href="\/hw\/logs\/main">https:\/\/example\.org\/hw\/logs\/main<\/a>/
+      /<a href="logs\/main">https:\/\/example\.org\/hw\/logs\/main<\/a>/
     );
     assert.match(pipelineHtml, />wss:\/\/example\.org\/hw\/logs\/main</);
   });
@@ -222,21 +220,15 @@ describe('API navigation', () => {
   it('links pipeline nodes to their logs, once logs are served', async () => {
     html.registerSection('logs');
     const body = await (await fetch(`${baseUrl}/_hyperwatch/pipeline`)).text();
-    assert.match(
-      body,
-      /<strong><a href="\/_hyperwatch\/logs\/raw">raw<\/a><\/strong>/
-    );
+    assert.match(body, /<strong><a href="logs\/raw">raw<\/a><\/strong>/);
   });
 
-  it('prefixes the links with the mount path', async () => {
+  it('links relatively to the mount path', async () => {
     const body = await (
       await fetch(`${baseUrl}/_hyperwatch/identities`)
     ).text();
-    assert.match(body, /<a href="\/_hyperwatch\/">hyperwatch/);
-    assert.match(
-      body,
-      /<a href="\/_hyperwatch\/identities" class="active">identities/
-    );
+    assert.match(body, /<base href="\/_hyperwatch\/">/);
+    assert.match(body, /<a href="identities" class="active">identities/);
   });
 });
 
@@ -251,23 +243,27 @@ describe('API aggregator columns', () => {
   });
 
   before(async () => {
-    api.registerAggregator('columns-test', {
-      ...aggregator,
-      sorters: { count15m: () => 0, count24h: () => 0, latest: () => 0 },
-      getData: () =>
-        fromJS(
-          rows || [
-            {
-              name: 'bot',
-              count15m: 5,
-              count24h: 8,
-              '2xx15m': 3,
-              os: 'Linux',
-              lastSeen: '',
-            },
-          ]
-        ),
-    });
+    api.registerAggregator(
+      'columns-test',
+      {
+        ...aggregator,
+        sorters: { count15m: () => 0, count24h: () => 0, latest: () => 0 },
+        getData: () =>
+          fromJS(
+            rows || [
+              {
+                name: 'bot',
+                count15m: 5,
+                count24h: 8,
+                '2xx15m': 3,
+                os: 'Linux',
+                lastSeen: '',
+              },
+            ]
+          ),
+      },
+      { columns: ['name', 'count', 'lastSeen'] }
+    );
 
     server = http.createServer(api);
     const port = await listen(server);
@@ -292,18 +288,18 @@ describe('API aggregator columns', () => {
     assert.match(body, /<th>name<\/th>/);
     assert.match(
       body,
-      /<th><a href="\/columns-test\?limit=5&amp;sort=count15m">count15m<\/a><\/th>/
+      /<th><a href="columns-test\?limit=5&amp;sort=count15m">count15m<\/a><\/th>/
     );
     assert.match(
       body,
-      /<th><a href="\/columns-test\?limit=5&amp;sort=latest" class="sorted">lastSeen ▾<\/a><\/th>/
+      /<th><a href="columns-test\?limit=5&amp;sort=latest" class="sorted">lastSeen ▾<\/a><\/th>/
     );
   });
 
   it('shows the columns of the last 15 minutes by default', async () => {
     const body = await (await fetch(`${baseUrl}/columns-test`)).text();
     assert.match(body, /<strong>15m<\/strong>/);
-    assert.match(body, /<a href="\/columns-test\?period=24h">24h<\/a>/);
+    assert.match(body, /<a href="columns-test\?period=24h">24h<\/a>/);
     assert.match(body, /count15m/);
     assert.doesNotMatch(body, /count24h/);
   });
@@ -313,19 +309,19 @@ describe('API aggregator columns', () => {
       await fetch(`${baseUrl}/columns-test?period=24h`)
     ).text();
     assert.match(body, /<strong>24h<\/strong>/);
-    assert.match(body, /<a href="\/columns-test">15m<\/a>/);
+    assert.match(body, /<a href="columns-test">15m<\/a>/);
     // Sorted by the count of the period by default
     assert.match(body, /class="sorted">count24h ▾/);
     assert.doesNotMatch(body, /count15m/);
   });
 
-  it('moves the sort to the other period when switching', async () => {
+  it('resets the sort when switching period', async () => {
     const body = await (
       await fetch(`${baseUrl}/columns-test?sort=count15m&limit=5`)
     ).text();
     assert.match(
       body,
-      /<a href="\/columns-test\?sort=count24h&amp;limit=5&amp;period=24h">24h<\/a>/
+      /<a href="columns-test\?limit=5&amp;period=24h">24h<\/a>/
     );
   });
 

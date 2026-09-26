@@ -38,8 +38,6 @@ function handler(req, res) {
   }
 
   const data = raw ? rawData : rawData.map((entry) => mapper(entry, format));
-  const host = `${req.get('host')}${req.baseUrl}`;
-  const secure = req.protocol === 'https';
 
   if (format === 'json') {
     res.send(
@@ -47,7 +45,9 @@ function handler(req, res) {
         ? data
         : data.map((row) => ({
             ...row,
-            status: fillHost(row.status, { host, secure }),
+            status: fillHost(row.status, (scheme) =>
+              html.baseAddress(req, scheme)
+            ),
           }))
     );
   } else {
@@ -56,7 +56,9 @@ function handler(req, res) {
     const rowClass = (entry) => (entry.count15m ? null : 'grey');
     const rows = data.map((row) => ({
       ...row,
-      status: fillHost(row.status, { host: escapeHtml(host), secure }),
+      status: fillHost(row.status, (scheme) =>
+        escapeHtml(html.baseAddress(req, scheme))
+      ),
     }));
     res.send(
       html.page(req, { title: 'status' }, formatTable(rows, { rowClass }))

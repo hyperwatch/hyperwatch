@@ -45,6 +45,9 @@ defaultFormatter.setFormats([
 
   ['lastSeen', lastSeen],
 ]);
+// The hostname is the highlight of the tables, the address plain
+defaultFormatter.colors.hostname = defaultFormatter.colors.address;
+delete defaultFormatter.colors.address;
 
 const defaultEnricher = (entry, log) => {
   for (const field of [
