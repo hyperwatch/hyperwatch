@@ -6,7 +6,7 @@ const express = require('express');
 const monitoring = require('../lib/monitoring');
 const persistence = require('../lib/persistence');
 const pipeline = require('../lib/pipeline');
-const { logMatches } = require('../lib/util');
+const { escapeHtml, fillHost, logMatches } = require('../lib/util');
 
 const html = require('./html');
 const wsServer = require('./ws-server');
@@ -46,20 +46,18 @@ app.get('/nodes{.:format}', (req, res) => {
       res.json(nodes);
     }
   } else {
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(
-      view === 'tree'
-        ? html.pipelinePage(req, pipeline.getTree())
-        : html.nodesPage(req, nodes)
-    );
+    // The HTML view of the nodes is the pipeline page
+    res.redirect(`${req.baseUrl}/pipeline`);
   }
 });
 
 // The pipeline tree: inputs, nodes and what runs on them
 html.registerSection('pipeline');
 app.get('/pipeline', (req, res) => {
+  const statusFor = (status) =>
+    fillHost(status, (scheme) => escapeHtml(html.baseAddress(req, scheme)));
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.send(html.pipelinePage(req, pipeline.getTree()));
+  res.send(html.pipelinePage(req, pipeline.getTree(), statusFor));
 });
 
 app.streamToHttp = (
@@ -154,7 +152,7 @@ app.streamToHttp = (
   }, `http:${endpoint}`);
 };
 
-// htmlOptions: see html.aggregatorView()
+// htmlOptions: see html.aggregatorView() (nav, columns)
 app.registerAggregator = (name, aggregator, htmlOptions) => {
   const htmlView = html.aggregatorView(name, htmlOptions);
   persistence.register(name, aggregator);

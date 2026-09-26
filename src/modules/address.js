@@ -63,56 +63,38 @@ function start() {
     entry.has('signatures') ? entry.update('signatures', prune) : entry
   );
 
-  // Rows are addresses: the address comes first. Identity and agent come
-  // from the latest log with one: lastIdentity next to lastAgent.
+  // Identity and agent come from the latest log with one
   const { formatter } = aggregator;
   const identity = formatter.formats.find(([key]) => key === 'identity');
-  if (identity) {
-    formatter.formats = formatter.formats.filter((f) => f !== identity);
-    formatter.insertFormat('lastIdentity', identity[1], {
-      after: 'hostname',
-      color: formatter.colors.identity,
+  const agent = formatter.formats.find(([key]) => key === 'agent');
+  formatter.formats = formatter.formats.filter(
+    (format) => format !== identity && format !== agent
+  );
+  // In HTML, the last identity falls back to the agent, in grey
+  formatter.insertFormat(
+    'lastIdentity',
+    (entry, output) => {
+      const value = identity ? identity[1](entry, output) : '';
+      if (value || output !== 'html' || !agent) {
+        return value;
+      }
+      const lastAgent = agent[1](entry, output);
+      return lastAgent ? `<span class="grey">${lastAgent}</span>` : '';
+    },
+    { after: 'hostname', color: formatter.colors.identity }
+  );
+  if (agent) {
+    formatter.insertFormat('lastAgent', agent[1], {
+      after: 'lastIdentity',
+      color: formatter.colors.agent,
     });
   }
-  // The country reads better after the hostname, like on identities
-  const country = formatter.formats.find(([key]) => key === 'country');
-  if (country) {
-    formatter.formats = formatter.formats.filter((f) => f !== country);
-    formatter.insertFormat('country', country[1], { after: 'hostname' });
-  }
-
-  // The hostname is the highlight here, the address a plain link
-  formatter.colors.hostname = formatter.colors.address;
-  delete formatter.colors.address;
 
   // In HTML, addresses link to their logs
   formatter.replaceFormat('address', (entry, output) => {
     const address = entry.getIn(['address', 'value']) || '';
     return output === 'html' ? html.logsLink('address', address) : address;
   });
-
-  // Format entries are shared with other formatters: replace, don't mutate
-  formatter.formats = formatter.formats.map(([key, fn]) =>
-    key === 'agent' ? ['lastAgent', fn] : [key, fn]
-  );
-  formatter.colors.lastAgent = formatter.colors.agent;
-
-  // In HTML, lastIdentity falls back to the agent, in grey, and the lastAgent
-  // column is hidden (JSON and CSV keep both)
-  const lastIdentity = formatter.formats.find(
-    ([key]) => key === 'lastIdentity'
-  );
-  const lastAgent = formatter.formats.find(([key]) => key === 'lastAgent');
-  if (lastIdentity && lastAgent) {
-    formatter.replaceFormat('lastIdentity', (entry, output) => {
-      const value = lastIdentity[1](entry, output);
-      if (value || output !== 'html') {
-        return value;
-      }
-      const agent = lastAgent[1](entry, output);
-      return agent ? `<span class="grey">${agent}</span>` : '';
-    });
-  }
 
   aggregator.formatter.insertFormat('signatureCount15m', signatureCount15m, {
     before: 'count15m',
@@ -130,7 +112,15 @@ function start() {
 
   api.registerAggregator('addresses', aggregator, {
     nav: true,
-    hide: ['lastAgent'],
+    columns: [
+      'address',
+      'hostname',
+      'country',
+      'lastIdentity',
+      'count',
+      'execTime',
+      'lastSeen',
+    ],
   });
 }
 

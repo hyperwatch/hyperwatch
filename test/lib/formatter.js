@@ -74,18 +74,22 @@ describe('log filters', () => {
 describe('fillHost', () => {
   it('fills the host placeholder of input statuses', () => {
     assert.strictEqual(
-      fillHost('Listening on http://__HOST__/input/log', {
-        host: 'example.org/hw',
-      }),
+      fillHost(
+        'Listening on http://__HOST__/input/log',
+        (scheme) => `${scheme}://example.org/hw`
+      ),
       'Listening on http://example.org/hw/input/log'
     );
     assert.strictEqual(
-      fillHost('Listening on ws://__HOST__/input/log', {
-        host: 'example.org',
-        secure: true,
-      }),
+      fillHost(
+        'Listening on ws://__HOST__/input/log',
+        (scheme) => `${scheme}s://example.org`
+      ),
       'Listening on wss://example.org/input/log'
     );
-    assert.strictEqual(fillHost(null, { host: 'example.org' }), null);
+    assert.strictEqual(
+      fillHost(null, () => 'unused'),
+      null
+    );
   });
 });

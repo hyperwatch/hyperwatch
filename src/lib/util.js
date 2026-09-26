@@ -111,13 +111,13 @@ exports.logMatches = (log, { identity, signature, address } = {}) =>
     (log.getIn(['address', 'value']) || log.getIn(['request', 'address'])) ===
       address);
 
-// Inputs report where they listen with a __HOST__ placeholder, as only
-// requests know the host (and mount path) they are reached on
-exports.fillHost = (text, { host, secure = false }) =>
+// Inputs report where they listen as "http://__HOST__/input/log", as only
+// requests know the host (and mount path) they are reached on.
+// addressFor(scheme) gives it, e.g. "https://example.org/_hyperwatch".
+exports.fillHost = (text, addressFor) =>
   typeof text === 'string'
-    ? text.replace(
-        /\b(http|ws):\/\/__HOST__/g,
-        (match, scheme) => `${scheme}${secure ? 's' : ''}://${host}`
+    ? text.replace(/\b(http|ws):\/\/__HOST__/g, (match, scheme) =>
+        addressFor(scheme)
       )
     : text;
 

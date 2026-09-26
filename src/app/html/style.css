@@ -102,7 +102,7 @@ nav a:hover {
   margin-left: 0.3em;
 }
 
-/* Log streams: the nav stays visible, latest lines at the bottom or top */
+/* Log streams: the navigation stays visible */
 /* Second line of navigation: log nodes, aggregator periods */
 .subnav {
   white-space: normal;
@@ -128,10 +128,6 @@ nav a:hover {
   margin-top: -8px;
   padding-top: 8px;
   background: #2e2e2e;
-}
-.stream.latest-top {
-  display: flex;
-  flex-direction: column-reverse;
 }
 /* One line per log, cut at the edge of the screen (still copied whole) */
 .stream > div {
