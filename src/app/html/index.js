@@ -98,6 +98,21 @@ function nodeLink(req, name) {
   )}">${escapeHtml(name)}</a>`;
 }
 
+// Log streams label their step "http:/logs/main" or "ws:/logs/main": shown
+// as full addresses, the HTTP one linking to the stream
+function streamLabel(req, label) {
+  const match = /^(http|ws):(\/.*)$/.exec(label);
+  if (!match) {
+    return escapeHtml(label);
+  }
+  const [, scheme, path] = match;
+  const secure = req.protocol === 'https' ? 's' : '';
+  const url = `${scheme}${secure}://${req.get('host')}${req.baseUrl}${path}`;
+  return scheme === 'http'
+    ? `<a href="${escapeHtml(`${req.baseUrl}${path}`)}">${escapeHtml(url)}</a>`
+    : escapeHtml(url);
+}
+
 function renderTree(req, node) {
   const label = [];
   if (node.name) {
@@ -113,7 +128,7 @@ function renderTree(req, node) {
     label.push(`<span class="fn">${node.fnName}</span>`);
   }
   if (node.label) {
-    label.push(`<span class="label">${node.label}</span>`);
+    label.push(`<span class="label">${streamLabel(req, node.label)}</span>`);
   }
 
   let html = `<li>${label.join(' ')}`;
