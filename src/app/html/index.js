@@ -20,6 +20,8 @@ const followScript = read('scripts/follow.js');
 const order = ['addresses', 'identities', 'logs', 'pipeline'];
 // Section name → the page its navigation link opens
 const sections = new Map();
+// Aggregator sections, whose links keep the selected period
+const periodSections = new Set();
 
 function registerSection(name, href = name) {
   sections.set(name, href);
@@ -88,7 +90,11 @@ function nav(req) {
   ];
   for (const name of order.filter((name) => sections.has(name))) {
     const active = isUnder(req.path, `/${name}`);
-    links.push(link(sections.get(name), name, active ? 'active' : null));
+    const period =
+      periodSections.has(name) && periodOf(req) === '24h' ? '?period=24h' : '';
+    links.push(
+      link(`${sections.get(name)}${period}`, name, active ? 'active' : null)
+    );
   }
   return `<nav>${links.join('')}</nav>`;
 }
@@ -249,6 +255,7 @@ function shortenLastSeen(rows) {
 function aggregatorView(name, { nav = false, columns } = {}) {
   if (nav) {
     registerSection(name);
+    periodSections.add(name);
   }
   return (req, { rows, sorters, sort }) => {
     if (rows.length === 0) {
