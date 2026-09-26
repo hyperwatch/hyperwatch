@@ -159,6 +159,22 @@ describe('API navigation', () => {
     assert.strictEqual(html.nodesNav(req, 'unknown', tree), '');
   });
 
+  it('fills the host of input statuses on the status page', async () => {
+    monitoring.register({
+      name: 'host-test',
+      speeds: ['accepted'],
+      status: 'Listening on http://__HOST__/input/log',
+    });
+    const body = await (await fetch(`${baseUrl}/_hyperwatch/`)).text();
+    const host = new URL(baseUrl).host;
+    assert.ok(
+      body.includes(`Listening on http://${host}/_hyperwatch/input/log`)
+    );
+    const json = await (await fetch(`${baseUrl}/status.json`)).json();
+    const entry = json.find((row) => row.name === 'host-test');
+    assert.strictEqual(entry.status, `Listening on http://${host}/input/log`);
+  });
+
   it('only links the registered sections', async () => {
     const body = await (await fetch(`${baseUrl}/`)).text();
     assert.doesNotMatch(body, /href="\/format-test"/);

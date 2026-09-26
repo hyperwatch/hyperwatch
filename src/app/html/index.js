@@ -6,7 +6,7 @@ const path = require('path');
 
 const { omit } = require('lodash');
 
-const { escapeHtml, formatTable } = require('../../lib/util');
+const { escapeHtml, fillHost, formatTable } = require('../../lib/util');
 
 const read = (file) => fs.readFileSync(path.join(__dirname, file), 'utf8');
 
@@ -136,7 +136,11 @@ function renderInputs(req, inputs) {
   for (const input of inputs) {
     html += `<li><strong>${input.name}</strong> <span class="op">[input]</span>`;
     if (input.status) {
-      html += ` <span class="module">(${input.status})</span>`;
+      const status = fillHost(input.status, {
+        host: escapeHtml(`${req.get('host')}${req.baseUrl}`),
+        secure: req.protocol === 'https',
+      });
+      html += ` <span class="module">(${status})</span>`;
     }
     html += ` accepted: ${input.accepted}, rejected: ${input.rejected}`;
     if (input.tree) {
