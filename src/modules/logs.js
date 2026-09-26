@@ -6,11 +6,10 @@ const pipeline = require('../lib/pipeline');
 const history = require('./history');
 
 function start() {
-  html.registerSection('logs');
-
+  // The logs section opens on the main node, /logs redirects there
+  html.registerSection('logs', '/logs/main');
   api.get('/logs', (req, res) => {
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(html.logsPage(req, Object.keys(pipeline.nodes)));
+    res.redirect(`${req.baseUrl}/logs/main`);
   });
 
   for (const [name, stream] of Object.entries(pipeline.nodes)) {
@@ -23,6 +22,7 @@ function start() {
       name: `HTTP stream (${name} logs)`,
       monitoringEnabled: true,
       history: (limit, filters) => history.latest(name, limit, filters),
+      header: (req) => html.nodesNav(req, name, pipeline.getTree()),
     });
   }
 }

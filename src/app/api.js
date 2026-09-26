@@ -72,6 +72,8 @@ app.streamToHttp = (
     // history(limit, filters): the latest logs matching the filters, newest
     // first, shown before live ones
     history,
+    // header(req): more HTML under the navigation of the stream page
+    header,
   } = {}
 ) => {
   const requests = {};
@@ -126,7 +128,12 @@ app.streamToHttp = (
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'no-cache');
 
-    res.write(html.streamHead(req, { title: endpoint.slice(1) }));
+    res.write(
+      html.streamHead(req, {
+        title: endpoint.slice(1),
+        header: header ? header(req) : '',
+      })
+    );
 
     // The latest logs first, oldest first like live ones: ?history=<n>
     // (default 100), ?history=0 to only show live logs
