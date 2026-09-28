@@ -143,26 +143,40 @@ describe('API navigation', () => {
     const req = { path: '/logs/x', query: {} };
     const text = (name) =>
       html.nodesNav(req, name, tree).replace(/<[^>]*>/g, '');
-    assert.strictEqual(text('main'), 'raw › main → api · web');
+    assert.strictEqual(text('main'), 'raw › main › api · web');
     assert.strictEqual(
       text('api'),
-      'raw › main → api · web → api-rest · graphql'
+      'raw › main › api · web › api-rest · graphql'
     );
     // Every level keeps its nodes listed
     assert.strictEqual(
       text('graphql-slow'),
-      'raw › main → api · web → api-rest · graphql → graphql-slow'
+      'raw › main › api · web › api-rest · graphql › graphql-slow'
     );
     assert.strictEqual(
       text('api-rest'),
-      'raw › main → api · web → api-rest · graphql'
+      'raw › main › api · web › api-rest · graphql'
     );
     // The nodes on the path are highlighted, the current node bold
     const deep = html.nodesNav(req, 'graphql-slow', tree);
+    assert.match(deep, /<a href="logs\/raw" class="active">raw<\/a>/);
+    assert.match(deep, /<a href="logs\/main" class="active">main<\/a>/);
     assert.match(deep, /<a href="logs\/api" class="active">api<\/a>/);
+    assert.match(deep, /<a href="logs\/web">web<\/a>/);
     assert.match(deep, /<a href="logs\/graphql" class="active">graphql<\/a>/);
     assert.match(deep, /<strong>graphql-slow<\/strong>/);
     assert.match(html.nodesNav(req, 'api', tree), /<strong>api<\/strong>/);
+  });
+
+  it('puts the nodes in the header of log streams, under the navigation', () => {
+    const body = html.streamHead(
+      { path: '/logs/main', query: { address: '1.2.3.4' } },
+      { title: 'logs/main', header: '<div class="subnav">nodes</div>' }
+    );
+    assert.match(
+      body,
+      /<header><nav>.*<\/nav><div class="subnav">nodes<\/div><p class="grey">Only logs with address 1\.2\.3\.4.*<\/p><\/header>/s
+    );
   });
 
   it('shows the path to a node and the nodes below it', () => {
@@ -187,7 +201,7 @@ describe('API navigation', () => {
     const body = html.nodesNav(req, 'main', tree);
     assert.match(
       body,
-      /<a href="logs\/raw\?grep=x">raw<\/a><span class="grey"> › <\/span><strong>main<\/strong>/
+      /<a href="logs\/raw\?grep=x" class="active">raw<\/a><span class="grey"> › <\/span><strong>main<\/strong>/
     );
     // Named nodes one level below, through unnamed steps, links encoded
     assert.match(body, /<a href="logs\/a%23%3Cb%3E\?grep=x">a#&lt;b&gt;<\/a>/);

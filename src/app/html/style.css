@@ -102,7 +102,6 @@ nav a:hover {
   margin-left: 0.3em;
 }
 
-/* Log streams: the navigation stays visible */
 /* Second line of navigation: log nodes */
 .subnav {
   white-space: normal;
@@ -128,7 +127,10 @@ nav a:hover {
 .switches > .grey {
   margin: 0 0.5em;
 }
-.stream-page nav {
+/* Log streams: the navigation and the nodes stay visible. flow-root keeps
+   the margin under the nodes inside, on the header's background. */
+.stream-page header {
+  display: flow-root;
   position: sticky;
   top: 0;
   margin-top: -8px;

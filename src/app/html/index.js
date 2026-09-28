@@ -113,7 +113,9 @@ function nav(req) {
 }
 
 // The opening part of a page, up to and including the navigation
-function head(req, { title, bodyClass } = {}) {
+// header: more HTML under the navigation, in the same (sticky on log
+// streams) header
+function head(req, { title, bodyClass, header = '' } = {}) {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -122,7 +124,9 @@ function head(req, { title, bodyClass } = {}) {
 <base href="${escapeHtml(req.baseUrl || '')}/">
 <style>${stylesheet}</style>
 </head>
-<body${bodyClass ? ` class="${bodyClass}"` : ''}>${nav(req)}`;
+<body${bodyClass ? ` class="${bodyClass}"` : ''}><header>${nav(
+    req
+  )}${header}</header>`;
 }
 
 function page(req, options, body) {
@@ -388,9 +392,10 @@ function namedChildren(node) {
 
 const separator = (text) => `<span class="grey"> ${text} </span>`;
 
-// The navigation between log streams: the path to the current node, then
-// the nodes one level below it. Below main, each level lists all its nodes,
-// the one on the path highlighted. Links keep the query (filters, grep).
+// The navigation between log streams: each level of the path to the
+// current node, separated by ›, then the nodes below it. Below main, a level
+// lists all its nodes (·). Nodes on the path are highlighted, the current
+// node is bold. Links keep the query (filters, grep).
 function nodesNav(req, name, tree) {
   const found = findNode(tree, name);
   if (!found) {
@@ -400,45 +405,28 @@ function nodesNav(req, name, tree) {
   const nodeWithQuery = (node, className) =>
     nodeLink(node, query ? `?${query}` : '', className);
   const current = `<strong>${escapeHtml(name)}</strong>`;
-  const below = (node) => {
-    const children = namedChildren(node);
-    return children.length > 0
-      ? `${separator('→')}${children
-          .map((child) => nodeWithQuery(child))
-          .join(separator('·'))}`
-      : '';
-  };
-
-  const main = found.ancestors.indexOf('main');
-  if (main === -1) {
-    const path = [
-      ...found.ancestors.map((node) => nodeWithQuery(node)),
-      current,
-    ];
-    return `<div class="subnav">${path.join(separator('›'))}${below(
-      found.node
-    )}</div>`;
-  }
-
-  // Below main, every level lists its nodes: the one on the path to the
-  // current node highlighted, the current node bold
-  const path = [...found.ancestors.slice(main + 1), name];
-  const parents = found.ancestors.slice(main);
-  const levels = path.map((onPath, i) =>
-    namedChildren(findNode(tree, parents[i]).node)
+  const level = (nodes, onPath) =>
+    nodes
       .map((node) =>
         node === name
           ? current
           : nodeWithQuery(node, node === onPath ? 'active' : null)
       )
-      .join(separator('·'))
+      .join(separator('·'));
+
+  const path = [...found.ancestors, name];
+  const main = found.ancestors.indexOf('main');
+  const levels = path.map((node, i) =>
+    // Up to main (or outside it), one node per level
+    main === -1 || i <= main
+      ? level([node], node)
+      : level(namedChildren(findNode(tree, path[i - 1]).node), node)
   );
-  return `<div class="subnav">${found.ancestors
-    .slice(0, main + 1)
-    .map((node) => nodeWithQuery(node))
-    .join(separator('›'))}${separator('→')}${levels.join(
-    separator('→')
-  )}${below(found.node)}</div>`;
+  const below = namedChildren(found.node);
+  if (below.length > 0) {
+    levels.push(level(below));
+  }
+  return `<div class="subnav">${levels.join(separator('›'))}</div>`;
 }
 
 // A line saying which logs a filtered stream keeps, linking to all of them
@@ -459,9 +447,11 @@ function streamFilters(req) {
 // terminal. header: more HTML under the navigation, e.g. nodesNav(). The
 // stream container is never closed: lines keep being appended to it.
 function streamHead(req, { title, header = '' }) {
-  return `${head(req, { title, bodyClass: 'stream-page' })}${header}${streamFilters(
-    req
-  )}<script>${followScript}</script><main class="stream">`;
+  return `${head(req, {
+    title,
+    bodyClass: 'stream-page',
+    header: `${header}${streamFilters(req)}`,
+  })}<script>${followScript}</script><main class="stream">`;
 }
 
 function streamLine(line) {
