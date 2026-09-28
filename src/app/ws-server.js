@@ -2,7 +2,14 @@ const http = require('http');
 
 const { WebSocketServer } = require('ws');
 
+const version = require('../version');
+
 const wss = new WebSocketServer({ noServer: true });
+
+// Every handshake tells the client which Hyperwatch it talks to
+wss.on('headers', (headers) => {
+  headers.push(`X-Hyperwatch-Version: ${version}`);
+});
 
 const routes = new Map();
 

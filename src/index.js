@@ -9,6 +9,7 @@ const input = require('./input');
 const lib = require('./lib');
 const modules = require('./modules');
 const plugins = require('./plugins');
+const version = require('./version');
 
 const { cache, logger, persistence, pipeline, util } = lib;
 
@@ -76,4 +77,5 @@ module.exports = {
   start,
   stop,
   util,
+  version,
 };

@@ -124,6 +124,8 @@ input.websocket.create({
 });
 ```
 
+Hyperwatch sends its version in the `X-Hyperwatch-Version` header of its HTTP responses and WebSocket handshakes. The watcher shows it in the input's status: `Listening to wss://example.org/_hyperwatch/logs/raw (Hyperwatch 5.1.0)`. Servers older than this header show no version.
+
 `config/websocket_client_example.js` is a complete watcher: it subscribes to the logs of an app running locally, enriches them and prints them.
 
 ```sh

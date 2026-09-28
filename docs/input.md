@@ -69,6 +69,8 @@ The input accepts the following options.
 
 The WebSocket input subscribes to a WebSocket server sending access logs (`client`), or listens for WebSocket connections sending access logs (`server`).
 
+As a client, its status shows the version of the Hyperwatch server it's connected to, from the `X-Hyperwatch-Version` header of the handshake, when the server sends one.
+
 The input accepts the following options.
 
 | Attribute | Type   | Required?                 | Description                                                                              |

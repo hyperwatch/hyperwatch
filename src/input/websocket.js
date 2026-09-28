@@ -51,6 +51,8 @@ function create({
     let heartbeat;
     let openedAt;
     let received = false;
+    // The server's X-Hyperwatch-Version, when it sends one
+    let serverVersion;
 
     if (username && password) {
       options.headers = options.headers || {};
@@ -63,13 +65,22 @@ function create({
     client = socket;
     status(null, `Waiting for connection to ${address}`);
 
+    socket.on('upgrade', (response) => {
+      serverVersion = response.headers['x-hyperwatch-version'];
+    });
+
     socket.on('open', () => {
       if (!isCurrent()) {
         return;
       }
       isAlive = true;
       openedAt = Date.now();
-      status(null, `Listening to ${address}`);
+      status(
+        null,
+        `Listening to ${address}${
+          serverVersion ? ` (Hyperwatch ${serverVersion})` : ''
+        }`
+      );
 
       // Heartbeat: detect stale connections
       heartbeat = setInterval(() => {
