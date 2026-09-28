@@ -5,6 +5,22 @@ const wsServer = require('../app/ws-server');
 
 const defaultParse = (s) => fromJS(JSON.parse(s));
 
+// A connection closed this soon after opening, before any message, was cut
+// by the server, e.g. a Hyperwatch server already streaming to this clientId
+// (behind a load balancer, another server may not be)
+const CUT_WITHIN = 1000;
+// A connection that received a message, or stayed open this long, worked:
+// the next reconnect starts over from the first attempt
+const HEALTHY_AFTER = 10 * 1000;
+
+// After a cut, retry soon, 1 more second each time up to 10s. Otherwise back
+// off from 10s, doubling up to 5 minutes.
+function reconnectDelay(attempts, cut) {
+  return cut
+    ? Math.min(1000 * attempts, 10 * 1000)
+    : Math.min(10 * 1000 * Math.pow(2, attempts - 1), 5 * 60 * 1000);
+}
+
 function create({
   name = 'WebSocket',
   address,
@@ -33,6 +49,8 @@ function create({
     const isCurrent = () => current === generation;
     let isAlive;
     let heartbeat;
+    let openedAt;
+    let received = false;
 
     if (username && password) {
       options.headers = options.headers || {};
@@ -50,7 +68,7 @@ function create({
         return;
       }
       isAlive = true;
-      reconnectAttempts = 0;
+      openedAt = Date.now();
       status(null, `Listening to ${address}`);
 
       // Heartbeat: detect stale connections
@@ -71,7 +89,11 @@ function create({
     });
 
     socket.on('message', (message) => {
-      if (!isCurrent() || (sample !== 1 && Math.random() > sample)) {
+      if (!isCurrent()) {
+        return;
+      }
+      received = true;
+      if (sample !== 1 && Math.random() > sample) {
         return;
       }
       try {
@@ -96,13 +118,20 @@ function create({
       if (!isCurrent()) {
         return;
       }
-      status(null, 'Websocket connection has been closed');
+      const openFor = openedAt ? Date.now() - openedAt : null;
+      const cut = openFor !== null && openFor < CUT_WITHIN && !received;
+      status(
+        null,
+        cut
+          ? 'Websocket connection has been closed by the server right after opening'
+          : 'Websocket connection has been closed'
+      );
       if (reconnectOnClose) {
+        if (received || openFor >= HEALTHY_AFTER) {
+          reconnectAttempts = 0;
+        }
         reconnectAttempts++;
-        const delay = Math.min(
-          10 * 1000 * Math.pow(2, reconnectAttempts - 1),
-          5 * 60 * 1000
-        );
+        const delay = reconnectDelay(reconnectAttempts, cut);
         status(
           null,
           `Reconnecting Websocket in ${delay / 1000}s (attempt ${reconnectAttempts})`
