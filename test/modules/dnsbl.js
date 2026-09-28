@@ -28,7 +28,7 @@ describe('dnsbl', () => {
       calls.length = 0;
       dnsbl.setLookup(async (ip, blacklist) => {
         calls.push([ip, blacklist]);
-        return ip === LISTED_IP;
+        return ip === LISTED_IP ? ['127.0.0.4'] : [];
       });
     });
 
@@ -59,6 +59,69 @@ describe('dnsbl', () => {
     });
   });
 
+  describe('answer codes (stubbed lookup)', () => {
+    const originalWarn = console.warn;
+    const warnings = [];
+
+    beforeEach(() => {
+      warnings.length = 0;
+      console.warn = (message) => warnings.push(message);
+    });
+
+    afterEach(() => {
+      console.warn = originalWarn;
+      dnsbl.setLookup();
+    });
+
+    it('leaves xbl unset when Spamhaus refuses the query', async () => {
+      // 127.255.255.254: query through a public resolver
+      dnsbl.setLookup(async () => ['127.255.255.254']);
+      const first = await dnsbl.augment(log({ address: '203.0.113.1' }));
+      const second = await dnsbl.augment(log({ address: '203.0.113.2' }));
+      assert.strictEqual(first.hasIn(['dnsbl', 'xbl']), false);
+      assert.strictEqual(second.hasIn(['dnsbl', 'xbl']), false);
+      assert.strictEqual(warnings.length <= 1, true);
+    });
+
+    it('leaves xbl unset when the lookup fails', async () => {
+      dnsbl.setLookup(async () => {
+        const err = new Error('queryA ETIMEOUT');
+        err.code = 'ETIMEOUT';
+        throw err;
+      });
+      const result = await dnsbl.augment(log({ address: '203.0.113.3' }));
+      assert.strictEqual(result.hasIn(['dnsbl', 'xbl']), false);
+    });
+
+    it('flags any 127.0.0.x listing code', async () => {
+      dnsbl.setLookup(async () => ['127.0.0.7']);
+      const result = await dnsbl.augment(log({ address: '203.0.113.4' }));
+      assert.strictEqual(result.getIn(['dnsbl', 'xbl']), true);
+    });
+
+    it('skips values that are not IP addresses', async () => {
+      let called = false;
+      dnsbl.setLookup(async () => {
+        called = true;
+        return ['127.0.0.4'];
+      });
+      const result = await dnsbl.augment(log({ address: 'unknown' }));
+      assert.strictEqual(result.hasIn(['dnsbl', 'xbl']), false);
+      assert.strictEqual(called, false);
+    });
+  });
+
+  describe('reverse', () => {
+    it('reverses IPv4, IPv4-mapped and IPv6 addresses', () => {
+      assert.strictEqual(dnsbl.reverse('1.2.3.4'), '4.3.2.1');
+      assert.strictEqual(dnsbl.reverse('::ffff:1.2.3.4'), '4.3.2.1');
+      assert.strictEqual(
+        dnsbl.reverse('2001:db8::1'),
+        '1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2'
+      );
+    });
+  });
+
   describe('xblFormat', () => {
     it('formats for text and json output', () => {
       const listed = fromJS({ dnsbl: { xbl: true } });
@@ -84,8 +147,7 @@ describe('dnsbl', () => {
     });
   });
 
-  // Exercises the real `dnsbl` package against Spamhaus, so a dependency bump
-  // that breaks the lookup API fails here rather than silently in production.
+  // Exercises the real DNS lookup against Spamhaus.
   // Set HYPERWATCH_SKIP_NETWORK_TESTS=1 to skip when offline.
   const describeLive = process.env.HYPERWATCH_SKIP_NETWORK_TESTS
     ? describe.skip
