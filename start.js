@@ -3,6 +3,7 @@ const path = require('path');
 const { isFunction } = require('lodash');
 
 const hyperwatch = require('./hyperwatch');
+const { timestamp } = require('./src/lib/util');
 
 // Load configuration
 
@@ -37,11 +38,11 @@ function shutdown() {
 }
 
 process.on('SIGTERM', () => {
-  console.log('SIGTERM');
+  console.log(`${timestamp()} SIGTERM`);
   shutdown();
 });
 
 process.on('SIGINT', () => {
-  console.log('SIGINT');
+  console.log(`${timestamp()} SIGINT`);
   shutdown();
 });

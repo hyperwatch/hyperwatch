@@ -3,6 +3,7 @@ const http = require('http');
 const express = require('express');
 
 const constants = require('../constants');
+const { timestamp } = require('../lib/util');
 
 const api = require('./api');
 const mount = require('./mount');
@@ -21,7 +22,9 @@ app.use(api);
 function start() {
   const port = process.env.PORT || constants.port;
   httpServer.listen(port, () => {
-    console.log(`HTTP and Websocket Server listening on port ${port}`);
+    console.log(
+      `${timestamp()} HTTP and Websocket Server listening on port ${port}`
+    );
   });
 }
 

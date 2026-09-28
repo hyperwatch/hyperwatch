@@ -2,6 +2,7 @@ const crypto = require('crypto');
 
 const constants = require('../constants');
 const monitoring = require('../lib/monitoring');
+const { timestamp } = require('../lib/util');
 
 const wsServer = require('./ws-server');
 
@@ -43,7 +44,9 @@ websocket.streamToWebsocket = (
   wsServer.ws(endpoint, (client, req) => {
     const clientId = req.query.clientId || crypto.randomUUID();
     if (clients[clientId]) {
-      console.log(`Client '${clientId}' is already connected. Terminating.`);
+      console.log(
+        `${timestamp()} Client '${clientId}' is already connected. Terminating.`
+      );
       client.terminate();
       return;
     }
@@ -54,13 +57,12 @@ websocket.streamToWebsocket = (
       client.isAlive = true;
     });
     client.on('close', () => {
-      console.log(`Client '${clientId}' closed.`);
+      console.log(`${timestamp()} Client '${clientId}' closed.`);
       delete clients[clientId];
       updateMonitoringStatus();
     });
     client.on('error', (error) => {
-      console.log(`Client '${clientId}' error.`);
-      console.log(error);
+      console.log(`${timestamp()} Client '${clientId}' error.`, error);
     });
   });
 
@@ -79,7 +81,7 @@ websocket.streamToWebsocket = (
   setInterval(() => {
     Object.entries(clients).forEach(([clientId, client]) => {
       if (!client.isAlive) {
-        console.log(`Client '${clientId}' stale. Terminating.`);
+        console.log(`${timestamp()} Client '${clientId}' stale. Terminating.`);
         client.terminate();
         delete clients[clientId];
         updateMonitoringStatus();

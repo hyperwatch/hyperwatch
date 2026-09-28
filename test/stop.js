@@ -19,7 +19,11 @@ describe('hyperwatch.stop', () => {
       lib.pipeline.stop = () => Promise.reject(new Error('input failed'));
       lib.persistence.dump = () => calls.push('dump');
       app.stop = () => calls.push('app.stop');
-      console.error = (...args) => calls.push(`error: ${args.join(' ')}`);
+      // Leaves out the timestamp messages start with
+      console.error = (...args) =>
+        calls.push(
+          `error: ${args.join(' ').replace(/^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d /, '')}`
+        );
 
       await hyperwatch.stop();
 

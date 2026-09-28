@@ -2,6 +2,7 @@ const { fromJS } = require('immutable');
 const WebSocket = require('ws');
 
 const wsServer = require('../app/ws-server');
+const { timestamp } = require('../lib/util');
 
 const defaultParse = (s) => fromJS(JSON.parse(s));
 
@@ -162,7 +163,7 @@ function create({
         }
       } catch (err) {
         console.error(
-          `${name}: error while closing the Websocket:`,
+          `${timestamp()} ${name}: error while closing the Websocket:`,
           err.message
         );
       }

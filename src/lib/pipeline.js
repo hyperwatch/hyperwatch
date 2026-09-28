@@ -16,7 +16,7 @@ const { Map } = require('immutable');
 const schema = require('../format/log-schema.json');
 
 const monitoring = require('./monitoring');
-const { complement } = require('./util');
+const { complement, timestamp } = require('./util');
 
 const validator = new Ajv();
 addFormats(validator);
@@ -301,9 +301,9 @@ class Pipeline extends Builder {
         },
         status: (err, msg) => {
           if (err) {
-            console.error(err);
+            console.error(timestamp(), err);
           }
-          console.log(`${input.name}: ${msg}`);
+          console.log(`${timestamp()} ${input.name}: ${msg}`);
           monitor.status = msg;
         },
         log: errorLog,

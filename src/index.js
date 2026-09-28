@@ -24,7 +24,9 @@ function getPersistenceDir() {
 
 function init(config = {}) {
   if (initialized) {
-    console.warn(`Can't init, Hyperwatch was already initialized.`);
+    console.warn(
+      `${util.timestamp()} Can't init, Hyperwatch was already initialized.`
+    );
     return;
   }
   merge(constants, config);
@@ -34,7 +36,9 @@ function init(config = {}) {
 
 function start() {
   if (!initialized) {
-    console.warn(`Can't start, Hyperwatch was not initialized.`);
+    console.warn(
+      `${util.timestamp()} Can't start, Hyperwatch was not initialized.`
+    );
     return;
   }
   modules.start();
@@ -48,7 +52,10 @@ async function stop() {
   try {
     await pipeline.stop();
   } catch (err) {
-    console.error('Error stopping the pipeline:', err.message);
+    console.error(
+      `${util.timestamp()} Error stopping the pipeline:`,
+      err.message
+    );
   }
   // Persist even if stopping the inputs failed
   try {
@@ -56,7 +63,10 @@ async function stop() {
       persistence.dump(getPersistenceDir());
     }
   } catch (err) {
-    console.error('Error dumping aggregators:', err.message);
+    console.error(
+      `${util.timestamp()} Error dumping aggregators:`,
+      err.message
+    );
   }
   return app.stop();
 }

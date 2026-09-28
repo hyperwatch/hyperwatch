@@ -5,6 +5,11 @@ const { fromJS } = require('immutable');
 // Number of seconds since Unix epoch
 exports.now = () => Math.floor(new Date().getTime() / 1000);
 
+// Date and time to start Hyperwatch's messages with, in UTC like the time of
+// logs: 2026-09-28 10:47:03
+exports.timestamp = (date = new Date()) =>
+  date.toISOString().slice(0, 19).replace('T', ' ');
+
 /**
  * Return the complement of the predicate `pred`.
  *
