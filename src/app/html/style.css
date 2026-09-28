@@ -160,7 +160,7 @@ nav a:hover {
 /* Room under the latest log, clear of the browser's status bar: a log
    stream never finishes loading, so it stays at the bottom of the window */
 .stream {
-  padding-bottom: 32px;
+  padding-bottom: 16px;
 }
 /* One line per log, cut at the edge of the screen (still copied whole) */
 .stream > div {
