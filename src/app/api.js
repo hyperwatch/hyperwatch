@@ -159,8 +159,15 @@ app.streamToHttp = (
   }, `http:${endpoint}`);
 };
 
-// htmlOptions: see html.aggregatorView() (nav, columns)
-app.registerAggregator = (name, aggregator, htmlOptions) => {
+// ?filter=identified or ?filter=unidentified, on aggregators registered with
+// identityFilter (their entries have an identity)
+const identityFilters = new Map([
+  ['identified', (entry) => !!entry.get('identity')],
+  ['unidentified', (entry) => !entry.get('identity')],
+]);
+
+// htmlOptions: see html.aggregatorView() (nav, columns, identityFilter)
+app.registerAggregator = (name, aggregator, htmlOptions = {}) => {
   const htmlView = html.aggregatorView(name, htmlOptions);
   persistence.register(name, aggregator);
   app.get(`/${name}{.:format}`, (req, res) => {
@@ -186,6 +193,9 @@ app.registerAggregator = (name, aggregator, htmlOptions) => {
       limit,
       format: format === 'csv' ? 'json' : format,
       raw,
+      filter: htmlOptions.identityFilter
+        ? identityFilters.get(req.query.filter)
+        : undefined,
     });
 
     if (format === 'csv') {

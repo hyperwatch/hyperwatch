@@ -556,6 +556,7 @@ function start() {
   // column the last one of the others
   api.registerAggregator('identities', aggregator, {
     nav: true,
+    identityFilter: true,
     columns: [
       'identity',
       'hostname',

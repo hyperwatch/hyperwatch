@@ -81,3 +81,34 @@ describe('Aggregator lastSeen', () => {
     assert.strictEqual(lastSeen(fromJS({ speed: {} }), 'html'), '');
   });
 });
+
+describe('Aggregator getData filter', () => {
+  const aggregator = new Aggregator();
+  aggregator.sorters.n = (entry) => entry.get('n');
+  aggregator.entries = fromJS({
+    a: { identity: 'Googlebot', n: 3 },
+    b: { n: 2 },
+    c: { identity: 'Bing', n: 1 },
+  });
+
+  const identities = (options) =>
+    aggregator
+      .getData({ sort: 'n', raw: true, ...options })
+      .map((entry) => entry.get('identity') || '-')
+      .toArray();
+
+  it('keeps every entry without a filter', () => {
+    assert.deepStrictEqual(identities(), ['Googlebot', '-', 'Bing']);
+  });
+
+  it('filters before limiting', () => {
+    assert.deepStrictEqual(
+      identities({ filter: (entry) => !entry.get('identity'), limit: 1 }),
+      ['-']
+    );
+    assert.deepStrictEqual(
+      identities({ filter: (entry) => !!entry.get('identity'), limit: 2 }),
+      ['Googlebot', 'Bing']
+    );
+  });
+});

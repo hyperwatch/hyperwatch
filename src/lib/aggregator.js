@@ -184,12 +184,14 @@ class Aggregator {
     return this.entries.get(id);
   }
 
-  getData({ raw, sort, format, limit }) {
+  // filter(entry): only keep the matching entries, before sorting and limiting
+  getData({ raw, sort, format, limit, filter }) {
     if (!sort || !this.sorters[sort]) {
       sort = 'count15m';
     }
 
-    const sorted = this.entries.map(this.sorters[sort]).sort().reverse();
+    const entries = filter ? this.entries.filter(filter) : this.entries;
+    const sorted = entries.map(this.sorters[sort]).sort().reverse();
     const rawData = sorted
       .slice(0, limit || 100)
       .keySeq()

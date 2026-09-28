@@ -112,6 +112,7 @@ function start() {
 
   api.registerAggregator('addresses', aggregator, {
     nav: true,
+    identityFilter: true,
     columns: [
       'address',
       'hostname',

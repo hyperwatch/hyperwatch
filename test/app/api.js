@@ -391,6 +391,114 @@ describe('API aggregator columns', () => {
   });
 });
 
+describe('API identity filter', () => {
+  let server;
+  let baseUrl;
+
+  const rows = fromJS([
+    { name: 'Googlebot', identity: 'Googlebot', count15m: 2 },
+    { name: '1.2.3.4', count15m: 1 },
+  ]);
+
+  const register = (name, htmlOptions) =>
+    api.registerAggregator(
+      name,
+      {
+        ...aggregator,
+        sorters: { count15m: () => 0 },
+        getData: ({ filter, limit }) =>
+          (filter ? rows.filter(filter) : rows)
+            .take(Number(limit))
+            .map((row) => row.delete('identity')),
+      },
+      htmlOptions
+    );
+
+  before(async () => {
+    register('filter-test', {
+      columns: ['name', 'count'],
+      identityFilter: true,
+    });
+    register('no-filter-test', { columns: ['name', 'count'] });
+
+    server = http.createServer(api);
+    const port = await listen(server);
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  after(async () => {
+    await close(server);
+  });
+
+  const names = async (path) =>
+    (await (await fetch(`${baseUrl}/${path}`)).json()).map((row) => row.name);
+
+  it('keeps every entry by default', async () => {
+    assert.deepStrictEqual(await names('filter-test.json'), [
+      'Googlebot',
+      '1.2.3.4',
+    ]);
+  });
+
+  it('keeps the identified or unidentified entries with ?filter=', async () => {
+    assert.deepStrictEqual(await names('filter-test.json?filter=identified'), [
+      'Googlebot',
+    ]);
+    assert.deepStrictEqual(
+      await names('filter-test.json?filter=unidentified'),
+      ['1.2.3.4']
+    );
+    assert.deepStrictEqual(await names('filter-test.json?filter=constructor'), [
+      'Googlebot',
+      '1.2.3.4',
+    ]);
+  });
+
+  it('ignores ?filter= on aggregators without an identity filter', async () => {
+    assert.deepStrictEqual(
+      await names('no-filter-test.json?filter=identified'),
+      ['Googlebot', '1.2.3.4']
+    );
+  });
+
+  it('links the filters, keeping the query', async () => {
+    const body = await (
+      await fetch(`${baseUrl}/filter-test?period=24h&filter=identified`)
+    ).text();
+    assert.match(body, /<a href="filter-test\?period=24h">All<\/a>/);
+    assert.match(body, /<strong>Identified<\/strong>/);
+    assert.match(
+      body,
+      /<a href="filter-test\?period=24h&amp;filter=unidentified">Unidentified<\/a>/
+    );
+  });
+
+  it('keeps the filters when no entry matches', async () => {
+    const body = await (
+      await fetch(`${baseUrl}/filter-test?filter=identified&limit=0`)
+    ).text();
+    assert.match(body, /<strong>Identified<\/strong>/);
+    assert.match(body, /No matching entries/);
+  });
+
+  it('keeps the filter and period in the navigation', () => {
+    html.aggregatorView('identities', { nav: true, identityFilter: true });
+    const nav = html.nav({
+      path: '/filter-test',
+      query: { period: '24h', filter: 'unidentified', sort: 'latest' },
+    });
+    assert.match(
+      nav,
+      /<a href="identities\?period=24h&amp;filter=unidentified">identities<\/a>/
+    );
+  });
+
+  it('has no filters on other aggregators', async () => {
+    const body = await (await fetch(`${baseUrl}/no-filter-test`)).text();
+    assert.doesNotMatch(body, /Unidentified/);
+  });
+});
+
 describe('API log streams', () => {
   let server;
   let baseUrl;

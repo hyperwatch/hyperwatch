@@ -22,6 +22,8 @@ const order = ['addresses', 'identities', 'logs', 'pipeline'];
 const sections = new Map();
 // Aggregator sections, whose links keep the selected period
 const periodSections = new Set();
+// Aggregator pages with an identity filter (see aggregatorView)
+const identityFilterSections = new Set();
 
 function registerSection(name, href = name) {
   sections.set(name, href);
@@ -90,10 +92,21 @@ function nav(req) {
   ];
   for (const name of order.filter((name) => sections.has(name))) {
     const active = isUnder(req.path, `/${name}`);
-    const period =
-      periodSections.has(name) && periodOf(req) === '24h' ? '?period=24h' : '';
+    // Aggregator pages keep the period and identity filter
+    const query = new URLSearchParams();
+    if (periodSections.has(name) && periodOf(req) === '24h') {
+      query.set('period', '24h');
+    }
+    if (identityFilterSections.has(name) && identityFilterOf(req) !== 'all') {
+      query.set('filter', identityFilterOf(req));
+    }
+    const search = query.toString();
     links.push(
-      link(`${sections.get(name)}${period}`, name, active ? 'active' : null)
+      link(
+        `${sections.get(name)}${search ? `?${search}` : ''}`,
+        name,
+        active ? 'active' : null
+      )
     );
   }
   return `<nav>${links.join('')}</nav>`;
@@ -211,6 +224,33 @@ function periodSwitch(req) {
   )}</div>`;
 }
 
+// Aggregators with an identity filter show all entries, or only the
+// identified or unidentified ones with ?filter=
+const identityFilters = ['all', 'identified', 'unidentified'];
+
+function identityFilterOf(req) {
+  return identityFilters.includes(req.query.filter) ? req.query.filter : 'all';
+}
+
+// Switching filter keeps the rest of the query (period, sort, limit)
+function identityFilterSwitch(req) {
+  const current = identityFilterOf(req);
+  const links = identityFilters.map((filter) => {
+    const text = `${filter[0].toUpperCase()}${filter.slice(1)}`;
+    if (filter === current) {
+      return `<strong>${text}</strong>`;
+    }
+    const query = new URLSearchParams(req.query);
+    query.delete('filter');
+    if (filter !== 'all') {
+      query.set('filter', filter);
+    }
+    const search = query.toString();
+    return link(`${here(req)}${search ? `?${search}` : ''}`, text);
+  });
+  return `<div class="subnav">${links.join(separator('·'))}</div>`;
+}
+
 // Column sorted by a sorter of another name
 const sortKeys = { lastSeen: 'latest' };
 
@@ -247,22 +287,37 @@ function shortenLastSeen(rows) {
 /**
  * The HTML view of an aggregator: render(req, { rows, sorters, sort }).
  * - nav: link the page in the top navigation
+ * - identityFilter: switch between all, identified and unidentified entries
+ *   (?filter=), for aggregators whose entries have an identity
  * - columns: the columns of the table, in order. A column without a period
  *   ("count") is the one of the selected period ("count15m"), and columns
  *   the rows don't have (e.g. of an inactive module) are skipped. By
  *   default, all columns of the selected period.
  */
-function aggregatorView(name, { nav = false, columns } = {}) {
+function aggregatorView(
+  name,
+  { nav = false, columns, identityFilter = false } = {}
+) {
   if (nav) {
     registerSection(name);
     periodSections.add(name);
   }
+  if (identityFilter) {
+    identityFilterSections.add(name);
+  }
   return (req, { rows, sorters, sort }) => {
+    const switches = `${periodSwitch(req)}${
+      identityFilter ? identityFilterSwitch(req) : ''
+    }`;
     if (rows.length === 0) {
       return page(
         req,
         { title: name },
-        '<p class="grey">No entries yet: they appear as logs come in.</p>'
+        `${switches}<p class="grey">${
+          identityFilter && identityFilterOf(req) !== 'all'
+            ? 'No matching entries.'
+            : 'No entries yet: they appear as logs come in.'
+        }</p>`
       );
     }
     const period = periodOf(req);
@@ -278,7 +333,7 @@ function aggregatorView(name, { nav = false, columns } = {}) {
     return page(
       req,
       { title: name },
-      `${periodSwitch(req)}${formatTable(table, {
+      `${switches}${formatTable(table, {
         heading: sortHeading(req, sorters, sort),
       })}`
     );
