@@ -250,7 +250,7 @@ function identityFilterLinks(req) {
 }
 
 // The switches of an aggregator page, top right on the navigation line: the
-// identity filter (when the page has one), then the period
+// identity filter (when the page has one), then the period, separated by |
 function switches(req, { identityFilter }) {
   const groups = [
     identityFilter ? identityFilterLinks(req) : null,
@@ -258,7 +258,7 @@ function switches(req, { identityFilter }) {
   ].filter(Boolean);
   return `<div class="subnav switches">${groups
     .map((group) => `<span>${group}</span>`)
-    .join('')}</div>`;
+    .join(separator('|'))}</div>`;
 }
 
 // Column sorted by a sorter of another name

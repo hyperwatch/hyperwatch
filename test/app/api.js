@@ -482,7 +482,7 @@ describe('API identity filter', () => {
     const body = await (await fetch(`${baseUrl}/filter-test`)).text();
     assert.match(
       body,
-      /<div class="subnav switches"><span><strong>All<\/strong>.*Unidentified<\/a><\/span><span><strong>15m<\/strong>/
+      /<div class="subnav switches"><span><strong>All<\/strong>.*Unidentified<\/a><\/span><span class="grey"> \| <\/span><span><strong>15m<\/strong>/
     );
     const other = await (await fetch(`${baseUrl}/no-filter-test`)).text();
     assert.match(
