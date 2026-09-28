@@ -101,8 +101,15 @@ describe('Hyperwatch version', () => {
     );
   });
 
-  it('is left out of the status when the server sends none', async () => {
+  // The statuses of an input connected to a server sending `header` as its
+  // version (none when undefined)
+  async function statusesWith(header) {
     const other = new WebSocket.WebSocketServer({ host: '127.0.0.1', port: 0 });
+    if (header !== undefined) {
+      other.on('headers', (headers) =>
+        headers.push(`X-Hyperwatch-Version: ${header}`)
+      );
+    }
     await new Promise((resolve) => other.on('listening', resolve));
     const address = `ws://127.0.0.1:${other.address().port}`;
     const statuses = [];
@@ -115,10 +122,35 @@ describe('Hyperwatch version', () => {
     await wait(100);
     input.stop();
     other.close();
+    return { address, statuses };
+  }
 
+  it('is left out of the status when the server sends none', async () => {
+    const { address, statuses } = await statusesWith();
     assert.ok(
       statuses.includes(`Listening to ${address}`),
       statuses.join(', ')
     );
+  });
+
+  it('accepts pre-release and build versions', async () => {
+    const { address, statuses } = await statusesWith('5.1.0-beta.1+build.7');
+    assert.ok(
+      statuses.includes(
+        `Listening to ${address} (Hyperwatch 5.1.0-beta.1+build.7)`
+      ),
+      statuses.join(', ')
+    );
+  });
+
+  it("leaves out a server's version that isn't one (e.g. HTML)", async () => {
+    const { address, statuses } = await statusesWith(
+      '</span><script>alert(1)</script>'
+    );
+    assert.ok(
+      statuses.includes(`Listening to ${address}`),
+      statuses.join(', ')
+    );
+    assert.ok(!statuses.some((msg) => /script/.test(msg)), statuses.join(', '));
   });
 });
