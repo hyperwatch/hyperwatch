@@ -46,14 +46,23 @@ exports.aggregateSum = (entry, key) =>
     .computeSum()
     .reduce((p, c) => p + c, 0);
 
+// 12.3s under a minute, then whole seconds with minutes and hours: 9m26s,
+// 9h15m26s. Units at zero are left out (2h, 2h5s).
 exports.formatDuration = (ms) => {
   const totalSeconds = ms / 1000;
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = Math.round(totalSeconds % 60);
-  if (minutes > 0) {
-    return seconds > 0 ? `${minutes}m${seconds}s` : `${minutes}m`;
+  const rounded = Math.round(totalSeconds);
+  if (rounded < 60) {
+    return `${totalSeconds.toFixed(1)}s`;
   }
-  return `${totalSeconds.toFixed(1)}s`;
+  const units = [
+    [Math.floor(rounded / 3600), 'h'],
+    [Math.floor((rounded % 3600) / 60), 'm'],
+    [rounded % 60, 's'],
+  ];
+  return units
+    .filter(([value]) => value > 0)
+    .map(([value, unit]) => `${value}${unit}`)
+    .join('');
 };
 
 exports.formatTable = (data) => {
