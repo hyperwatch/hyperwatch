@@ -10,12 +10,19 @@ const persistence = require('../lib/persistence');
 const pipeline = require('../lib/pipeline');
 const { formatTable } = require('../lib/util');
 const stylesheet = require('../stylesheet');
+const version = require('../version');
 
 const wsServer = require('./ws-server');
 
 const script = fs.readFileSync(path.join(__dirname, '..', 'script.js'));
 
 const app = express();
+
+// Every response tells the client which Hyperwatch it talks to
+app.use((req, res, next) => {
+  res.setHeader('X-Hyperwatch-Version', version);
+  next();
+});
 
 // WebSocket upgrades dispatched by mount() when Hyperwatch is embedded
 app.use(wsServer.middleware);

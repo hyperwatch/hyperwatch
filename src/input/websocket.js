@@ -21,6 +21,14 @@ function reconnectDelay(attempts, cut) {
     : Math.min(10 * 1000 * Math.pow(2, attempts - 1), 5 * 60 * 1000);
 }
 
+// The server's X-Hyperwatch-Version, when it looks like a version (5.1.0,
+// 5.1.0-beta.1+build). Statuses end up unescaped in HTML pages: anything else
+// from the server is left out.
+function versionOf(response) {
+  const version = response.headers['x-hyperwatch-version'];
+  return /^[0-9A-Za-z.+-]{1,32}$/.test(version) ? version : undefined;
+}
+
 function create({
   name = 'WebSocket',
   address,
@@ -51,6 +59,8 @@ function create({
     let heartbeat;
     let openedAt;
     let received = false;
+    // The server's X-Hyperwatch-Version, when it sends one
+    let serverVersion;
 
     if (username && password) {
       options.headers = options.headers || {};
@@ -63,13 +73,22 @@ function create({
     client = socket;
     status(null, `Waiting for connection to ${address}`);
 
+    socket.on('upgrade', (response) => {
+      serverVersion = versionOf(response);
+    });
+
     socket.on('open', () => {
       if (!isCurrent()) {
         return;
       }
       isAlive = true;
       openedAt = Date.now();
-      status(null, `Listening to ${address}`);
+      status(
+        null,
+        `Listening to ${address}${
+          serverVersion ? ` (Hyperwatch ${serverVersion})` : ''
+        }`
+      );
 
       // Heartbeat: detect stale connections
       heartbeat = setInterval(() => {
