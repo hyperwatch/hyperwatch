@@ -5,6 +5,7 @@ const aggregator = require('../lib/aggregator');
 const cache = require('../lib/cache');
 const logger = require('../lib/logger');
 const pipeline = require('../lib/pipeline');
+const { safeHtml } = require('../lib/util');
 
 async function lookup(ua) {
   if (await cache.has(ua)) {
@@ -47,7 +48,7 @@ const agentFormat = (log, output) => {
   } else {
     return log.getIn(
       ['request', 'headers', 'user-agent'],
-      output === 'html' ? '<em>Empty</em>' : 'Empty'
+      output === 'html' ? safeHtml('<em>Empty</em>') : 'Empty'
     );
   }
 };

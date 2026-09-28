@@ -2,8 +2,17 @@ const assert = require('assert');
 
 const { fromJS } = require('immutable');
 
-const { address, executionTime } = require('../../src/lib/formatter');
-const { fillHost, logMatches } = require('../../src/lib/util');
+const {
+  Formatter,
+  address,
+  executionTime,
+} = require('../../src/lib/formatter');
+const {
+  fillHost,
+  logMatches,
+  safeHtml,
+  toHtml,
+} = require('../../src/lib/util');
 
 describe('address format', () => {
   const log = (hostname, verified) =>
@@ -21,7 +30,7 @@ describe('address format', () => {
   });
 
   it('marks verified hostnames with a class in HTML', () => {
-    const html = address(log('crawl.googlebot.com', true), 'html');
+    const html = toHtml(address(log('crawl.googlebot.com', true), 'html'));
     assert.match(
       html,
       /^<span class="verified" [^>]*>crawl\.googlebot\.com<\/span>$/
@@ -38,7 +47,7 @@ describe('address format', () => {
 
   it('escapes hostnames in HTML', () => {
     assert.strictEqual(
-      address(log('<b>x</b>', false), 'html'),
+      toHtml(address(log('<b>x</b>', false), 'html')),
       '&lt;b&gt;x&lt;/b&gt;'
     );
   });
@@ -49,11 +58,11 @@ describe('executionTime format', () => {
 
   it('separates thousands in HTML', () => {
     assert.strictEqual(
-      executionTime(log(1016), 'html'),
+      toHtml(executionTime(log(1016), 'html')),
       '<span class="red">1,016ms</span>'
     );
     assert.strictEqual(
-      executionTime(log(42), 'html'),
+      toHtml(executionTime(log(42), 'html')),
       '<span class="green">42ms</span>'
     );
   });
@@ -90,6 +99,52 @@ describe('fillHost', () => {
     assert.strictEqual(
       fillHost(null, () => 'unused'),
       null
+    );
+  });
+});
+
+describe('Formatter HTML escaping', () => {
+  const hostile = fromJS({
+    request: {
+      time: '2026-09-28T10:00:00.000Z',
+      method: 'GET',
+      url: '/x<img src=x onerror=alert(1)>',
+      address: '1.2.3.4',
+      headers: { 'user-agent': 'Evil<script>alert(2)</script>' },
+    },
+    response: { status: 200 },
+    executionTime: 5,
+    identity: 'id<b>x</b>',
+    address: { value: '1.2.3.4' },
+  });
+
+  it('escapes the text of log lines, keeping their own HTML', () => {
+    const line = new Formatter().format(hostile, 'html');
+    assert.doesNotMatch(line, /<script|<img|<b>/);
+    assert.match(
+      line,
+      /&quot;GET \/x&lt;img src=x onerror=alert\(1\)&gt; 200&quot;/
+    );
+    assert.match(line, /Evil&lt;script&gt;alert\(2\)&lt;\/script&gt;/);
+    assert.match(line, /<span class="magenta">id&lt;b&gt;x&lt;\/b&gt;<\/span>/);
+    assert.match(line, /<span class="green">5ms<\/span>/);
+  });
+
+  it('escapes the values of added formats, unless marked safe', () => {
+    const formatter = new Formatter()
+      .insertFormat('text', () => '<i>text</i>')
+      .insertFormat('markup', () => safeHtml('<i>markup</i>'));
+    const result = formatter.formatObject(hostile, 'html');
+    assert.strictEqual(result.text, '&lt;i&gt;text&lt;/i&gt;');
+    assert.strictEqual(result.markup, '<i>markup</i>');
+  });
+
+  it("doesn't escape text outputs", () => {
+    const result = new Formatter().formatObject(hostile, 'text');
+    assert.strictEqual(result.agent, 'Evil<script>alert(2)</script>');
+    assert.strictEqual(
+      result.request,
+      '"GET /x<img src=x onerror=alert(1)> 200"'
     );
   });
 });

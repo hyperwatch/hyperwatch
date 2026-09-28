@@ -3,8 +3,10 @@ const assert = require('assert');
 const { fromJS } = require('immutable');
 
 const html = require('../../src/app/html');
+const aggregatorLib = require('../../src/lib/aggregator');
 const { now } = require('../../src/lib/util');
 const address = require('../../src/modules/address');
+const { agentFormat } = require('../../src/modules/agent');
 
 function log(value, signatureId) {
   return fromJS({
@@ -19,7 +21,16 @@ describe('address aggregator', () => {
   let aggregator;
 
   before(() => {
-    address.start();
+    // The agent column, as the agent module adds it, only for this aggregator
+    const { defaultFormatter } = aggregatorLib;
+    defaultFormatter.insertFormat('agent', agentFormat);
+    try {
+      address.start();
+    } finally {
+      defaultFormatter.formats = defaultFormatter.formats.filter(
+        ([key]) => key !== 'agent'
+      );
+    }
     aggregator = address.aggregator;
   });
 
@@ -45,6 +56,33 @@ describe('address aggregator', () => {
     assert.strictEqual(
       aggregator.formatter.formatObject(entry, 'text').address,
       '1.2.3.4'
+    );
+  });
+
+  it('escapes text chosen by clients in HTML', () => {
+    aggregator.processLog(log('1.2.3.4', 'sig-a'));
+    // What clients choose: their hostname and user agent
+    const entry = aggregator.entries
+      .first()
+      .setIn(['address', 'hostname'], 'x<img src=x>.example')
+      .setIn(
+        ['request', 'headers', 'user-agent'],
+        'Evil<script>alert(1)</script>'
+      );
+    const row = Object.values(
+      aggregator.formatter.formatObject(entry, 'html')
+    ).join(' ');
+    assert.doesNotMatch(row, /<script|<img/);
+    // Without an identity, the agent stands in, in grey
+    assert.match(
+      row,
+      /<span class="grey">Evil&lt;script&gt;alert\(1\)&lt;\/script&gt;<\/span>/
+    );
+    assert.match(row, /x&lt;img src=x&gt;\.example/);
+    // Text outputs keep the values as they are
+    assert.strictEqual(
+      aggregator.formatter.formatObject(entry, 'text').hostname,
+      'x<img src=x>.example'
     );
   });
 

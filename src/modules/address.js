@@ -5,6 +5,7 @@ const html = require('../app/html');
 const { Aggregator } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
 const { touch, prune, countRecent } = require('../lib/recent-map');
+const { safeHtml, toHtml } = require('../lib/util');
 
 const identifier = (log) => log.getIn(['address', 'value']);
 
@@ -79,7 +80,9 @@ function start() {
         return value;
       }
       const lastAgent = agent[1](entry, output);
-      return lastAgent ? `<span class="grey">${lastAgent}</span>` : '';
+      return lastAgent
+        ? safeHtml(`<span class="grey">${toHtml(lastAgent)}</span>`)
+        : '';
     },
     { after: 'hostname', color: formatter.colors.identity }
   );
@@ -93,7 +96,9 @@ function start() {
   // In HTML, addresses link to their logs
   formatter.replaceFormat('address', (entry, output) => {
     const address = entry.getIn(['address', 'value']) || '';
-    return output === 'html' ? html.logsLink('address', address) : address;
+    return output === 'html'
+      ? safeHtml(html.logsLink('address', address))
+      : address;
   });
 
   aggregator.formatter.insertFormat('signatureCount15m', signatureCount15m, {

@@ -7,6 +7,7 @@ const {
   defaultFormatter,
   lastSeen,
 } = require('../../src/lib/aggregator');
+const { toHtml } = require('../../src/lib/util');
 
 describe('Aggregator formatter isolation', () => {
   it('gives each aggregator its own formatter', () => {
@@ -74,7 +75,10 @@ describe('Aggregator lastSeen', () => {
   });
 
   it('is shorter in HTML output', () => {
-    assert.strictEqual(lastSeen(entry, 'html'), '2026-09-25&nbsp;12:51:07');
+    assert.strictEqual(
+      toHtml(lastSeen(entry, 'html')),
+      '2026-09-25&nbsp;12:51:07'
+    );
   });
 
   it('is empty when never seen', () => {

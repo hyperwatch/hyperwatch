@@ -1,6 +1,6 @@
 const { default: chalk } = require('chalk');
 
-const { escapeHtml } = require('./util');
+const { escapeHtml, safeHtml, SafeHtml } = require('./util');
 
 const colorize = (name, value, output) => {
   if (output === 'console') {
@@ -19,10 +19,13 @@ const address = (log, output) => {
   if (log.hasIn(['address', 'hostname'])) {
     const hostname = log.getIn(['address', 'hostname']);
     const verified = log.getIn(['hostname', 'verified']);
+    if (output === 'html' && verified) {
+      return safeHtml(
+        `<span class="verified" title="Verified: the hostname resolves back to this address">${escapeHtml(hostname)}</span>`
+      );
+    }
     if (output === 'html') {
-      return verified
-        ? `<span class="verified" title="Verified: the hostname resolves back to this address">${escapeHtml(hostname)}</span>`
-        : escapeHtml(hostname);
+      return hostname;
     }
     return `${hostname}${verified ? '+' : ''}`;
   } else {
@@ -49,7 +52,19 @@ const executionTime = (log, output) => {
       : ms
   }ms`;
   const color = ms <= 100 ? 'green' : ms >= 1000 ? 'red' : 'yellow';
-  return colorize(color, text, output);
+  const colored = colorize(color, text, output);
+  return output === 'html' ? safeHtml(colored) : colored;
+};
+
+// A format's value for the output: in HTML, text is escaped and safeHtml()
+// kept as is
+const forOutput = (value, output) => {
+  if (value instanceof SafeHtml) {
+    return value.html;
+  }
+  return output === 'html' && typeof value === 'string'
+    ? escapeHtml(value)
+    : value;
 };
 
 const identity = (log) => log.getIn(['identity'], '');
@@ -138,7 +153,7 @@ class Formatter {
     output = output || this.output || 'html';
 
     const result = Object.fromEntries(
-      this.formats.map(([key, fn]) => [key, fn(log, output)])
+      this.formats.map(([key, fn]) => [key, forOutput(fn(log, output), output)])
     );
 
     if (output === 'console' || output === 'html') {

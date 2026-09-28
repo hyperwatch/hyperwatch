@@ -137,3 +137,24 @@ exports.escapeHtml = (string) =>
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+
+// HTML a format returns on purpose (links, marks, colors). Formatters escape
+// every other value for HTML: logs are full of text chosen by the clients
+// (URLs, user agents).
+class SafeHtml {
+  constructor(html) {
+    this.html = String(html);
+  }
+
+  toString() {
+    return this.html;
+  }
+}
+
+exports.SafeHtml = SafeHtml;
+
+exports.safeHtml = (html) => new SafeHtml(html);
+
+// A value as HTML: kept when it's safeHtml(), escaped otherwise
+exports.toHtml = (value) =>
+  value instanceof SafeHtml ? value.html : exports.escapeHtml(value);

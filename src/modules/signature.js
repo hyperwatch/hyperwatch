@@ -11,6 +11,7 @@ const {
   escapeHtml,
   formatDuration,
   md5,
+  safeHtml,
 } = require('../lib/util');
 
 const { agentFormat } = require('./agent');
@@ -50,19 +51,22 @@ const addressesFormat = (entry, output) => {
   if (!entry.has('addresses')) {
     return '';
   }
-  return entry
+  const addresses = entry
     .get('addresses')
     .keySeq()
     .slice(0, 10)
     .map((address) => (output === 'html' ? escapeHtml(address) : address))
     .join('<br>');
+  return output === 'html' ? safeHtml(addresses) : addresses;
 };
 
-const headersFormat = (entry, output) =>
-  Object.entries(entry.getIn(['signature', 'headers']))
+const headersFormat = (entry, output) => {
+  const headers = Object.entries(entry.getIn(['signature', 'headers']))
     .map((header) => header.join(':'))
     .map((header) => (output === 'html' ? escapeHtml(header) : header))
     .join('<br>');
+  return output === 'html' ? safeHtml(headers) : headers;
+};
 
 function computeSignature(headers) {
   const string = Object.keys(headers)

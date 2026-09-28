@@ -14,7 +14,7 @@ const gptbotIps = require('../data/gptbot-ips.json');
 const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
 const { Aggregator } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
-const { identityKey } = require('../lib/util');
+const { identityKey, safeHtml } = require('../lib/util');
 
 // Anthropic publishes one list of ranges covering all Claude crawlers.
 // Reverse DNS is not usable here: Claude crawlers run on shared cloud
@@ -543,9 +543,11 @@ function start() {
       return identity;
     }
     // Unnamed identities show their key (the address) in grey
-    return identity
-      ? html.logsLink('identity', identity)
-      : html.logsLink('identity', entry.get('identifier'), 'grey');
+    return safeHtml(
+      identity
+        ? html.logsLink('identity', identity)
+        : html.logsLink('identity', entry.get('identifier'), 'grey')
+    );
   });
 
   pipeline

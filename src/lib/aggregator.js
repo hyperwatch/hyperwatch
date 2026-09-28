@@ -7,6 +7,7 @@ const {
   aggregateSum,
   formatDuration,
   md5,
+  safeHtml,
 } = require('../lib/util');
 
 // ISO 8601 in text (JSON, CSV), shorter in HTML and on one line:
@@ -19,7 +20,9 @@ const lastSeen = (entry, output) => {
     return '';
   }
   const iso = new Date(ts * 1000).toISOString();
-  return output === 'html' ? iso.slice(0, 19).replace('T', '&nbsp;') : iso;
+  return output === 'html'
+    ? safeHtml(iso.slice(0, 19).replace('T', '&nbsp;'))
+    : iso;
 };
 
 const statusCount = (key) => (entry) =>
