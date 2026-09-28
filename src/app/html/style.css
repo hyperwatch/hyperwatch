@@ -135,6 +135,28 @@ nav a:hover {
   padding-top: 8px;
   background: #2e2e2e;
 }
+/* Jumps to the latest logs, while they're below the screen */
+.latest {
+  position: fixed;
+  /* Clear of scrollbars drawn over the page (macOS) */
+  right: 24px;
+  bottom: 16px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #494949;
+  border-radius: 50%;
+  background: #3a3a3a;
+  color: #eeeeee;
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+.latest:hover {
+  background: #494949;
+}
+.latest[hidden] {
+  display: none;
+}
 /* One line per log, cut at the edge of the screen (still copied whole) */
 .stream > div {
   white-space: nowrap;
