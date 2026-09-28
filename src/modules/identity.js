@@ -58,6 +58,7 @@ function augment(log) {
         : log;
     case 'Google':
     case 'GoogleDocs':
+    case 'docs.google.com': // how the parser reads the GoogleDocs agent
     case 'Google Favicon':
     case 'GoogleImageProxy':
       return hostname && hostname.endsWith('.google.com')

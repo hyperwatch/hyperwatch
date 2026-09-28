@@ -245,6 +245,26 @@ describe('identity', () => {
     });
   });
 
+  describe('Google', () => {
+    it('should identify the Google Docs proxy by its parsed family', () => {
+      const result = identity.augment(
+        log({
+          family: 'docs.google.com',
+          address: '74.125.208.67',
+          hostname: 'google-proxy-74-125-208-67.google.com',
+        })
+      );
+      assert.strictEqual(result.get('identity'), 'Google');
+    });
+
+    it('should not identify the Google Docs proxy without a google.com hostname', () => {
+      const result = identity.augment(
+        log({ family: 'docs.google.com', address: '203.0.113.7' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
   describe('Linkup', () => {
     it('should identify an address in the published list', () => {
       const result = identity.augment(
