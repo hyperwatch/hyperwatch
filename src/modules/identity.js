@@ -5,11 +5,14 @@ const html = require('../app/html');
 // Bot IP lists for identity verification
 // Run `node scripts/fetch-openai-ips.js` to update OpenAI lists
 // Run `node scripts/fetch-anthropic-ips.js` to update the Claude list
+// Run `node scripts/fetch-github-ips.js` to update the GitHub lists
 const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
 const amazonUserIps = require('../data/amazon-user-ips.json');
 const amazonBotIps = require('../data/amazonbot-ips.json');
 const chatgptUserIps = require('../data/chatgpt-user-ips.json');
 const claudeBotIps = require('../data/claude-bot-ips.json');
+const githubActionsIps = require('../data/github-actions-ips.json');
+const githubIps = require('../data/github-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
 const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
 const { Aggregator } = require('../lib/aggregator');
@@ -20,6 +23,15 @@ const { identityKey, safeHtml } = require('../lib/util');
 // Reverse DNS is not usable here: Claude crawlers run on shared cloud
 // infrastructure, so their PTR records are not Anthropic-controlled.
 const claudeBotCidrs = claudeBotIps.map((cidr) => new IPCIDR(cidr));
+
+// github-camo (the proxy behind README images) fetches from GitHub's own
+// service ranges and, since 2026, from GitHub-owned space that
+// https://api.github.com/meta lists only under `actions` (9.234.0.0/17). The
+// actions list is mostly Azure space shared with other tenants, so it only
+// counts together with the github-camo user agent.
+const githubCidrs = [...githubIps, ...githubActionsIps].map(
+  (cidr) => new IPCIDR(cidr)
+);
 
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
@@ -313,7 +325,8 @@ function augment(log) {
 
     // Per CIDR
     case 'github-camo':
-      return address && new IPCIDR('140.82.112.0/20').contains(address)
+      // https://api.github.com/meta
+      return address && githubCidrs.some((cidr) => cidr.contains(address))
         ? log.set('identity', 'GitHub')
         : log;
     case 'DotBot':
