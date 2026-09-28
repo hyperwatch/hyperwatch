@@ -50,10 +50,11 @@ exports.aggregateSum = (entry, key) =>
 // 9h15m26s. Units at zero are left out (2h, 2h5s).
 exports.formatDuration = (ms) => {
   const totalSeconds = ms / 1000;
-  const rounded = Math.round(totalSeconds);
-  if (rounded < 60) {
+  // Tenths as long as they read under a minute (59.9s), not 60.0s
+  if (totalSeconds < 59.95) {
     return `${totalSeconds.toFixed(1)}s`;
   }
+  const rounded = Math.round(totalSeconds);
   const units = [
     [Math.floor(rounded / 3600), 'h'],
     [Math.floor((rounded % 3600) / 60), 'm'],
