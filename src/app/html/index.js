@@ -381,9 +381,8 @@ function namedChildren(node) {
 const separator = (text) => `<span class="grey"> ${text} </span>`;
 
 // The navigation between log streams: the path to the current node, then
-// the nodes one level below it. Below main, the nodes under main stay
-// listed, the branch of the current node highlighted. Links keep the query
-// (filters, grep).
+// the nodes one level below it. Below main, each level lists all its nodes,
+// the one on the path highlighted. Links keep the query (filters, grep).
 function nodesNav(req, name, tree) {
   const found = findNode(tree, name);
   if (!found) {
@@ -413,22 +412,25 @@ function nodesNav(req, name, tree) {
     )}</div>`;
   }
 
-  // Below main: its nodes, then the path from the branch to the current node
-  const [branch, ...deeper] = [...found.ancestors.slice(main + 1), name];
-  const branches = namedChildren(findNode(tree, 'main').node).map((node) =>
-    node === name
-      ? current
-      : nodeWithQuery(node, node === branch ? 'active' : null)
-  );
-  const path = deeper.map((node) =>
-    node === name ? current : nodeWithQuery(node)
+  // Below main, every level lists its nodes: the one on the path to the
+  // current node highlighted, the current node bold
+  const path = [...found.ancestors.slice(main + 1), name];
+  const parents = found.ancestors.slice(main);
+  const levels = path.map((onPath, i) =>
+    namedChildren(findNode(tree, parents[i]).node)
+      .map((node) =>
+        node === name
+          ? current
+          : nodeWithQuery(node, node === onPath ? 'active' : null)
+      )
+      .join(separator('·'))
   );
   return `<div class="subnav">${found.ancestors
     .slice(0, main + 1)
     .map((node) => nodeWithQuery(node))
-    .join(separator('›'))}${separator('→')}${branches.join(separator('·'))}${
-    path.length > 0 ? `${separator('›')}${path.join(separator('›'))}` : ''
-  }${below(found.node)}</div>`;
+    .join(separator('›'))}${separator('→')}${levels.join(
+    separator('→')
+  )}${below(found.node)}</div>`;
 }
 
 // A line saying which logs a filtered stream keeps, linking to all of them
