@@ -2,8 +2,11 @@ const assert = require('assert');
 
 const { fromJS } = require('immutable');
 
+const html = require('../../src/app/html');
+const aggregatorLib = require('../../src/lib/aggregator');
 const { now } = require('../../src/lib/util');
 const address = require('../../src/modules/address');
+const { agentFormat } = require('../../src/modules/agent');
 
 function log(value, signatureId) {
   return fromJS({
@@ -18,11 +21,75 @@ describe('address aggregator', () => {
   let aggregator;
 
   before(() => {
-    address.start();
+    // The agent column, as the agent module adds it, only for this aggregator
+    const { defaultFormatter } = aggregatorLib;
+    defaultFormatter.insertFormat('agent', agentFormat);
+    try {
+      address.start();
+    } finally {
+      defaultFormatter.formats = defaultFormatter.formats.filter(
+        ([key]) => key !== 'agent'
+      );
+    }
     aggregator = address.aggregator;
   });
 
   beforeEach(() => aggregator.reset());
+
+  it('starts with the address, lastIdentity after the hostname', () => {
+    const keys = aggregator.formatter.formats.map(([key]) => key);
+    assert.strictEqual(keys[0], 'address');
+    assert.ok(keys.indexOf('lastIdentity') > keys.indexOf('hostname'));
+    assert.ok(!keys.includes('identity'));
+  });
+
+  it('links addresses to their logs in HTML', () => {
+    aggregator.processLog(log('1.2.3.4', 'sig-a'));
+    const entry = aggregator.entries.first();
+    const format = () => aggregator.formatter.formatObject(entry, 'html');
+
+    html.registerSection('logs');
+    assert.match(
+      format().address,
+      /<a href="logs\/main\?address=1\.2\.3\.4">1\.2\.3\.4<\/a>/
+    );
+    assert.strictEqual(
+      aggregator.formatter.formatObject(entry, 'text').address,
+      '1.2.3.4'
+    );
+  });
+
+  it('escapes text chosen by clients in HTML', () => {
+    aggregator.processLog(log('1.2.3.4', 'sig-a'));
+    // What clients choose: their hostname and user agent
+    const entry = aggregator.entries
+      .first()
+      .setIn(['address', 'hostname'], 'x<img src=x>.example')
+      .setIn(
+        ['request', 'headers', 'user-agent'],
+        'Evil<script>alert(1)</script>'
+      );
+    const row = Object.values(
+      aggregator.formatter.formatObject(entry, 'html')
+    ).join(' ');
+    assert.doesNotMatch(row, /<script|<img/);
+    // Without an identity, the agent stands in, in grey
+    assert.match(
+      row,
+      /<span class="grey">Evil&lt;script&gt;alert\(1\)&lt;\/script&gt;<\/span>/
+    );
+    assert.match(row, /x&lt;img src=x&gt;\.example/);
+    // Text outputs keep the values as they are
+    assert.strictEqual(
+      aggregator.formatter.formatObject(entry, 'text').hostname,
+      'x<img src=x>.example'
+    );
+  });
+
+  it('colors the hostname, not the address', () => {
+    assert.strictEqual(aggregator.formatter.colors.hostname, 'cyan');
+    assert.ok(!aggregator.formatter.colors.address);
+  });
 
   it('counts distinct signatures over 15m and 24h', () => {
     aggregator.processLog(log('1.2.3.4', 'sig-a'));

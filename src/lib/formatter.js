@@ -1,5 +1,7 @@
 const { default: chalk } = require('chalk');
 
+const { escapeHtml, safeHtml, SafeHtml } = require('./util');
+
 const colorize = (name, value, output) => {
   if (output === 'console') {
     return chalk[name](value);
@@ -11,10 +13,21 @@ const colorize = (name, value, output) => {
 
 const time = (log) => log.getIn(['request', 'time']).slice(11, -5);
 
-const address = (log) => {
+// Hostnames confirmed by a forward lookup end with '+'. In HTML, the
+// stylesheet adds a ✓ instead, which isn't copied with the hostname.
+const address = (log, output) => {
   if (log.hasIn(['address', 'hostname'])) {
+    const hostname = log.getIn(['address', 'hostname']);
     const verified = log.getIn(['hostname', 'verified']);
-    return `${log.getIn(['address', 'hostname'])}${verified ? '+' : ''}`;
+    if (output === 'html' && verified) {
+      return safeHtml(
+        `<span class="verified" title="Verified: the hostname resolves back to this address">${escapeHtml(hostname)}</span>`
+      );
+    }
+    if (output === 'html') {
+      return hostname;
+    }
+    return `${hostname}${verified ? '+' : ''}`;
   } else {
     return log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
   }
@@ -27,15 +40,31 @@ const request = (log) => {
   return `"${method} ${url} ${status}"`;
 };
 
+// Milliseconds, with thousands separators (1,016ms) except in plain text
 const executionTime = (log, output) => {
-  if (!log.get('executionTime')) {
+  const ms = log.get('executionTime');
+  if (!ms) {
     return;
   }
-  return log.get('executionTime') <= 100
-    ? colorize('green', `${log.get('executionTime')}ms`, output)
-    : log.get('executionTime') >= 1000
-      ? colorize('red', `${log.get('executionTime')}ms`, output)
-      : colorize('yellow', `${log.get('executionTime')}ms`, output);
+  const text = `${
+    output === 'html' || output === 'console'
+      ? Number(ms).toLocaleString('en-US')
+      : ms
+  }ms`;
+  const color = ms <= 100 ? 'green' : ms >= 1000 ? 'red' : 'yellow';
+  const colored = colorize(color, text, output);
+  return output === 'html' ? safeHtml(colored) : colored;
+};
+
+// A format's value for the output: in HTML, text is escaped and safeHtml()
+// kept as is
+const forOutput = (value, output) => {
+  if (value instanceof SafeHtml) {
+    return value.html;
+  }
+  return output === 'html' && typeof value === 'string'
+    ? escapeHtml(value)
+    : value;
 };
 
 const identity = (log) => log.getIn(['identity'], '');
@@ -94,7 +123,7 @@ class Formatter {
 
   replaceFormat(key, fn) {
     const index = this.formats.findIndex(([k]) => k == key);
-    if (index) {
+    if (index !== -1) {
       this.formats[index] = [key, fn];
     }
 
@@ -124,7 +153,7 @@ class Formatter {
     output = output || this.output || 'html';
 
     const result = Object.fromEntries(
-      this.formats.map(([key, fn]) => [key, fn(log, output)])
+      this.formats.map(([key, fn]) => [key, forOutput(fn(log, output), output)])
     );
 
     if (output === 'console' || output === 'html') {

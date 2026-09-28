@@ -1,7 +1,7 @@
 const { api } = require('../app');
+const html = require('../app/html');
 const monitoring = require('../lib/monitoring');
-const { formatTable } = require('../lib/util');
-const stylesheet = require('../stylesheet');
+const { escapeHtml, fillHost, formatTable } = require('../lib/util');
 
 const aggregateCount = (entry, path) =>
   entry.hasIn(path) ? entry.getIn(path).reduce((p, c) => p + c, 0) : null;
@@ -22,35 +22,55 @@ function mapper(entry, format) {
   };
 }
 
+function handler(req, res) {
+  const raw = req.query.raw ? true : false;
+  const format = req.params.format || (raw ? 'json' : null);
+
+  if (format && !['json', 'txt'].includes(format)) {
+    res.sendStatus(404);
+    return;
+  }
+
+  let rawData = monitoring.getAllComputed();
+
+  if (req.query.type) {
+    rawData = rawData.filter((entry) => entry.get('type') === req.query.type);
+  }
+
+  const data = raw ? rawData : rawData.map((entry) => mapper(entry, format));
+
+  if (format === 'json') {
+    res.send(
+      raw
+        ? data
+        : data.map((row) => ({
+            ...row,
+            status: fillHost(row.status, (scheme) =>
+              html.baseAddress(req, scheme)
+            ),
+          }))
+    );
+  } else {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    // Entries without traffic in the last 15 minutes are grey
+    const rowClass = (entry) => (entry.count15m ? null : 'grey');
+    const rows = data.map((row) => ({
+      ...row,
+      status: fillHost(row.status, (scheme) =>
+        escapeHtml(html.baseAddress(req, scheme))
+      ),
+    }));
+    res.send(
+      html.page(req, { title: 'status' }, formatTable(rows, { rowClass }))
+    );
+  }
+}
+
 function start() {
-  api.get('/status{.:format}', (req, res) => {
-    const raw = req.query.raw ? true : false;
-    const format = req.params.format || (raw ? 'json' : null);
-
-    if (format && !['json', 'txt'].includes(format)) {
-      res.sendStatus(404);
-      return;
-    }
-
-    let rawData = monitoring.getAllComputed();
-
-    if (req.query.type) {
-      rawData = rawData.filter((entry) => entry.get('type') === req.query.type);
-    }
-
-    const data = raw ? rawData : rawData.map((entry) => mapper(entry, format));
-
-    if (format === 'json') {
-      res.send(data);
-    } else {
-      res.setHeader('Content-Type', 'text/html');
-      res.send(
-        `<!DOCTYPE html><html><head><style>${stylesheet}</style></head><body>${formatTable(
-          data
-        )}</body></html>`
-      );
-    }
-  });
+  // The status page is also the home page
+  html.registerSection('status');
+  api.get('/', handler);
+  api.get('/status{.:format}', handler);
 }
 
 module.exports = { start };

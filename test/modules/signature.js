@@ -40,6 +40,19 @@ describe('signature aggregator', () => {
     assert.strictEqual(formatted.lastAddress, '9.9.9.9');
   });
 
+  it('escapes headers in HTML output', () => {
+    const entry = log('1.2.3.4').setIn(['signature', 'headers'], {
+      'User-Agent': '<script>',
+    });
+    aggregator.processLog(entry);
+
+    const formatted = aggregator.formatter.formatObject(
+      aggregator.entries.first(),
+      'html'
+    );
+    assert.strictEqual(formatted.headers, 'User-Agent:&lt;script&gt;');
+  });
+
   it('formats an entry without addresses', () => {
     aggregator.processLog(log('1.2.3.4'));
     const entry = aggregator.entries.first().delete('addresses');

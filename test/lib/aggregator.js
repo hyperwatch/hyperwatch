@@ -1,6 +1,13 @@
 const assert = require('assert');
 
-const { Aggregator, defaultFormatter } = require('../../src/lib/aggregator');
+const { fromJS } = require('immutable');
+
+const {
+  Aggregator,
+  defaultFormatter,
+  lastSeen,
+} = require('../../src/lib/aggregator');
+const { toHtml } = require('../../src/lib/util');
 
 describe('Aggregator formatter isolation', () => {
   it('gives each aggregator its own formatter', () => {
@@ -55,5 +62,57 @@ describe('Aggregator entryGc', () => {
     assert.strictEqual(agg.entries.getIn(['a', 'n']), 10);
     assert.strictEqual(agg.entries.getIn(['b', 'n']), 20);
     assert.strictEqual(agg.entries.size, 2);
+  });
+});
+
+describe('Aggregator lastSeen', () => {
+  const entry = fromJS({ speed: {} }).setIn(['speed', 'per_minute'], {
+    latest: Date.UTC(2026, 8, 25, 12, 51, 7) / 1000,
+  });
+
+  it('is ISO 8601 in text output', () => {
+    assert.strictEqual(lastSeen(entry, 'text'), '2026-09-25T12:51:07.000Z');
+  });
+
+  it('is shorter in HTML output', () => {
+    assert.strictEqual(
+      toHtml(lastSeen(entry, 'html')),
+      '2026-09-25&nbsp;12:51:07'
+    );
+  });
+
+  it('is empty when never seen', () => {
+    assert.strictEqual(lastSeen(fromJS({ speed: {} }), 'html'), '');
+  });
+});
+
+describe('Aggregator getData filter', () => {
+  const aggregator = new Aggregator();
+  aggregator.sorters.n = (entry) => entry.get('n');
+  aggregator.entries = fromJS({
+    a: { identity: 'Googlebot', n: 3 },
+    b: { n: 2 },
+    c: { identity: 'Bing', n: 1 },
+  });
+
+  const identities = (options) =>
+    aggregator
+      .getData({ sort: 'n', raw: true, ...options })
+      .map((entry) => entry.get('identity') || '-')
+      .toArray();
+
+  it('keeps every entry without a filter', () => {
+    assert.deepStrictEqual(identities(), ['Googlebot', '-', 'Bing']);
+  });
+
+  it('filters before limiting', () => {
+    assert.deepStrictEqual(
+      identities({ filter: (entry) => !entry.get('identity'), limit: 1 }),
+      ['-']
+    );
+    assert.deepStrictEqual(
+      identities({ filter: (entry) => !!entry.get('identity'), limit: 2 }),
+      ['Googlebot', 'Bing']
+    );
   });
 });

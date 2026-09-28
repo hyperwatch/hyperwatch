@@ -1,9 +1,11 @@
 const { is } = require('immutable');
 
 const api = require('../app/api');
+const html = require('../app/html');
 const { Aggregator } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
 const { touch, prune, countRecent } = require('../lib/recent-map');
+const { safeHtml, toHtml } = require('../lib/util');
 
 const identifier = (log) => log.getIn(['address', 'value']);
 
@@ -62,6 +64,43 @@ function start() {
     entry.has('signatures') ? entry.update('signatures', prune) : entry
   );
 
+  // Identity and agent come from the latest log with one
+  const { formatter } = aggregator;
+  const identity = formatter.formats.find(([key]) => key === 'identity');
+  const agent = formatter.formats.find(([key]) => key === 'agent');
+  formatter.formats = formatter.formats.filter(
+    (format) => format !== identity && format !== agent
+  );
+  // In HTML, the last identity falls back to the agent, in grey
+  formatter.insertFormat(
+    'lastIdentity',
+    (entry, output) => {
+      const value = identity ? identity[1](entry, output) : '';
+      if (value || output !== 'html' || !agent) {
+        return value;
+      }
+      const lastAgent = agent[1](entry, output);
+      return lastAgent
+        ? safeHtml(`<span class="grey">${toHtml(lastAgent)}</span>`)
+        : '';
+    },
+    { after: 'hostname', color: formatter.colors.identity }
+  );
+  if (agent) {
+    formatter.insertFormat('lastAgent', agent[1], {
+      after: 'lastIdentity',
+      color: formatter.colors.agent,
+    });
+  }
+
+  // In HTML, addresses link to their logs
+  formatter.replaceFormat('address', (entry, output) => {
+    const address = entry.getIn(['address', 'value']) || '';
+    return output === 'html'
+      ? safeHtml(html.logsLink('address', address))
+      : address;
+  });
+
   aggregator.formatter.insertFormat('signatureCount15m', signatureCount15m, {
     before: 'count15m',
   });
@@ -76,7 +115,19 @@ function start() {
     .getNode('main')
     .map((log) => aggregator.processLog(log), 'aggregator');
 
-  api.registerAggregator('addresses', aggregator);
+  api.registerAggregator('addresses', aggregator, {
+    nav: true,
+    identityFilter: true,
+    columns: [
+      'address',
+      'hostname',
+      'country',
+      'lastIdentity',
+      'count',
+      'execTime',
+      'lastSeen',
+    ],
+  });
 }
 
 module.exports = {

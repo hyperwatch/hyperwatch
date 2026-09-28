@@ -102,8 +102,8 @@ describe('chalk integration', () => {
 
     it('returns red for slow requests (>=1000ms)', () => {
       const result = executionTime(makeLog(2000), 'console');
-      assert.ok(result.includes('2000ms'));
-      assert.ok(result.length > '2000ms'.length);
+      assert.ok(result.includes('2,000ms'));
+      assert.ok(result.length > '2,000ms'.length);
     });
 
     it('returns undefined when executionTime is not set', () => {
