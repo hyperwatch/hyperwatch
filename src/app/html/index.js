@@ -204,7 +204,7 @@ function periodOf(req) {
 
 // Switching period keeps the query but the sort, which goes back to the
 // count of the period
-function periodSwitch(req) {
+function periodLinks(req) {
   const current = periodOf(req);
   const links = ['15m', '24h'].map((period) => {
     if (period === current) {
@@ -219,9 +219,7 @@ function periodSwitch(req) {
     const search = query.toString();
     return link(`${here(req)}${search ? `?${search}` : ''}`, period);
   });
-  return `<div class="subnav periods">${links.join(
-    '<span class="grey"> · </span>'
-  )}</div>`;
+  return links.join(separator('·'));
 }
 
 // Aggregators with an identity filter show all entries, or only the
@@ -233,7 +231,7 @@ function identityFilterOf(req) {
 }
 
 // Switching filter keeps the rest of the query (period, sort, limit)
-function identityFilterSwitch(req) {
+function identityFilterLinks(req) {
   const current = identityFilterOf(req);
   const links = identityFilters.map((filter) => {
     const text = `${filter[0].toUpperCase()}${filter.slice(1)}`;
@@ -248,7 +246,19 @@ function identityFilterSwitch(req) {
     const search = query.toString();
     return link(`${here(req)}${search ? `?${search}` : ''}`, text);
   });
-  return `<div class="subnav">${links.join(separator('·'))}</div>`;
+  return links.join(separator('·'));
+}
+
+// The switches of an aggregator page, top right on the navigation line: the
+// identity filter (when the page has one), then the period
+function switches(req, { identityFilter }) {
+  const groups = [
+    identityFilter ? identityFilterLinks(req) : null,
+    periodLinks(req),
+  ].filter(Boolean);
+  return `<div class="subnav switches">${groups
+    .map((group) => `<span>${group}</span>`)
+    .join('')}</div>`;
 }
 
 // Column sorted by a sorter of another name
@@ -306,14 +316,12 @@ function aggregatorView(
     identityFilterSections.add(name);
   }
   return (req, { rows, sorters, sort }) => {
-    const switches = `${periodSwitch(req)}${
-      identityFilter ? identityFilterSwitch(req) : ''
-    }`;
+    const header = switches(req, { identityFilter });
     if (rows.length === 0) {
       return page(
         req,
         { title: name },
-        `${switches}<p class="grey">${
+        `${header}<p class="grey">${
           identityFilter && identityFilterOf(req) !== 'all'
             ? 'No matching entries.'
             : 'No entries yet: they appear as logs come in.'
@@ -333,7 +341,7 @@ function aggregatorView(
     return page(
       req,
       { title: name },
-      `${switches}${formatTable(table, {
+      `${header}${formatTable(table, {
         heading: sortHeading(req, sorters, sort),
       })}`
     );

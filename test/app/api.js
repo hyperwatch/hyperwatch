@@ -478,6 +478,19 @@ describe('API identity filter', () => {
     );
   });
 
+  it('shows the filter left of the period switch, top right', async () => {
+    const body = await (await fetch(`${baseUrl}/filter-test`)).text();
+    assert.match(
+      body,
+      /<div class="subnav switches"><span><strong>All<\/strong>.*Unidentified<\/a><\/span><span><strong>15m<\/strong>/
+    );
+    const other = await (await fetch(`${baseUrl}/no-filter-test`)).text();
+    assert.match(
+      other,
+      /<div class="subnav switches"><span><strong>15m<\/strong>/
+    );
+  });
+
   it('keeps the filters when no entry matches', async () => {
     const body = await (
       await fetch(`${baseUrl}/filter-test?filter=identified&limit=0`)

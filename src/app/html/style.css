@@ -103,7 +103,7 @@ nav a:hover {
 }
 
 /* Log streams: the navigation stays visible */
-/* Second line of navigation: log nodes, aggregator periods */
+/* Second line of navigation: log nodes */
 .subnav {
   white-space: normal;
   margin-bottom: 8px;
@@ -116,13 +116,17 @@ nav a:hover {
 .subnav a.active {
   color: #eeeeee;
 }
-/* The period switch of aggregator pages, top right on the navigation line */
-.periods {
+/* The switches of aggregator pages (identity filter, period), top right on
+   the navigation line */
+.switches {
   position: absolute;
   top: 8px;
   /* Clear of scrollbars drawn over the page (macOS) */
   right: 24px;
   margin: 0;
+}
+.switches > span + span {
+  margin-left: 2em;
 }
 .stream-page nav {
   position: sticky;
