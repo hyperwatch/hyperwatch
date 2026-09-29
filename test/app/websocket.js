@@ -853,7 +853,30 @@ describe('WebSocket integration', () => {
         const response = await rawUpgradeResponse('/other');
         assert.match(response, /^HTTP\/1\.1 418/);
         assert.doesNotMatch(response, /404/);
+        // Once it's gone, the next upgrade nobody handles gets the 404
+        assert.match(await rawUpgradeResponse('/other'), /^HTTP\/1\.1 404/);
       });
+    });
+
+    it('leaves an upgrade kept open by a once() listener prepended after mount()', async () => {
+      httpServer = createHost().server;
+      const other = new WebSocket.Server({ noServer: true });
+      // Runs before Hyperwatch's listener and is removed before it: the
+      // WebSocket it opens must not get a 404 appended
+      httpServer.prependOnceListener('upgrade', (req, socket, head) => {
+        other.handleUpgrade(req, socket, head, (client) =>
+          setTimeout(() => client.send('still open'), 50)
+        );
+      });
+      baseUrl = await listen(httpServer);
+
+      await withoutUncaughtErrors(async () => {
+        const client = await connectWs(wsUrl('/other'));
+        assert.strictEqual(await nextMessage(client), 'still open');
+        assert.strictEqual(client.readyState, WebSocket.OPEN);
+        client.close();
+      });
+      other.close();
     });
 
     it("doesn't write a 404 to a socket another listener already ended", async () => {

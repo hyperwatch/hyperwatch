@@ -64,7 +64,7 @@ function isUnderPath(target, path, caseSensitive) {
  *
  * - Registers `app.use(path, ...middleware, router)` where it's called, so the
  *   app's middleware order is kept.
- * - Adds one 'upgrade' listener to `server`, first. WebSocket upgrades under `path`
+ * - Adds one 'upgrade' listener to `server`. WebSocket upgrades under `path`
  *   go through the app like HTTP requests, so `middleware` applies to both.
  *   Other upgrades go to `fallback` when given, or are left to the server's
  *   other listeners, or get 404 when there are none. Malformed targets get
@@ -87,6 +87,20 @@ function mount(app, options = {}) {
   }
   mountedPaths.get(app).add(routingKey(app, path));
 
+  // Node removes a listener added with once() just before calling it, and
+  // says so with 'removeListener', synchronously. An upgrade listener
+  // removed while an upgrade is emitted may have handled it: note it until
+  // the emission is over.
+  let removedDuringEmission = false;
+  const onRemoveListener = (event) => {
+    if (event === 'upgrade' && !removedDuringEmission) {
+      removedDuringEmission = true;
+      process.nextTick(() => {
+        removedDuringEmission = false;
+      });
+    }
+  };
+
   const listener = (req, socket, head) => {
     const target = wsServer.parseTarget(req.url);
     // Malformed targets are rejected before reaching the app or fallback
@@ -99,6 +113,7 @@ function mount(app, options = {}) {
       fallback(req, socket, head);
     } else if (
       server.listenerCount('upgrade') === 1 &&
+      !removedDuringEmission &&
       !socket.destroyed &&
       !socket.writableEnded
     ) {
@@ -109,9 +124,8 @@ function mount(app, options = {}) {
       wsServer.reject(socket, 404, 'Not Found');
     }
   };
-  // First, so the count above still includes the listeners added with
-  // once(): Node removes them just before calling them
-  server.prependListener('upgrade', listener);
+  server.on('upgrade', listener);
+  server.on('removeListener', onRemoveListener);
   upgradeListeners.set(server, listener);
 
   return {
@@ -119,6 +133,7 @@ function mount(app, options = {}) {
     detachUpgrades() {
       if (upgradeListeners.get(server) === listener) {
         server.off('upgrade', listener);
+        server.off('removeListener', onRemoveListener);
         upgradeListeners.delete(server);
       }
     },

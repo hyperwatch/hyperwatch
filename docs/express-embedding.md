@@ -60,7 +60,7 @@ Don't call `hyperwatch.start()`: it would start the standalone Hyperwatch server
 
 ### WebSocket upgrades
 
-`mount()` adds one `upgrade` listener to `server`, before its other listeners:
+`mount()` adds one `upgrade` listener to `server`:
 
 - An upgrade with a malformed target (not an origin-form `/path?query`, e.g. `//[/` or an absolute URL) gets `400 Bad Request`, before reaching the app or `fallback`.
 - An upgrade under the mount path (`/_hyperwatch` or `/_hyperwatch/…`) is sent through `app`, like an HTTP request. It goes through the same middleware, so authentication protects it, and Express answers errors as usual: a middleware can reject it with `401`, `next(error)` keeps the error's status, and an unknown Hyperwatch route gets `404`.
