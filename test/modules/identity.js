@@ -223,11 +223,12 @@ describe('identity', () => {
       assert.strictEqual(result.get('identity'), 'GitHub');
     });
 
-    it('should identify github-camo from the GitHub-owned actions range', () => {
+    it('should not identify github-camo from the Actions ranges', () => {
+      // Runners there run any GitHub user's workflows
       const result = identity.augment(
         log({ family: 'github-camo', address: '9.234.106.63' })
       );
-      assert.strictEqual(result.get('identity'), 'GitHub');
+      assert.strictEqual(result.get('identity'), undefined);
     });
 
     it('should not identify github-camo outside the published ranges', () => {

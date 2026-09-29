@@ -6,13 +6,10 @@ const dataDir = path.join(__dirname, '..', 'src', 'data');
 // GitHub publishes its address ranges per service at
 // https://api.github.com/meta (https://docs.github.com/en/rest/meta/meta).
 //
-// - github-ips: the ranges GitHub runs its own services from (web, API,
-//   webhooks, git, Pages, Packages, importers, Copilot). github-camo, the
-//   image proxy behind README badges, historically came from here.
-// - github-actions-ips: the `actions` ranges. Since 2026 github-camo also
-//   fetches from GitHub-owned space listed only there (9.234.0.0/17). The list
-//   is large and mostly Azure address space shared with other Azure tenants,
-//   so it is kept apart and only combined with an agent check.
+// github-ips: the ranges GitHub runs its own services from (web, API,
+// webhooks, git, Pages, Packages, importers, Copilot), where github-camo, the
+// image proxy behind README badges, comes from. The `actions` ranges are left
+// out: Actions runners there run any GitHub user's workflows.
 const sources = [
   {
     name: 'github-ips',
@@ -28,7 +25,6 @@ const sources = [
       'copilot',
     ],
   },
-  { name: 'github-actions-ips', keys: ['actions'] },
 ];
 
 function normalize(cidr) {

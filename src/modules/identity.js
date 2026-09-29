@@ -11,7 +11,6 @@ const amazonUserIps = require('../data/amazon-user-ips.json');
 const amazonBotIps = require('../data/amazonbot-ips.json');
 const chatgptUserIps = require('../data/chatgpt-user-ips.json');
 const claudeBotIps = require('../data/claude-bot-ips.json');
-const githubActionsIps = require('../data/github-actions-ips.json');
 const githubIps = require('../data/github-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
 const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
@@ -24,14 +23,12 @@ const { identityKey, safeHtml } = require('../lib/util');
 // infrastructure, so their PTR records are not Anthropic-controlled.
 const claudeBotCidrs = claudeBotIps.map((cidr) => new IPCIDR(cidr));
 
-// github-camo (the proxy behind README images) fetches from GitHub's own
-// service ranges and, since 2026, from GitHub-owned space that
-// https://api.github.com/meta lists only under `actions` (9.234.0.0/17). The
-// actions list is mostly Azure space shared with other tenants, so it only
-// counts together with the github-camo user agent.
-const githubCidrs = [...githubIps, ...githubActionsIps].map(
-  (cidr) => new IPCIDR(cidr)
-);
+// github-camo (the proxy behind README images) is identified from the ranges
+// GitHub runs its own services from. It also fetches from ranges
+// https://api.github.com/meta lists under `actions` (e.g. 9.234.0.0/17), but
+// Actions runners there run any GitHub user's workflows, which can send the
+// same user agent: those requests stay unidentified.
+const githubCidrs = githubIps.map((cidr) => new IPCIDR(cidr));
 
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
