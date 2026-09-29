@@ -49,7 +49,7 @@ Don't call `hyperwatch.start()`: it would start the standalone Hyperwatch server
 | `server`     | yes      | The Node HTTP server of the app. `mount()` adds an `upgrade` listener to it, and never creates or starts one.    |
 | `path`       | yes      | The mount path, e.g. `'/_hyperwatch'`. It must start with `/` and not end with `/`.                              |
 | `middleware` | no       | A middleware function or an array of them, e.g. authentication. Applied to HTTP requests and WebSocket upgrades. |
-| `fallback`   | no       | `(req, socket, head) => {}`, called with the WebSocket upgrades Hyperwatch doesn't own.                          |
+| `fallback`   | no       | `(req, socket, head) => {}`, called with the WebSocket upgrades Hyperwatch doesn't own. Without it, see below.   |
 
 ### HTTP routes
 
@@ -64,7 +64,7 @@ Don't call `hyperwatch.start()`: it would start the standalone Hyperwatch server
 
 - An upgrade with a malformed target (not an origin-form `/path?query`, e.g. `//[/` or an absolute URL) gets `400 Bad Request`, before reaching the app or `fallback`.
 - An upgrade under the mount path (`/_hyperwatch` or `/_hyperwatch/…`) is sent through `app`, like an HTTP request. It goes through the same middleware, so authentication protects it, and Express answers errors as usual: a middleware can reject it with `401`, `next(error)` keeps the error's status, and an unknown Hyperwatch route gets `404`.
-- Any other upgrade is passed to `fallback(req, socket, head)` when given. Otherwise it's left to the server's other `upgrade` listeners.
+- Any other upgrade is passed to `fallback(req, socket, head)` when given. Otherwise it's left to the server's other `upgrade` listeners. When there are none, it gets `404 Not Found` and the connection is closed, as Express would have answered without Hyperwatch (a server without `upgrade` listeners hands upgrades to the app as regular requests). Listeners are counted when the upgrade arrives, so one added after `mount()`, like Next.js's, is taken into account.
 
 Hyperwatch only owns its mount path: `/other/logs/raw` is never handled by Hyperwatch, even though `/logs/raw` is a Hyperwatch route. The mount path is matched like Express matches `app.use()`: case-insensitively by default, and case-sensitively when the app enables `case sensitive routing`. So an HTTP request and a WebSocket upgrade to the same path always reach the same place.
 

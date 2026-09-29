@@ -67,7 +67,8 @@ function isUnderPath(target, path, caseSensitive) {
  * - Adds one 'upgrade' listener to `server`. WebSocket upgrades under `path`
  *   go through the app like HTTP requests, so `middleware` applies to both.
  *   Other upgrades go to `fallback` when given, or are left to the server's
- *   other listeners. Malformed targets get 400.
+ *   other listeners, or get 404 when there are none. Malformed targets get
+ *   400.
  * - Never creates a server nor listens.
  *
  * Mounting again on the same server, or on the same app at the same path
@@ -96,6 +97,12 @@ function mount(app, options = {}) {
       wsServer.dispatch(app, req, socket, head);
     } else if (fallback) {
       fallback(req, socket, head);
+    } else if (server.listenerCount('upgrade') === 1) {
+      // Nobody else will answer (counted now: some frameworks, like Next.js,
+      // add their listener with their first request). Without Hyperwatch, Node
+      // would have emitted this as a regular request and Express would have
+      // answered 404: do the same instead of leaving it hanging.
+      wsServer.reject(socket, 404, 'Not Found');
     }
   };
   server.on('upgrade', listener);

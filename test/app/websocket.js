@@ -766,6 +766,58 @@ describe('WebSocket integration', () => {
       client.close();
     });
 
+    // Send a raw upgrade request and resolve with the status line of the
+    // response once the server closes the connection, or 'no response' when
+    // it's left hanging
+    function rawUpgradeClosed(target) {
+      return new Promise((resolve, reject) => {
+        const socket = net.connect(httpServer.address().port, '127.0.0.1');
+        let response = '';
+        socket.setTimeout(1000, () => {
+          resolve('no response');
+          socket.destroy();
+        });
+        socket.on('error', reject);
+        socket.on('data', (data) => (response += data));
+        socket.on('close', () => resolve(response.split('\r\n')[0]));
+        socket.write(
+          `GET ${target} HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n`
+        );
+      });
+    }
+
+    it('closes upgrades nobody handles with a 404', async () => {
+      httpServer = createHost().server;
+      baseUrl = await listen(httpServer);
+
+      assert.strictEqual(
+        await rawUpgradeClosed('/other'),
+        'HTTP/1.1 404 Not Found'
+      );
+    });
+
+    it('leaves upgrades to a listener added after mount(), without a 404', async () => {
+      httpServer = createHost().server;
+      // Like Next.js, which adds its listener with its first request
+      httpServer.on('upgrade', teapot);
+      baseUrl = await listen(httpServer);
+
+      assert.strictEqual(
+        await rawUpgradeClosed('/other'),
+        "HTTP/1.1 418 I'm a Teapot"
+      );
+    });
+
+    it('gives upgrades nobody handles to the fallback, without a 404', async () => {
+      httpServer = createHost({ fallback: teapot }).server;
+      baseUrl = await listen(httpServer);
+
+      assert.strictEqual(
+        await rawUpgradeClosed('/other'),
+        "HTTP/1.1 418 I'm a Teapot"
+      );
+    });
+
     it('rejects malformed upgrade targets without crashing', async () => {
       let fallbackCalled = false;
       httpServer = createHost({
