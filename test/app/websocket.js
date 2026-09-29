@@ -808,6 +808,67 @@ describe('WebSocket integration', () => {
       );
     });
 
+    // The whole response to a raw upgrade request, once the server closes
+    // the connection
+    function rawUpgradeResponse(target) {
+      return new Promise((resolve, reject) => {
+        const socket = net.connect(httpServer.address().port, '127.0.0.1');
+        let response = '';
+        socket.setTimeout(1000, () => {
+          resolve(response);
+          socket.destroy();
+        });
+        socket.on('error', reject);
+        socket.on('data', (data) => (response += data));
+        socket.on('close', () => resolve(response));
+        socket.write(
+          `GET ${target} HTTP/1.1\r\nHost: localhost\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n\r\n`
+        );
+      });
+    }
+
+    // Fails on errors thrown outside the test, e.g. writing to an ended socket
+    async function withoutUncaughtErrors(fn) {
+      const errors = [];
+      const onError = (err) => errors.push(err);
+      process.on('uncaughtException', onError);
+      try {
+        await fn();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      } finally {
+        process.off('uncaughtException', onError);
+      }
+      assert.deepStrictEqual(errors, []);
+    }
+
+    it('leaves upgrades to a once() listener added before mount(), without a 404', async () => {
+      const app = express();
+      httpServer = http.createServer(app);
+      // Node removes it just before calling it
+      httpServer.once('upgrade', teapot);
+      mount(app, { server: httpServer, path: '/_hyperwatch' });
+      baseUrl = await listen(httpServer);
+
+      await withoutUncaughtErrors(async () => {
+        const response = await rawUpgradeResponse('/other');
+        assert.match(response, /^HTTP\/1\.1 418/);
+        assert.doesNotMatch(response, /404/);
+      });
+    });
+
+    it("doesn't write a 404 to a socket another listener already ended", async () => {
+      httpServer = createHost().server;
+      // Runs before Hyperwatch's listener, and is removed before it counts
+      httpServer.prependOnceListener('upgrade', teapot);
+      baseUrl = await listen(httpServer);
+
+      await withoutUncaughtErrors(async () => {
+        const response = await rawUpgradeResponse('/other');
+        assert.match(response, /^HTTP\/1\.1 418/);
+        assert.doesNotMatch(response, /404/);
+      });
+    });
+
     it('gives upgrades nobody handles to the fallback, without a 404', async () => {
       httpServer = createHost({ fallback: teapot }).server;
       baseUrl = await listen(httpServer);

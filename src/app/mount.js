@@ -64,7 +64,7 @@ function isUnderPath(target, path, caseSensitive) {
  *
  * - Registers `app.use(path, ...middleware, router)` where it's called, so the
  *   app's middleware order is kept.
- * - Adds one 'upgrade' listener to `server`. WebSocket upgrades under `path`
+ * - Adds one 'upgrade' listener to `server`, first. WebSocket upgrades under `path`
  *   go through the app like HTTP requests, so `middleware` applies to both.
  *   Other upgrades go to `fallback` when given, or are left to the server's
  *   other listeners, or get 404 when there are none. Malformed targets get
@@ -97,7 +97,11 @@ function mount(app, options = {}) {
       wsServer.dispatch(app, req, socket, head);
     } else if (fallback) {
       fallback(req, socket, head);
-    } else if (server.listenerCount('upgrade') === 1) {
+    } else if (
+      server.listenerCount('upgrade') === 1 &&
+      !socket.destroyed &&
+      !socket.writableEnded
+    ) {
       // Nobody else will answer (counted now: some frameworks, like Next.js,
       // add their listener with their first request). Without Hyperwatch, Node
       // would have emitted this as a regular request and Express would have
@@ -105,7 +109,9 @@ function mount(app, options = {}) {
       wsServer.reject(socket, 404, 'Not Found');
     }
   };
-  server.on('upgrade', listener);
+  // First, so the count above still includes the listeners added with
+  // once(): Node removes them just before calling them
+  server.prependListener('upgrade', listener);
   upgradeListeners.set(server, listener);
 
   return {
