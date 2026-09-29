@@ -215,6 +215,57 @@ describe('identity', () => {
     });
   });
 
+  describe('GitHub', () => {
+    it('should identify github-camo from a GitHub service range', () => {
+      const result = identity.augment(
+        log({ family: 'github-camo', address: '140.82.115.88' })
+      );
+      assert.strictEqual(result.get('identity'), 'GitHub');
+    });
+
+    it('should not identify github-camo from the Actions ranges', () => {
+      // Runners there run any GitHub user's workflows
+      const result = identity.augment(
+        log({ family: 'github-camo', address: '9.234.106.63' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should not identify github-camo outside the published ranges', () => {
+      const result = identity.augment(
+        log({ family: 'github-camo', address: '203.0.113.7' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should not identify another agent from a GitHub range', () => {
+      const result = identity.augment(
+        log({ family: 'Chrome', address: '9.234.106.63' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
+  describe('Google', () => {
+    it('should identify the Google Docs proxy by its parsed family', () => {
+      const result = identity.augment(
+        log({
+          family: 'docs.google.com',
+          address: '74.125.208.67',
+          hostname: 'google-proxy-74-125-208-67.google.com',
+        })
+      );
+      assert.strictEqual(result.get('identity'), 'Google');
+    });
+
+    it('should not identify the Google Docs proxy without a google.com hostname', () => {
+      const result = identity.augment(
+        log({ family: 'docs.google.com', address: '203.0.113.7' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
   describe('Linkup', () => {
     it('should identify an address in the published list', () => {
       const result = identity.augment(
