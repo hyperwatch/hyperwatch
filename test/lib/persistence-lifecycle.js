@@ -1,6 +1,7 @@
 const assert = require('assert');
 
 const { Persistence, normalize } = require('../../src/lib/persistence');
+const storages = require('../../src/lib/storage');
 const { parseBoolean } = require('../../src/lib/util');
 const { createMemoryStorage } = require('../helpers/memory-storage');
 
@@ -474,5 +475,18 @@ describe('persistence configuration', () => {
       'S3'
     );
     assert.strictEqual(normalize({ enabled: true }).backend, 'file');
+  });
+
+  it('fails on a backend named like a property of every object', () => {
+    for (const backend of ['constructor', 'toString', '__proto__']) {
+      assert.throws(
+        () => normalize({ enabled: true, backend }),
+        new RegExp(`Unknown persistence backend "${backend}"`)
+      );
+      assert.throws(
+        () => storages.create({ backend }),
+        new RegExp(`Unknown persistence backend "${backend}"`)
+      );
+    }
   });
 });

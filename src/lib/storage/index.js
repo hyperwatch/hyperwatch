@@ -12,9 +12,11 @@
  */
 const { createFileStorage } = require('./file');
 
-const backends = {
+// No prototype: only registered names are backends, not "constructor" or
+// "toString"
+const backends = Object.assign(Object.create(null), {
   file: createFileStorage,
-};
+});
 
 function create(config = {}) {
   const backend = backends[config.backend || 'file'];
