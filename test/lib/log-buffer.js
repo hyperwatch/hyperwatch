@@ -6,7 +6,8 @@ const path = require('path');
 const { fromJS, Map } = require('immutable');
 
 const LogBuffer = require('../../src/lib/log-buffer');
-const persistence = require('../../src/lib/persistence');
+const { Persistence } = require('../../src/lib/persistence');
+const { createFileStorage } = require('../../src/lib/storage/file');
 
 const makeLog = (i) =>
   fromJS({ id: `log-${i}`, address: { value: `10.0.0.${i}` } });
@@ -48,23 +49,28 @@ describe('LogBuffer', () => {
     );
   });
 
-  it('round-trips through persistence dump / load', () => {
+  it('round-trips through persistence dump / load', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hyperwatch-test-'));
+    const log = console.log;
+    console.log = () => {};
     try {
       const buffer = new LogBuffer(5);
       [1, 2].forEach((i) => buffer.push(makeLog(i)));
+      const persistence = new Persistence();
+      persistence.setStorage(createFileStorage({ path: tmpDir }));
       persistence.register('history-test', buffer);
-      persistence.dump(tmpDir);
+      await persistence.dump();
 
       const restored = new LogBuffer(5);
       persistence.register('history-test', restored);
-      persistence.load(tmpDir);
+      await persistence.load();
 
       assert.deepStrictEqual(
         restored.toArray().map((log) => log.get('id')),
         ['log-2', 'log-1']
       );
     } finally {
+      console.log = log;
       fs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });

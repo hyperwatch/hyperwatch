@@ -78,10 +78,24 @@ To use a custom DNS server for the `hostname` module, set the `HYPERWATCH_DNS_SE
 
 ## Persistence
 
-Aggregated data can be saved when Hyperwatch stops and loaded when it starts.
+Aggregated data and the history of each node can be saved when Hyperwatch stops, and periodically, and loaded when it starts, before the inputs start.
 
-| Constant name         | Type    | Default            | Description                                      |
-| --------------------- | ------- | ------------------ | ------------------------------------------------ |
-| persistence.enabled   | boolean | `false`            | Whether to save and load aggregator data         |
-| persistence.path      | string  | `.hyperwatch-data` | Directory for the data, relative to the cwd      |
-| persistence.namespace | string  | `null`             | Optional sub-directory, to run several instances |
+| Constant name              | Type    | Default            | Description                                                                               |
+| -------------------------- | ------- | ------------------ | ----------------------------------------------------------------------------------------- |
+| persistence.enabled        | boolean | `false`            | Whether to save and load aggregator data                                                  |
+| persistence.backend        | string  | `file`             | Where the data is kept. Only `file` for now                                               |
+| persistence.path           | string  | `.hyperwatch-data` | Directory for the `file` backend, relative to the cwd                                     |
+| persistence.namespace      | string  | `null`             | Sub-directory for files, to run several instances                                         |
+| persistence.interval       | number  | `null`             | Seconds between periodic snapshots, off when `null`. Without it, a crash loses everything |
+| persistence.deadlines.load | number  | `60`               | Seconds before restoring gives up at start                                                |
+| persistence.deadlines.dump | number  | `60`               | Seconds before a periodic snapshot gives up                                               |
+| persistence.deadlines.stop | number  | `20`               | Seconds for the final snapshot and closing the storage at stop                            |
+
+Each registered aggregator and history buffer is one plain JSON document, `<path>/<namespace>/<name>.json` with the `file` backend.
+
+- **Environment:** through rc, e.g. `hyperwatch_persistence__enabled=1` or `hyperwatch_persistence__interval=300`. `enabled` accepts `true`, `1`, `"true"` and `"1"`, anything else is off. An invalid `interval` turns snapshots off with a warning, and an unknown `backend` fails at `hyperwatch.init()`.
+- **Failures:** missing or unreadable documents are skipped, and what was restored is kept. When a deadline passes, the phase gives up, logs it, and startup or shutdown carries on.
+- **One writer per namespace:** an instance writes complete snapshots and only reads them at start. Two instances on the same namespace (including the old and new processes during a rolling deployment) overwrite each other: give independent instances their own namespace.
+- **Metrics:** every load and dump is logged, e.g. `Persistence (file) loaded 26 documents (213 MB) in 2.3s: fetch 0.27s, parse 0.52s, restore 1.5s`, and the latest ones are on `/status` (all the figures in `/status.json?raw=1`). Stage times are summed over the documents, the total is wall-clock time.
+
+A custom storage can replace the backend with `hyperwatch.lib.persistence.setStorage(storage)`, before `hyperwatch.start()`. It has async `read(name, { signal })` (the document, or `null` when missing), `write(name, body, { signal })` and `close()`. A write must not land after its `signal` aborted. `test/lib/storage/contract.js` has the tests a storage should pass.

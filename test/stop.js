@@ -8,7 +8,8 @@ describe('hyperwatch.stop', () => {
     const original = {
       enabled: constants.persistence.enabled,
       pipelineStop: lib.pipeline.stop,
-      dump: lib.persistence.dump,
+      stopSnapshots: lib.persistence.stopSnapshots,
+      stop: lib.persistence.stop,
       appStop: app.stop,
       error: console.error,
     };
@@ -16,22 +17,25 @@ describe('hyperwatch.stop', () => {
 
     try {
       constants.persistence.enabled = true;
+      lib.persistence.stopSnapshots = () => calls.push('stopSnapshots');
       lib.pipeline.stop = () => Promise.reject(new Error('input failed'));
-      lib.persistence.dump = () => calls.push('dump');
+      lib.persistence.stop = async () => calls.push('persistence.stop');
       app.stop = () => calls.push('app.stop');
       console.error = (...args) => calls.push(`error: ${args.join(' ')}`);
 
       await hyperwatch.stop();
 
       assert.deepStrictEqual(calls, [
+        'stopSnapshots',
         'error: Error stopping the pipeline: input failed',
-        'dump',
+        'persistence.stop',
         'app.stop',
       ]);
     } finally {
       constants.persistence.enabled = original.enabled;
       lib.pipeline.stop = original.pipelineStop;
-      lib.persistence.dump = original.dump;
+      lib.persistence.stopSnapshots = original.stopSnapshots;
+      lib.persistence.stop = original.stop;
       app.stop = original.appStop;
       console.error = original.error;
     }
