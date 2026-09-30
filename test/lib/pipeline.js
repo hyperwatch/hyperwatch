@@ -109,4 +109,50 @@ describe('Pipeline stop', () => {
       pipeline.inputs = originalInputs;
     }
   });
+
+  it('drops the logs of inputs without stop() once stopping', async () => {
+    const original = {
+      inputs: pipeline.inputs,
+      monitors: pipeline.monitors,
+      nodes: pipeline.nodes,
+    };
+    try {
+      pipeline.inputs = [];
+      pipeline.monitors = [];
+      pipeline.nodes = { raw: pipeline, main: pipeline };
+
+      let success;
+      pipeline.registerInput({
+        name: 'no-stop',
+        start: (handlers) => {
+          success = handlers.success;
+        },
+      });
+      const received = [];
+      pipeline.getNode('input-1').map((log) => received.push(log));
+      pipeline.start();
+
+      const log = (url) =>
+        Map({
+          request: Map({
+            time: new Date().toISOString(),
+            address: '10.0.0.1',
+            method: 'GET',
+            url,
+            headers: Map(),
+          }),
+          response: Map({ status: 200 }),
+        });
+      success(log('/before'));
+      await pipeline.stop();
+      success(log('/after'));
+
+      assert.deepStrictEqual(
+        received.map((l) => l.getIn(['request', 'url'])),
+        ['/before']
+      );
+    } finally {
+      Object.assign(pipeline, original);
+    }
+  });
 });
