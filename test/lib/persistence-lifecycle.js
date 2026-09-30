@@ -1,4 +1,5 @@
 const assert = require('assert');
+const { execFileSync } = require('child_process');
 
 const { Persistence, normalize } = require('../../src/lib/persistence');
 const storages = require('../../src/lib/storage');
@@ -142,6 +143,32 @@ describe('persistence lifecycle', () => {
       assert.match(logs[0], /2 failed/);
     });
 
+    it('keeps the process alive until the load deadline', () => {
+      // A read that holds no handle: only the deadline can end the restore
+      const script = `
+        const { Persistence } = require(${JSON.stringify(
+          require.resolve('../../src/lib/persistence')
+        )});
+        console.log = () => {};
+        const persistence = new Persistence();
+        persistence.setStorage({
+          name: 'stalled',
+          read: () => new Promise(() => {}),
+          write: async () => {},
+          close: async () => {},
+        });
+        persistence.register('doc', { dump: () => [], load() {} });
+        persistence
+          .start({ deadlines: { load: 0.1 } })
+          .then(() => process.stdout.write('started'));
+      `;
+      const output = execFileSync(process.execPath, ['-e', script], {
+        encoding: 'utf8',
+        timeout: 10000,
+      });
+      assert.strictEqual(output, 'started');
+    });
+
     it("doesn't wait past the deadline for a stalled read", async () => {
       const storage = createMemoryStorage();
       storage.documents.set('fast', '[1]');
@@ -168,6 +195,32 @@ describe('persistence lifecycle', () => {
   });
 
   describe('dump', () => {
+    it("doesn't write past a deadline that passed while serializing", async () => {
+      const storage = createMemoryStorage();
+      let writes = 0;
+      storage.write = async () => {
+        writes++;
+      };
+      const persistence = new Persistence();
+      persistence.setStorage(storage);
+      persistence.register('slow', {
+        dump() {
+          const until = Date.now() + 50;
+          while (Date.now() < until) {
+            // Busy, like a large JSON.stringify
+          }
+          return [];
+        },
+        load() {},
+      });
+
+      const result = await persistence.dump({
+        signal: AbortSignal.timeout(10),
+      });
+      assert.strictEqual(writes, 0);
+      assert.strictEqual(result.timedOut, true);
+    });
+
     it("doesn't let a write timed out earlier overwrite a newer snapshot", async () => {
       const storage = createMemoryStorage();
       const release = deferred();

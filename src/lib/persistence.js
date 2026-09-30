@@ -299,6 +299,16 @@ class Persistence {
         stats.stages.serialize += since(start);
       }
 
+      // Serializing blocks the event loop, deadline timer included: let it
+      // fire before writing
+      if (signal) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        if (signal.aborted) {
+          stats.timedOut = true;
+          return;
+        }
+      }
+
       start = performance.now();
       const write = Promise.resolve().then(() =>
         this.storage.write(name, body, { signal })
@@ -342,8 +352,15 @@ class Persistence {
         status: 'Loading',
       });
     }
-    this.loading = this.load({ signal: deadline(deadlines.load) });
-    await this.loading;
+    // AbortSignal.timeout() doesn't keep the process alive, and nothing else
+    // may before the inputs start: hold it until the restore is over
+    const keepAlive = setInterval(() => {}, MAX_TIMER);
+    try {
+      this.loading = this.load({ signal: deadline(deadlines.load) });
+      await this.loading;
+    } finally {
+      clearInterval(keepAlive);
+    }
     this.loaded = true;
 
     if (interval && !this.stopping) {
