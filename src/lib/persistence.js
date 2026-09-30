@@ -36,8 +36,15 @@ function safeName(name) {
 
 const isSet = (value) => value !== null && value !== undefined && value !== '';
 
-const positive = (value) =>
-  isSet(value) && Number(value) > 0 ? Number(value) : null;
+// Longest delay Node timers support, in milliseconds (about 24.8 days):
+// setTimeout() fires after 1 ms beyond it
+const MAX_TIMER = 2 ** 31 - 1;
+
+// Seconds, as a number timers support, or null
+const positive = (value) => {
+  const ms = Number(value) * 1000;
+  return isSet(value) && ms >= 1 && ms <= MAX_TIMER ? Number(value) : null;
+};
 
 /**
  * Normalize the persistence constants in place. Values set through the
@@ -144,6 +151,10 @@ class Persistence {
     this.monitor = null;
     this.timer = null;
     this.snapshots = false;
+    // Restoring at start, and whether it's over
+    this.loading = null;
+    this.loaded = false;
+    this.stopping = false;
   }
 
   register(name, target) {
@@ -323,9 +334,11 @@ class Persistence {
         status: 'Loading',
       });
     }
-    await this.load({ signal: deadline(deadlines.load) });
+    this.loading = this.load({ signal: deadline(deadlines.load) });
+    await this.loading;
+    this.loaded = true;
 
-    if (interval) {
+    if (interval && !this.stopping) {
       this.snapshots = true;
       const schedule = () => {
         // The next snapshot is scheduled once the previous one is over
@@ -358,15 +371,31 @@ class Persistence {
    */
   async stop(config = {}) {
     const { deadlines = DEFAULT_DEADLINES } = config;
+    this.stopping = true;
     this.stopSnapshots();
     if (!this.storage) {
       return;
     }
     const signal = deadline(deadlines.stop);
-    try {
-      await this.dump({ signal });
-    } catch (err) {
-      console.error('Error dumping aggregators:', err.message);
+    // Stopped while restoring: wait for it, within the deadline
+    if (this.loading && !this.loaded) {
+      try {
+        await bounded(this.loading, signal);
+      } catch (err) {
+        // Still restoring
+      }
+    }
+    if (this.loading && !this.loaded) {
+      // Dumping a partial restore would overwrite the stored snapshot
+      console.warn(
+        'Persistence: stopped before the data was restored, not dumping.'
+      );
+    } else {
+      try {
+        await this.dump({ signal });
+      } catch (err) {
+        console.error('Error dumping aggregators:', err.message);
+      }
     }
     try {
       await bounded(

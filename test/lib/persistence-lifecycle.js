@@ -268,6 +268,57 @@ describe('persistence lifecycle', () => {
       assert.match(logs[0], /dumped 0 documents .*1 failed/);
     });
 
+    it('waits for the restore in progress before dumping', async () => {
+      const storage = createMemoryStorage();
+      storage.documents.set('doc', '["stored"]');
+      const release = deferred();
+      const read = storage.read;
+      storage.read = async (...args) => {
+        await release.promise;
+        return read(...args);
+      };
+      const persistence = new Persistence();
+      persistence.setStorage(storage);
+      const target = doc();
+      target.load = function (data) {
+        this.state = data;
+      };
+      persistence.register('doc', target);
+
+      const started = persistence.start({ interval: 60 });
+      const stopped = persistence.stop({});
+      await sleep(5);
+      assert.strictEqual(storage.documents.get('doc'), '["stored"]');
+
+      release.resolve();
+      await Promise.all([started, stopped]);
+      assert.strictEqual(storage.documents.get('doc'), '["stored"]');
+      assert.match(logs[1], /dumped 1 document /);
+      // No snapshots after stopping
+      assert.strictEqual(persistence.timer, null);
+    });
+
+    it("doesn't dump when the restore outlasts the stop deadline", async () => {
+      const storage = createMemoryStorage();
+      storage.documents.set('doc', '["stored"]');
+      storage.read = () => new Promise(() => {});
+      const persistence = new Persistence();
+      persistence.setStorage(storage);
+      persistence.register('doc', doc(['partial']));
+      const warn = console.warn;
+      const warnings = [];
+      console.warn = (...args) => warnings.push(args.join(' '));
+
+      try {
+        persistence.start({ deadlines: { load: 60 } });
+        await persistence.stop({ deadlines: { stop: 0.05 } });
+      } finally {
+        console.warn = warn;
+      }
+      assert.strictEqual(storage.documents.get('doc'), '["stored"]');
+      assert.match(warnings[0], /not dumping/);
+    });
+
     it("isn't blocked by a stalled storage", async () => {
       const storage = createMemoryStorage();
       storage.write = () => new Promise(() => {});
@@ -355,6 +406,19 @@ describe('persistence configuration', () => {
     assert.strictEqual(normalize({ interval: 'soon' }).interval, null);
     assert.strictEqual(normalize({ interval: -5 }).interval, null);
     assert.strictEqual(warnings.length, 2);
+  });
+
+  it('only accepts durations timers support', () => {
+    for (const value of [Infinity, '1e16', 3e6, 0.0005]) {
+      assert.strictEqual(normalize({ interval: value }).interval, null);
+      assert.strictEqual(
+        normalize({ deadlines: { stop: value } }).deadlines.stop,
+        20
+      );
+    }
+    assert.strictEqual(warnings.length, 8);
+    assert.strictEqual(normalize({ interval: 2e6 }).interval, 2e6);
+    assert.strictEqual(normalize({ interval: 0.001 }).interval, 0.001);
   });
 
   it('fills the deadlines', () => {
