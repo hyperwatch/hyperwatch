@@ -40,9 +40,13 @@ const isSet = (value) => value !== null && value !== undefined && value !== '';
 // setTimeout() fires after 1 ms beyond it
 const MAX_TIMER = 2 ** 31 - 1;
 
+// Timers take whole milliseconds: AbortSignal.timeout() throws otherwise,
+// e.g. for 0.07 * 1000 = 70.00000000000001
+const toMs = (seconds) => Math.round(seconds * 1000);
+
 // Seconds, as a number timers support, or null
 const positive = (value) => {
-  const ms = Number(value) * 1000;
+  const ms = toMs(Number(value));
   return isSet(value) && ms >= 1 && ms <= MAX_TIMER ? Number(value) : null;
 };
 
@@ -86,7 +90,7 @@ function normalize(config) {
 }
 
 const deadline = (seconds) =>
-  seconds ? AbortSignal.timeout(seconds * 1000) : undefined;
+  seconds ? AbortSignal.timeout(toMs(seconds)) : undefined;
 
 // Settles with `promise`, or rejects as soon as `signal` aborts, so a stalled
 // operation can't hold a phase past its deadline
@@ -348,7 +352,7 @@ class Persistence {
           if (this.snapshots) {
             schedule();
           }
-        }, interval * 1000);
+        }, toMs(interval));
         // Snapshots alone don't keep the process running
         this.timer.unref();
       };

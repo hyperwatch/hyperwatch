@@ -408,8 +408,8 @@ describe('persistence configuration', () => {
     assert.strictEqual(warnings.length, 2);
   });
 
-  it('only accepts durations timers support', () => {
-    for (const value of [Infinity, '1e16', 3e6, 0.0005]) {
+  it('only accepts durations timers support', async () => {
+    for (const value of [Infinity, '1e16', 3e6, 0.0004]) {
       assert.strictEqual(normalize({ interval: value }).interval, null);
       assert.strictEqual(
         normalize({ deadlines: { stop: value } }).deadlines.stop,
@@ -419,6 +419,15 @@ describe('persistence configuration', () => {
     assert.strictEqual(warnings.length, 8);
     assert.strictEqual(normalize({ interval: 2e6 }).interval, 2e6);
     assert.strictEqual(normalize({ interval: 0.001 }).interval, 0.001);
+    // Rounded to whole milliseconds for the timers
+    for (const stop of [0.0015, 0.07]) {
+      const { deadlines } = normalize({ deadlines: { stop } });
+      assert.strictEqual(deadlines.stop, stop);
+      const persistence = new Persistence();
+      persistence.setStorage(createMemoryStorage());
+      // Would throw ERR_OUT_OF_RANGE without the rounding
+      await persistence.stop({ deadlines });
+    }
   });
 
   it('fills the deadlines', () => {
