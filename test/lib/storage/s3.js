@@ -120,7 +120,7 @@ describe('s3 persistence configuration', () => {
   });
 });
 
-// Against a real S3-compatible store, e.g. MinIO in CI
+// Against a real S3-compatible store, e.g. S3Mock in CI
 const endpoint = process.env.HYPERWATCH_TEST_S3_ENDPOINT;
 if (endpoint) {
   const bucket = process.env.HYPERWATCH_TEST_S3_BUCKET || 'hyperwatch-test';
