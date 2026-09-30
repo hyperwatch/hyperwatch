@@ -320,6 +320,49 @@ describe('persistence lifecycle', () => {
       assert.match(warnings[0], /not dumping/);
     });
 
+    it('aborts a periodic snapshot outlasting the stop deadline', async () => {
+      const storage = createMemoryStorage();
+      storage.documents.set('doc', '["stored"]');
+      let writes = 0;
+      // The first write takes 300 ms, and only lands if not aborted
+      storage.write = (name, body, { signal }) => {
+        writes++;
+        if (writes > 1) {
+          storage.documents.set(name, body);
+          return Promise.resolve();
+        }
+        return new Promise((resolve, reject) => {
+          const timer = setTimeout(() => {
+            storage.documents.set(name, body);
+            resolve();
+          }, 300);
+          signal.addEventListener(
+            'abort',
+            () => {
+              clearTimeout(timer);
+              reject(signal.reason);
+            },
+            { once: true }
+          );
+        });
+      };
+      const persistence = new Persistence();
+      persistence.setStorage(storage);
+      const target = doc(['periodic']);
+      target.load = () => {};
+      persistence.register('doc', target);
+
+      await persistence.start({ interval: 0.01 });
+      while (writes === 0) {
+        await sleep(5);
+      }
+      target.state = ['final'];
+      await persistence.stop({ deadlines: { stop: 0.05 } });
+      await sleep(400);
+
+      assert.strictEqual(storage.documents.get('doc'), '["final"]');
+    });
+
     it("isn't blocked by a stalled storage", async () => {
       const storage = createMemoryStorage();
       storage.write = () => new Promise(() => {});

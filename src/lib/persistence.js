@@ -155,6 +155,8 @@ class Persistence {
     this.monitor = null;
     this.timer = null;
     this.snapshots = false;
+    // Aborts the periodic snapshot in progress
+    this.snapshot = null;
     // Restoring at start, and whether it's over
     this.loading = null;
     this.loaded = false;
@@ -350,7 +352,15 @@ class Persistence {
         // The next snapshot is scheduled once the previous one is over
         this.timer = setTimeout(async () => {
           this.timer = null;
-          await this.dump({ signal: deadline(deadlines.dump) });
+          // Aborted by stopSnapshots() too
+          this.snapshot = new AbortController();
+          await this.dump({
+            signal: AbortSignal.any([
+              deadline(deadlines.dump),
+              this.snapshot.signal,
+            ]),
+          });
+          this.snapshot = null;
           if (this.snapshots) {
             schedule();
           }
@@ -370,6 +380,11 @@ class Persistence {
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
+    }
+    // A snapshot in progress would run on its own, longer deadline, and could
+    // land after stop() returned: abort it, the final snapshot replaces it
+    if (this.snapshot) {
+      this.snapshot.abort(new Error('Persistence is stopping'));
     }
   }
 
