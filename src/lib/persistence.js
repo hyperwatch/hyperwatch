@@ -327,6 +327,8 @@ class Persistence {
    */
   async start(config = {}) {
     const { interval, deadlines = DEFAULT_DEADLINES } = config;
+    this.stopping = false;
+    this.loaded = false;
     if (!this.storage) {
       this.storage = storages.create(config);
     }
@@ -362,6 +364,8 @@ class Persistence {
 
   // Before stopping the inputs, so no snapshot starts during the shutdown
   stopSnapshots() {
+    // Also keeps a restore still in progress from scheduling them
+    this.stopping = true;
     this.snapshots = false;
     if (this.timer) {
       clearTimeout(this.timer);
@@ -375,7 +379,6 @@ class Persistence {
    */
   async stop(config = {}) {
     const { deadlines = DEFAULT_DEADLINES } = config;
-    this.stopping = true;
     this.stopSnapshots();
     if (!this.storage) {
       return;

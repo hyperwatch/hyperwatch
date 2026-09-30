@@ -357,6 +357,27 @@ describe('persistence lifecycle', () => {
       assert.strictEqual(writes, count);
     });
 
+    it("don't start when stopped during the restore", async () => {
+      const storage = createMemoryStorage();
+      const release = deferred();
+      const read = storage.read;
+      storage.read = async (...args) => {
+        await release.promise;
+        return read(...args);
+      };
+      const persistence = new Persistence();
+      persistence.setStorage(storage);
+      persistence.register('doc', doc([1]));
+
+      const started = persistence.start({ interval: 60 });
+      // What hyperwatch.stop() does before stopping the inputs
+      persistence.stopSnapshots();
+      release.resolve();
+      await started;
+      assert.strictEqual(persistence.timer, null);
+      assert.strictEqual(persistence.snapshots, false);
+    });
+
     it('are off without an interval', async () => {
       const persistence = new Persistence();
       persistence.setStorage(createMemoryStorage());
