@@ -363,12 +363,18 @@ describe('persistence lifecycle', () => {
       const warnings = [];
       console.warn = (...args) => warnings.push(args.join(' '));
 
+      let started = false;
       try {
-        persistence.start({ deadlines: { load: 60 } });
+        persistence
+          .start({ deadlines: { load: 60 } })
+          .then(() => (started = true));
         await persistence.stop({ deadlines: { stop: 0.05 } });
+        await sleep(0);
       } finally {
         console.warn = warn;
       }
+      // The restore was cancelled, not left running until its deadline
+      assert.ok(started);
       assert.strictEqual(storage.documents.get('doc'), '["stored"]');
       assert.match(warnings[0], /not dumping/);
     });

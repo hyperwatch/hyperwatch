@@ -161,6 +161,8 @@ class Persistence {
     this.loading = null;
     this.loaded = false;
     this.stopping = false;
+    // Aborts the restore in progress
+    this.restore = null;
   }
 
   register(name, target) {
@@ -356,7 +358,14 @@ class Persistence {
     // may before the inputs start: hold it until the restore is over
     const keepAlive = setInterval(() => {}, MAX_TIMER);
     try {
-      this.loading = this.load({ signal: deadline(deadlines.load) });
+      // Aborted by stop() too
+      this.restore = new AbortController();
+      this.loading = this.load({
+        signal: AbortSignal.any([
+          deadline(deadlines.load),
+          this.restore.signal,
+        ]),
+      });
       await this.loading;
     } finally {
       clearInterval(keepAlive);
@@ -425,6 +434,9 @@ class Persistence {
       }
     }
     if (this.loading && !this.loaded) {
+      // Cancel it, so it can't change the data after stop() returns
+      this.restore.abort(new Error('Persistence is stopping'));
+      await this.loading;
       // Dumping a partial restore would overwrite the stored snapshot
       console.warn(
         'Persistence: stopped before the data was restored, not dumping.'
