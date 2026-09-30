@@ -83,15 +83,15 @@ Aggregated data and the history of each node can be saved when Hyperwatch stops,
 | Constant name              | Type    | Default            | Description                                                                               |
 | -------------------------- | ------- | ------------------ | ----------------------------------------------------------------------------------------- |
 | persistence.enabled        | boolean | `false`            | Whether to save and load aggregator data                                                  |
-| persistence.backend        | string  | `file`             | Where the data is kept. Only `file` for now                                               |
+| persistence.backend        | string  | `file`             | Where the data is kept: `file` or `s3` (below)                                            |
 | persistence.path           | string  | `.hyperwatch-data` | Directory for the `file` backend, relative to the cwd                                     |
-| persistence.namespace      | string  | `null`             | Sub-directory for files, to run several instances                                         |
+| persistence.namespace      | string  | `null`             | Sub-directory (files) or key prefix (S3), to run several instances                        |
 | persistence.interval       | number  | `null`             | Seconds between periodic snapshots, off when `null`. Without it, a crash loses everything |
 | persistence.deadlines.load | number  | `60`               | Seconds before restoring gives up at start                                                |
 | persistence.deadlines.dump | number  | `60`               | Seconds before a periodic snapshot gives up                                               |
 | persistence.deadlines.stop | number  | `20`               | Seconds for the final snapshot and closing the storage at stop                            |
 
-Each registered aggregator and history buffer is one plain JSON document, `<path>/<namespace>/<name>.json` with the `file` backend.
+Each registered aggregator and history buffer is one plain JSON document, not compressed: `<path>/<namespace>/<name>.json` with the `file` backend, `<prefix><namespace>/<name>.json` with `s3`.
 
 - **Environment:** through rc, e.g. `hyperwatch_persistence__enabled=1` or `hyperwatch_persistence__interval=300`. `enabled` accepts `true`, `1`, `"true"` and `"1"`, anything else is off. Durations must be between 1 ms and about 24.8 days (the range of Node timers): an invalid `interval` turns snapshots off with a warning, an invalid deadline falls back to its default, and an unknown `backend` fails at `hyperwatch.init()`.
 - **Failures:** missing or unreadable documents are skipped, and what was restored is kept. When a deadline passes, the phase gives up, logs it, and startup or shutdown carries on. Stopping while the data is still being restored waits for it within the stop deadline, and skips the final snapshot if it isn't done, so the stored one isn't overwritten.
@@ -99,3 +99,30 @@ Each registered aggregator and history buffer is one plain JSON document, `<path
 - **Metrics:** every load and dump is logged, e.g. `Persistence (file) loaded 26 documents (213 MB) in 2.3s: fetch 0.27s, parse 0.52s, restore 1.5s`, and the latest ones are on `/status` (all the figures in `/status.json?raw=1`). Stage times are summed over the documents, the total is wall-clock time.
 
 A custom storage can replace the backend with `hyperwatch.lib.persistence.setStorage(storage)`, before `hyperwatch.start()`. It has async `read(name, { signal })` (the document, or `null` when missing), `write(name, body, { signal })` and `close()`. A write must not land after its `signal` aborted. `test/lib/storage/contract.js` has the tests a storage should pass.
+
+### S3
+
+The `s3` backend keeps the documents in one S3 bucket (or an S3-compatible store). It needs `@aws-sdk/client-s3`, an optional peer dependency: `npm install @aws-sdk/client-s3`.
+
+| Constant name                 | Type    | Default | Description                                                                                            |
+| ----------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------ |
+| persistence.s3.bucket         | string  | `null`  | The bucket, required                                                                                   |
+| persistence.s3.prefix         | string  | `''`    | Optional key prefix, e.g. `watch/`, to share a bucket                                                  |
+| persistence.s3.region         | string  | `null`  | The bucket's region (`AWS_REGION`, then `us-east-1`, when not set). A wrong one works after a redirect |
+| persistence.s3.endpoint       | string  | `null`  | For S3-compatible stores (MinIO, Cloudflare R2…)                                                       |
+| persistence.s3.forcePathStyle | boolean | `false` | Path-style URLs, which MinIO needs                                                                     |
+
+```sh
+hyperwatch_persistence__enabled=1
+hyperwatch_persistence__backend=s3
+hyperwatch_persistence__s3__bucket=my-hyperwatch-bucket
+hyperwatch_persistence__s3__region=eu-west-1
+AWS_ACCESS_KEY_ID=…
+AWS_SECRET_ACCESS_KEY=…
+```
+
+- **Credentials** come from the AWS SDK's default chain (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, instance roles…), never from the Hyperwatch configuration.
+- **Permissions:** only `s3:GetObject` and `s3:PutObject` on `arn:aws:s3:::<bucket>/*` (or `<bucket>/<prefix>*`): no listing is needed. Use one bucket (or prefix) and one user per environment, so an environment can't read or overwrite another's data.
+- **Security:** the history holds client IPs, headers and URLs. Keep the bucket private ("Block all public access"), with default encryption. Errors only log the key and the S3 error.
+- **Deadlines:** a request is aborted when its phase's deadline passes. A write S3 has already fully received can still complete.
+- **Size:** a busy instance dumps about 100–200 MB. The upload counts toward `deadlines.stop` at shutdown.

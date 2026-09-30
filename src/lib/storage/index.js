@@ -11,11 +11,13 @@
  * the same for every backend.
  */
 const { createFileStorage } = require('./file');
+const { createS3Storage } = require('./s3');
 
 // No prototype: only registered names are backends, not "constructor" or
 // "toString"
 const backends = Object.assign(Object.create(null), {
   file: createFileStorage,
+  s3: createS3Storage,
 });
 
 function create(config = {}) {

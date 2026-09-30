@@ -58,7 +58,16 @@
     "tail": "^2.2.6",
     "ws": "^8.21.3"
   },
+  "peerDependencies": {
+    "@aws-sdk/client-s3": "^3.1143.0"
+  },
+  "peerDependenciesMeta": {
+    "@aws-sdk/client-s3": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1143.0",
     "@eslint/js": "^10.0.1",
     "depcheck": "^1.4.7",
     "eslint": "^10.9.1",

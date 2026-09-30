@@ -570,7 +570,7 @@ describe('persistence configuration', () => {
   it('fails on an unknown backend when enabled', () => {
     assert.throws(
       () => normalize({ enabled: true, backend: 'S3' }),
-      /Unknown persistence backend "S3" \(available: file\)/
+      /Unknown persistence backend "S3" \(available: file, s3\)/
     );
     assert.strictEqual(
       normalize({ enabled: false, backend: 'S3' }).backend,

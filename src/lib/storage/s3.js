@@ -1,0 +1,125 @@
+/**
+ * S3 storage: one object per document, `<prefix><namespace>/<name>.json`, in
+ * one bucket. Plain JSON, not compressed.
+ *
+ * `@aws-sdk/client-s3` is an optional peer dependency, only required when
+ * this backend is selected. Credentials come from the AWS SDK's default
+ * chain (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY, roles…), never from the
+ * Hyperwatch configuration.
+ */
+const SDK = '@aws-sdk/client-s3';
+
+// Establishing a connection; requests are bounded by persistence deadlines
+const CONNECTION_TIMEOUT = 10000;
+
+function sdk() {
+  try {
+    return require(SDK);
+  } catch (err) {
+    if (err.code === 'MODULE_NOT_FOUND') {
+      throw new Error(
+        `The s3 persistence backend needs ${SDK}: npm install ${SDK}`,
+        { cause: err }
+      );
+    }
+    throw err;
+  }
+}
+
+function key({ s3 = {}, namespace }, name) {
+  const prefix = s3.prefix || '';
+  return `${prefix}${namespace ? `${namespace}/` : ''}${name}.json`;
+}
+
+// Errors carry the key and the S3 error name only, never a body
+function describe(operation, objectKey, err) {
+  if (err.name === 'AbortError') {
+    return err;
+  }
+  // The HTTP status, or a network error code such as ECONNREFUSED
+  const code =
+    (err.$metadata && err.$metadata.httpStatusCode) || err.code || '';
+  const error = new Error(
+    `S3 ${operation} ${objectKey}: ${err.name || 'Error'}${code ? ` (${code})` : ''}`
+  );
+  error.name = err.name;
+  return error;
+}
+
+function createS3Storage(config = {}, { client } = {}) {
+  const s3 = config.s3 || {};
+  const { GetObjectCommand, PutObjectCommand, S3Client } = sdk();
+
+  client =
+    client ||
+    new S3Client({
+      // Any region works: requests follow the redirect to the bucket's
+      region: s3.region || process.env.AWS_REGION || 'us-east-1',
+      followRegionRedirects: true,
+      endpoint: s3.endpoint || undefined,
+      forcePathStyle: s3.forcePathStyle || undefined,
+      requestHandler: { connectionTimeout: CONNECTION_TIMEOUT },
+    });
+
+  return {
+    name: 's3',
+    client,
+
+    async read(name, { signal } = {}) {
+      const objectKey = key(config, name);
+      if (signal) {
+        signal.throwIfAborted();
+      }
+      try {
+        const response = await client.send(
+          new GetObjectCommand({ Bucket: s3.bucket, Key: objectKey }),
+          { abortSignal: signal }
+        );
+        return await response.Body.transformToString('utf-8');
+      } catch (err) {
+        if (err.name === 'NoSuchKey') {
+          return null;
+        }
+        throw describe('GetObject', objectKey, err);
+      }
+    },
+
+    async write(name, body, { signal } = {}) {
+      const objectKey = key(config, name);
+      // Aborted before sending: nothing lands. Aborted while sending: the
+      // request is cancelled, and S3 stores an object whole or not at all.
+      // Only a request S3 has fully received can still complete
+      if (signal) {
+        signal.throwIfAborted();
+      }
+      try {
+        await client.send(
+          new PutObjectCommand({
+            Bucket: s3.bucket,
+            Key: objectKey,
+            Body: body,
+            ContentType: 'application/json',
+          }),
+          { abortSignal: signal }
+        );
+      } catch (err) {
+        throw describe('PutObject', objectKey, err);
+      }
+    },
+
+    async close() {
+      client.destroy();
+    },
+  };
+}
+
+// Checked at init, so a misconfiguration fails before anything starts
+createS3Storage.validate = (config) => {
+  const s3 = config.s3 || {};
+  if (!s3.bucket) {
+    throw new Error('persistence.s3.bucket is required with the s3 backend');
+  }
+  sdk();
+};
+
+module.exports = { createS3Storage, key };
