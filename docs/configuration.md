@@ -122,7 +122,26 @@ AWS_SECRET_ACCESS_KEY=…
 ```
 
 - **Credentials** come from the AWS SDK's default chain (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, instance roles…), never from the Hyperwatch configuration.
-- **Permissions:** only `s3:GetObject` and `s3:PutObject` on `arn:aws:s3:::<bucket>/*` (or `<bucket>/<prefix>*`): no listing is needed. Use one bucket (or prefix) and one user per environment, so an environment can't read or overwrite another's data.
+- **Permissions:** `s3:GetObject` and `s3:PutObject` on `arn:aws:s3:::<bucket>/*` (or `<bucket>/<prefix>*`), and `s3:ListBucket` on `arn:aws:s3:::<bucket>`. Hyperwatch never lists the bucket, but without `ListBucket` S3 answers `403 AccessDenied` instead of `404 NoSuchKey` for a missing object, so every document of a new namespace would be counted as failed. When sharing a bucket, restrict `ListBucket` to the prefix with a `StringLike` condition on `s3:prefix` (`<prefix>*`). Use one bucket (or prefix) and one user per environment, so an environment can't read or overwrite another's data:
+
+  ```json
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": ["s3:GetObject", "s3:PutObject"],
+        "Resource": "arn:aws:s3:::my-hyperwatch-bucket/*"
+      },
+      {
+        "Effect": "Allow",
+        "Action": "s3:ListBucket",
+        "Resource": "arn:aws:s3:::my-hyperwatch-bucket"
+      }
+    ]
+  }
+  ```
+
 - **Security:** the history holds client IPs, headers and URLs. Keep the bucket private ("Block all public access"), with default encryption. Errors only log the key and the S3 error.
 - **Deadlines:** a request is aborted when its phase's deadline passes. A write S3 has already fully received can still complete.
 - **Size:** a busy instance dumps about 100–200 MB. The upload counts toward `deadlines.stop` at shutdown.

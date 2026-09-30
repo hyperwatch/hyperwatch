@@ -93,6 +93,24 @@ describe('s3 storage', () => {
     });
   });
 
+  it('hints at s3:ListBucket when a read is denied', async () => {
+    const client = fakeClient();
+    client.send = async () => {
+      const err = new Error('Access Denied');
+      err.name = 'AccessDenied';
+      err.$metadata = { httpStatusCode: 403 };
+      throw err;
+    };
+    const storage = createS3Storage({ s3: { bucket: 'bucket' } }, { client });
+    await assert.rejects(storage.read('doc'), (err) => {
+      assert.strictEqual(
+        err.message,
+        'S3 GetObject doc.json: AccessDenied (403), or missing (grant s3:ListBucket so S3 reports missing objects)'
+      );
+      return true;
+    });
+  });
+
   it('follows region redirects', () => {
     const storage = createS3Storage({
       s3: { bucket: 'bucket', region: 'eu-west-1' },

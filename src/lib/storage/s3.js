@@ -43,6 +43,11 @@ function describe(operation, objectKey, err) {
     `S3 ${operation} ${objectKey}: ${err.name || 'Error'}${code ? ` (${code})` : ''}`
   );
   error.name = err.name;
+  // Without s3:ListBucket, S3 answers 403 instead of 404 for a missing object
+  if (operation === 'GetObject' && code === 403) {
+    error.message +=
+      ', or missing (grant s3:ListBucket so S3 reports missing objects)';
+  }
   return error;
 }
 
