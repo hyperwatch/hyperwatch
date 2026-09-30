@@ -5,6 +5,11 @@ const { fromJS } = require('immutable');
 // Number of seconds since Unix epoch
 exports.now = () => Math.floor(new Date().getTime() / 1000);
 
+// Pseudo-boolean, as set in an environment variable: true for true, 1, "true"
+// and "1" (case and surrounding spaces ignored), false for anything else
+exports.parseBoolean = (value) =>
+  ['true', '1'].includes(String(value).trim().toLowerCase());
+
 /**
  * Return the complement of the predicate `pred`.
  *

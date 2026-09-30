@@ -233,6 +233,9 @@ class Pipeline extends Builder {
     this.inputs = [];
     this.monitors = [];
     this.stream = null;
+    // Once stopping, logs from any input are dropped: many inputs (HTTP,
+    // syslog, file) have no stop(), and the final snapshot must be final
+    this.stopped = false;
     this.nodes = {
       raw: this,
       main: this,
@@ -264,6 +267,7 @@ class Pipeline extends Builder {
   }
 
   start() {
+    this.stopped = false;
     const stream = super.create()(() => {});
 
     this.inputs.map((input) => {
@@ -274,6 +278,9 @@ class Pipeline extends Builder {
       const tapStream = input._tap ? input._tap.create()(() => {}) : null;
       input.start({
         success: (log) => {
+          if (this.stopped) {
+            return;
+          }
           const valid = validate(log.toJS());
           if (valid) {
             const event = Map({
@@ -314,6 +321,7 @@ class Pipeline extends Builder {
   // Stops every input, even if some of them throw or reject, then rejects
   // with their errors if any failed
   async stop() {
+    this.stopped = true;
     const results = await Promise.allSettled(
       this.inputs
         .filter((input) => input.stop)

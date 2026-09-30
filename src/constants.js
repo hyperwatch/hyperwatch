@@ -57,8 +57,14 @@ const constants = {
   },
   persistence: {
     enabled: false,
+    backend: 'file',
     path: null,
     namespace: null,
+    // Seconds between periodic snapshots, off when null
+    interval: null,
+    // Seconds before a phase gives up: restoring at start, each periodic
+    // dump, and the final dump plus closing the storage at stop
+    deadlines: { load: 60, dump: 60, stop: 20 },
   },
 };
 

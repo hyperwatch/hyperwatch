@@ -282,17 +282,23 @@ describe('Aggregator dump/load', () => {
 
 describe('persistence dump / load', () => {
   let tmpDir;
-  const persistence = require('../../src/lib/persistence');
+  const { Persistence } = require('../../src/lib/persistence');
+  const { createFileStorage } = require('../../src/lib/storage/file');
+
+  let log;
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hyperwatch-test-'));
+    log = console.log;
+    console.log = () => {};
   });
 
   afterEach(() => {
+    console.log = log;
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('writes and reads JSON files per aggregator', () => {
+  it('writes and reads JSON files per aggregator', async () => {
     const agg = new Aggregator();
     const t = now();
     agg.entries = agg.entries
@@ -301,23 +307,33 @@ describe('persistence dump / load', () => {
       .setIn(['x', 'speed', 'per_minute'], new Speed(60, 15).hit(t))
       .setIn(['x', 'speed', 'per_hour'], new Speed(3600, 24).hit(t));
 
+    const persistence = new Persistence();
+    persistence.setStorage(createFileStorage({ path: tmpDir }));
     persistence.register('test-agg', agg);
 
-    persistence.dump(tmpDir);
+    await persistence.dump();
     assert.ok(fs.existsSync(path.join(tmpDir, 'test-agg.json')));
 
     // Create a fresh aggregator and load
     const agg2 = new Aggregator();
-    persistence.register('test-agg', agg2);
-    persistence.load(tmpDir);
+    const restarted = new Persistence();
+    restarted.setStorage(createFileStorage({ path: tmpDir }));
+    restarted.register('test-agg', agg2);
+    await restarted.load();
 
     assert.strictEqual(agg2.entries.size, 1);
     assert.strictEqual(agg2.entries.getIn(['x', 'identifier']), '10.0.0.1');
   });
 
-  it('skips load when directory does not exist', () => {
-    persistence.load(path.join(tmpDir, 'nonexistent'));
-    // Should not throw
+  it('skips load when directory does not exist', async () => {
+    const persistence = new Persistence();
+    persistence.setStorage(
+      createFileStorage({ path: path.join(tmpDir, 'nonexistent') })
+    );
+    persistence.register('test-agg', new Aggregator());
+    const result = await persistence.load();
+    assert.strictEqual(result.documents, 0);
+    assert.strictEqual(result.missing, 1);
   });
 });
 
