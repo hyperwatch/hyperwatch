@@ -16,7 +16,12 @@ function parseCapacity(value, setting) {
   if (value === undefined || value === null || value === '') {
     return null;
   }
-  const number = Number(value);
+  // Only numbers and digit strings: Number() turns false, ' ' or [] into 0,
+  // which would silently turn the node's history off
+  const number =
+    typeof value === 'number' || /^\s*\d+\s*$/.test(value)
+      ? Number(value)
+      : NaN;
   if (Number.isInteger(number) && number >= 0) {
     return number;
   }

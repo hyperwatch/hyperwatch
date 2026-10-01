@@ -55,6 +55,18 @@ describe('history capacity', () => {
     assert.strictEqual(capacityFor('raw', { nodes: { raw: 1.5 } }), 100);
     assert.strictEqual(warnings.length, 3);
   });
+
+  it("doesn't read non-numeric values as 0", () => {
+    for (const raw of [false, true, ' ', [], '0x10', '1e2']) {
+      assert.strictEqual(
+        capacityFor('raw', { capacity: 300, nodes: { raw } }),
+        300,
+        JSON.stringify(raw)
+      );
+    }
+    assert.strictEqual(warnings.length, 6);
+    assert.strictEqual(capacityFor('raw', { nodes: { raw: ' 20 ' } }), 20);
+  });
 });
 
 describe('history per node', () => {
