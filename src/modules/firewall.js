@@ -186,17 +186,24 @@ function edit(to, listId, op, { value, reason, source } = {}) {
       new Error('firewall: Hyperwatch is stopping, edit refused')
     );
   }
+  // The shutdown and the open() this edit belongs to: once a stop() gave up
+  // on it, it ends, even if Hyperwatch has started again meanwhile
+  const { signal } = shutdown;
+  const opened = generation;
   return enqueue(async () => {
     refuse();
-    const data = await current(to);
+    signal.throwIfAborted();
+    const data = await current(to, { signal });
+    signal.throwIfAborted();
     const next =
       op === 'add'
         ? lists.addEntry(data, listId, { value, reason, source })
         : lists.removeEntry(data, listId, value);
     if (next !== data) {
-      await to.writeLists(next, { signal: shutdown.signal });
-      await load(to);
-      if (autoSync) {
+      await to.writeLists(next, { signal });
+      signal.throwIfAborted();
+      await load(to, undefined, opened);
+      if (autoSync && opened === generation) {
         autoSync.scheduleUp();
       }
     }

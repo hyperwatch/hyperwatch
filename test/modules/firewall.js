@@ -1017,4 +1017,53 @@ describe('firewall review fixes', () => {
       fs.rmSync(dir, { recursive: true });
     }
   });
+
+  it('ends an edit a stop gave up on, even after a restart', async () => {
+    const constants = require('../../src/constants');
+    const deadlines = constants.persistence.deadlines;
+    const storage = createMemoryStorage();
+    storage.documents.set('firewall-lists', JSON.stringify(LISTS));
+    const read = storage.read;
+    let reading;
+    const slow = new Promise((resolve) => {
+      reading = resolve;
+    });
+    let inRead;
+    const started = new Promise((resolve) => {
+      inRead = resolve;
+    });
+    // The read stalls until released, ignoring aborts (like S3 resolving
+    // its credentials), and the stop deadline is short
+    storage.read = async (...args) => {
+      inRead();
+      await slow;
+      return read(...args);
+    };
+    let writes = 0;
+    const write = storage.write;
+    storage.write = async (...args) => {
+      writes++;
+      return write(...args);
+    };
+    constants.persistence.deadlines = { ...deadlines, stop: 0.02 };
+    try {
+      const edit = firewall.edit(
+        createStorageStore(storage, { timeout: 10000 }),
+        'block-ips',
+        'add',
+        { value: '7.7.7.7' }
+      );
+      edit.catch(() => {});
+      // The edit is running, waiting on its read
+      await started;
+      await firewall.stop();
+      // Hyperwatch starts again before the old read finishes
+      firewall.resume();
+      reading();
+      await assert.rejects(edit);
+      assert.strictEqual(writes, 0);
+    } finally {
+      constants.persistence.deadlines = deadlines;
+    }
+  });
 });
