@@ -93,7 +93,7 @@ History is usually what uses the most memory: each node keeps its latest `capaci
 ```
 
 - An exact node name comes first; otherwise the first pattern ending with `*` that matches the name (`input-*` matches `input-1`, `input-2`…); otherwise `capacity`.
-- A node with `0` has no buffer and no persistence document: `/history/<node>.json` answers `[]`, and its live logs start empty.
+- A node with `0` has no buffer and no persistence document: `/history/<node>.json` answers `[]`, and its live logs start empty. Persistence never deletes documents: one saved before the node was set to `0` stays in storage, and is restored if the node is turned on again (like the document of a renamed or removed node, it's ignored meanwhile).
 - Values may be strings (environment variables, through rc). An invalid value is reported, and `capacity` (or `100`) is used instead.
 
 ## Persistence
