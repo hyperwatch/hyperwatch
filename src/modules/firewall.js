@@ -182,11 +182,12 @@ async function syncLists(to, client, directions) {
       writeData: (next) => to.writeLists(next),
       state,
     });
-    if (result.items.some((item) => item.applied)) {
-      await to.writeState(result.state);
-    }
+    // Lists written: match them now, even if saving the state fails next
     if (result.localWritten) {
       await load(to);
+    }
+    if (result.items.some((item) => item.applied)) {
+      await to.writeState(result.state);
     }
     for (const item of result.items) {
       const where = `firewall: sync ${direction} ${item.listId}`;

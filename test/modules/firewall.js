@@ -737,4 +737,48 @@ describe('firewall review fixes', () => {
     // The full sync in progress may finish (down, then up): nothing queued
     assert.ok(calls <= atStop + 2, `${calls - atStop} calls after stop`);
   });
+
+  it('matches the lists a sync wrote, even if saving its state fails', async () => {
+    const storage = createMemoryStorage();
+    storage.documents.set(
+      'firewall-lists',
+      JSON.stringify({
+        lists: [
+          {
+            id: 'block-ips',
+            type: 'ip',
+            action: 'block',
+            cloudflare: { rule_id: 'rule-ips' },
+            entries: [],
+          },
+        ],
+      })
+    );
+    const store = createStorageStore(storage);
+    store.writeState = async () => {
+      throw new Error('storage down');
+    };
+    const client = {
+      getEntrypoint: async () => ({
+        id: 'ruleset',
+        rules: [
+          {
+            id: 'rule-ips',
+            version: '1',
+            action: 'block',
+            enabled: true,
+            expression: '(ip.src in {7.7.7.7})',
+          },
+        ],
+      }),
+      patchRule: async () => assert.fail('nothing to push'),
+    };
+    await firewall.load(store);
+
+    await assert.rejects(
+      firewall.syncLists(store, client, ['down']),
+      /storage down/
+    );
+    assert.ok(firewall.augment(log('7.7.7.7')).has('firewall'));
+  });
 });

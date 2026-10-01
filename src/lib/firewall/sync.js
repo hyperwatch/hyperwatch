@@ -278,6 +278,12 @@ async function apply(
         );
       }
       item.newVersion = updated.version;
+      // The response is the whole ruleset: the next lists are checked
+      // against the rules as they are now, so a rule changed meanwhile is
+      // left alone rather than overwritten
+      for (const rule of result.rules || []) {
+        rules.set(rule.id, rule);
+      }
       rulesetId = result.id || rulesetId;
     }
     done.push(item);

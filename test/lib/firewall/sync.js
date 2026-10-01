@@ -468,6 +468,59 @@ describe('firewall sync', () => {
       assert.strictEqual(Object.getPrototypeOf(st.lists), Object.prototype);
     });
 
+    it('leaves a rule changed during an earlier update of the same sync', async () => {
+      const data = validate({
+        lists: ['rule-a', 'rule-b'].map((ruleId) => ({
+          id: ruleId,
+          type: 'ip',
+          action: 'block',
+          cloudflare: { rule_id: ruleId },
+          entries: [{ value: '1.1.1.1' }, { value: '2.2.2.2' }],
+        })),
+      });
+      const st = {
+        lists: Object.fromEntries(
+          ['rule-a', 'rule-b'].map((id) => [
+            id,
+            { rule_id: id, version: '3', values: ['1.1.1.1'] },
+          ])
+        ),
+      };
+      const cf = fakeCloudflare([
+        ipRule(['1.1.1.1'], { id: 'rule-a' }),
+        ipRule(['1.1.1.1'], { id: 'rule-b' }),
+      ]);
+      const patch = cf.client.patchRule;
+      cf.client.patchRule = async (...args) => {
+        // Someone edits rule-b while rule-a is being updated
+        const other = cf.zone.rules.find((r) => r.id === 'rule-b');
+        other.expression = '(ip.src in {1.1.1.1 9.9.9.9})';
+        other.version = '4';
+        return patch(...args);
+      };
+      const items = sync.plan({
+        data,
+        state: st,
+        ruleset: await cf.client.getEntrypoint(),
+        direction: 'up',
+      });
+      const result = await sync.apply(items, {
+        client: cf.client,
+        originalData: data,
+        readData: () => data,
+        writeData: () => assert.fail('up never writes the lists'),
+        state: st,
+      });
+
+      assert.strictEqual(cf.calls.length, 1);
+      assert.strictEqual(result.items[0].applied, true);
+      assert.match(result.items[1].skipped, /rule changed since the plan/);
+      assert.match(
+        cf.zone.rules.find((r) => r.id === 'rule-b').expression,
+        /9\.9\.9\.9/
+      );
+    });
+
     it('does nothing for lists with errors', async () => {
       const cf = fakeCloudflare([
         ipRule([], { expression: '(ip.src in $list)' }),
