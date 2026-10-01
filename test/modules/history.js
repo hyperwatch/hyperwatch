@@ -57,25 +57,45 @@ describe('history capacity', () => {
   });
 
   it("doesn't read non-numeric values as 0", () => {
-    for (const raw of [false, true, ' ', [], '0x10', '1e2']) {
+    for (const raw of [false, true, ' ', [], [0], [20], '0x10', '1e2']) {
       assert.strictEqual(
         capacityFor('raw', { capacity: 300, nodes: { raw } }),
         300,
         JSON.stringify(raw)
       );
     }
-    assert.strictEqual(warnings.length, 6);
+    assert.strictEqual(warnings.length, 8);
     assert.strictEqual(capacityFor('raw', { nodes: { raw: ' 20 ' } }), 20);
+  });
+
+  it('rejects capacities longer than an array can be', () => {
+    assert.strictEqual(
+      capacityFor('raw', { capacity: 2 ** 32 - 1 }),
+      2 ** 32 - 1
+    );
+    assert.strictEqual(capacityFor('raw', { capacity: 2 ** 32 }), 100);
+    assert.strictEqual(capacityFor('raw', { capacity: '4294967296' }), 100);
+    assert.strictEqual(warnings.length, 2);
   });
 });
 
 describe('history per node', () => {
+  // Pipeline properties to restore
   const original = {};
+  let config;
+  let send;
 
   before(() => {
+    config = constants.modules.history;
     original.nodes = pipeline.nodes;
     original.registerNode = pipeline.registerNode;
-    original.config = constants.modules.history;
+    // Only this test's nodes and input in the pipeline
+    original.children = pipeline.children;
+    original.inputs = pipeline.inputs;
+    original.monitors = pipeline.monitors;
+    pipeline.children = [];
+    pipeline.inputs = [];
+    pipeline.monitors = [];
 
     constants.modules.history = {
       active: true,
@@ -88,13 +108,36 @@ describe('history per node', () => {
     }
     pipeline.nodes = nodes;
     history.start();
+
+    pipeline.registerInput({
+      name: 'history-test',
+      start: (handlers) => {
+        send = handlers.success;
+      },
+    });
+    pipeline.start();
   });
 
-  after(() => {
-    pipeline.nodes = original.nodes;
-    pipeline.registerNode = original.registerNode;
-    constants.modules.history = original.config;
+  after(async () => {
+    await pipeline.stop();
+    Object.assign(pipeline, original);
+    constants.modules.history = config;
   });
+
+  const log = (url) =>
+    fromJS({
+      request: {
+        time: new Date().toISOString(),
+        address: '10.0.0.1',
+        method: 'GET',
+        url,
+        headers: {},
+      },
+      response: { status: 200 },
+    });
+
+  const urls = (name) =>
+    history.latest(name, 10, {}).map((l) => l.getIn(['request', 'url']));
 
   it('only keeps and persists history for nodes with a capacity', () => {
     assert.ok(persistence.documents['history-test-kept']);
@@ -105,16 +148,13 @@ describe('history per node', () => {
     );
   });
 
-  it('keeps the latest logs up to the capacity', () => {
-    const buffer = persistence.documents['history-test-kept'];
-    for (const id of ['a', 'b', 'c']) {
-      buffer.push(fromJS({ id }));
+  it('keeps the latest logs going through each node, up to its capacity', () => {
+    for (const url of ['/a', '/b', '/c']) {
+      send(log(url));
     }
-    assert.deepStrictEqual(
-      history.latest('test-kept', 10, {}).map((log) => log.get('id')),
-      ['c', 'b']
-    );
-    assert.deepStrictEqual(history.latest('test-off', 10, {}), []);
+    assert.deepStrictEqual(urls('test-kept'), ['/c', '/b']);
+    assert.deepStrictEqual(urls('test-off'), []);
+    assert.deepStrictEqual(urls('test-input-1'), []);
   });
 
   it('applies the settings to nodes registered later', () => {
