@@ -466,26 +466,29 @@ function open() {
     opened
   );
   store.watch(() => load(store, undefined, opened), RELOAD_INTERVAL);
+}
 
+// Start the automatic sync, when configured, once the lists are loaded:
+// from start(), so nothing touches Cloudflare before Hyperwatch starts
+function activateAutoSync() {
   const settings = syncSettings(constants.modules.firewall);
-  if (settings.auto) {
-    let client;
-    try {
-      client = createClient();
-    } catch (err) {
-      console.warn(
-        `firewall: automatic Cloudflare sync is off: ${err.message}`
-      );
-    }
-    if (client) {
-      const to = store;
-      loading.then(() => {
-        if (!stopped && opened === generation) {
-          startAutoSync(to, client, settings);
-        }
-      });
-    }
+  if (!settings.auto) {
+    return;
   }
+  let client;
+  try {
+    client = createClient();
+  } catch (err) {
+    console.warn(`firewall: automatic Cloudflare sync is off: ${err.message}`);
+    return;
+  }
+  const to = store;
+  const opened = generation;
+  loading.then(() => {
+    if (!stopped && opened === generation) {
+      startAutoSync(to, client, settings);
+    }
+  });
 }
 
 function init() {
@@ -503,6 +506,7 @@ function start() {
   if (stopped) {
     open();
   }
+  activateAutoSync();
   if (started) {
     return;
   }

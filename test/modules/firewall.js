@@ -1149,4 +1149,60 @@ describe('firewall review fixes', () => {
     assert.ok(written);
     assert.ok(Date.now() - started < 1000);
   });
+
+  it("doesn't sync before Hyperwatch starts", async () => {
+    const constants = require('../../src/constants');
+    const config = constants.modules.firewall;
+    const env = {
+      token: process.env.CLOUDFLARE_API_TOKEN,
+      zone: process.env.CLOUDFLARE_ZONE_ID,
+    };
+    const fetch = globalThis.fetch;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'firewall-init-'));
+    const file = path.join(dir, 'firewall.json');
+    fs.writeFileSync(file, JSON.stringify(LISTS));
+    let requests = 0;
+    globalThis.fetch = async () => {
+      requests++;
+      return {
+        ok: true,
+        json: async () => ({ success: true, result: { id: 'r', rules: [] } }),
+      };
+    };
+    process.env.CLOUDFLARE_API_TOKEN = 'test';
+    process.env.CLOUDFLARE_ZONE_ID = 'test';
+    constants.modules.firewall = {
+      ...config,
+      path: file,
+      backend: 'file',
+      sync: { auto: true, delay: 0.01, interval: 0 },
+    };
+    try {
+      await firewall.stop();
+      firewall.init();
+      await firewall.ready();
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      assert.strictEqual(requests, 0);
+
+      firewall.start();
+      await new Promise((resolve) => setTimeout(resolve, 80));
+      assert.ok(requests > 0);
+    } finally {
+      await firewall.stop();
+      firewall.resume();
+      globalThis.fetch = fetch;
+      for (const [key, value] of [
+        ['CLOUDFLARE_API_TOKEN', env.token],
+        ['CLOUDFLARE_ZONE_ID', env.zone],
+      ]) {
+        if (value === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = value;
+        }
+      }
+      constants.modules.firewall = config;
+      fs.rmSync(dir, { recursive: true });
+    }
+  });
 });
