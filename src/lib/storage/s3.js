@@ -75,6 +75,32 @@ async function readBody(body, signal) {
   }
 }
 
+// Whether the SDK went as far as sending the request: a request that failed
+// earlier, e.g. resolving credentials or signing, can't have reached S3.
+// The last middleware before the HTTP handler marks it sent. Clients that
+// don't run the middleware stack count as possibly sent.
+function trackSending(command) {
+  let started = false;
+  let sent = false;
+  if (command.middlewareStack) {
+    command.middlewareStack.add(
+      (next) => (args) => {
+        started = true;
+        return next(args);
+      },
+      { step: 'initialize', priority: 'high', name: 'hyperwatchRequestStarted' }
+    );
+    command.middlewareStack.add(
+      (next) => (args) => {
+        sent = true;
+        return next(args);
+      },
+      { step: 'deserialize', priority: 'low', name: 'hyperwatchRequestSent' }
+    );
+  }
+  return { failedBeforeSending: () => started && !sent };
+}
+
 function createS3Storage(config = {}, { client } = {}) {
   const s3 = config.s3 || {};
   const { GetObjectCommand, PutObjectCommand, S3Client } = sdk();
@@ -132,21 +158,24 @@ function createS3Storage(config = {}, { client } = {}) {
           `S3 PutObject ${objectKey}: an earlier upload has an unknown outcome; further writes are disabled for this document`
         );
       }
+      const command = new PutObjectCommand({
+        Bucket: s3.bucket,
+        Key: objectKey,
+        Body: body,
+        ContentType: 'application/json',
+      });
+      const request = trackSending(command);
       try {
-        await client.send(
-          new PutObjectCommand({
-            Bucket: s3.bucket,
-            Key: objectKey,
-            Body: body,
-            ContentType: 'application/json',
-          }),
-          { abortSignal: signal }
-        );
+        await client.send(command, { abortSignal: signal });
       } catch (err) {
         const status = err.$metadata && err.$metadata.httpStatusCode;
-        // Explicit client errors (e.g. AccessDenied) are definitive failures.
+        // Explicit client errors (e.g. AccessDenied) are definitive failures,
+        // and so is a failure before the request was sent (e.g. credentials).
         // Aborts, transport errors, timeouts and server errors are ambiguous.
-        if (!(status >= 400 && status < 500 && status !== 408)) {
+        const definitive =
+          (status >= 400 && status < 500 && status !== 408) ||
+          request.failedBeforeSending();
+        if (!definitive) {
           uncertainWrites.add(objectKey);
         }
         throw describe('PutObject', objectKey, err);

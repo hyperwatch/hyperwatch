@@ -220,6 +220,36 @@ describe('s3 storage', () => {
     });
   }
 
+  it('allows another upload after a failure before sending (credentials)', async () => {
+    let fail = true;
+    const client = new S3Client({
+      region: 'us-east-1',
+      endpoint: 'http://127.0.0.1:1',
+      forcePathStyle: true,
+      maxAttempts: 1,
+      credentials: async () => {
+        if (fail) {
+          const err = new Error('Could not load credentials');
+          err.name = 'CredentialsProviderError';
+          throw err;
+        }
+        return { accessKeyId: 'test', secretAccessKey: 'test' };
+      },
+    });
+    const storage = createS3Storage({ s3: { bucket: 'bucket' } }, { client });
+    await assert.rejects(
+      storage.write('doc', '[1]'),
+      /CredentialsProviderError/
+    );
+
+    // Credentials are back: the next upload is sent (and fails to connect,
+    // which is ambiguous, so the one after is refused)
+    fail = false;
+    await assert.rejects(storage.write('doc', '[2]'), /ECONNREFUSED/);
+    await assert.rejects(storage.write('doc', '[3]'), /unknown outcome/);
+    await storage.close();
+  });
+
   it('allows another upload after a definitive rejection', async () => {
     const client = fakeClient();
     const send = client.send.bind(client);
