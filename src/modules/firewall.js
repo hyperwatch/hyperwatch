@@ -1,6 +1,3 @@
-const fs = require('fs');
-const path = require('path');
-
 const debug = require('debug')('hyperwatch:firewall');
 const { Map, fromJS } = require('immutable');
 
@@ -8,7 +5,7 @@ const api = require('../app/api');
 const constants = require('../constants');
 const { Aggregator } = require('../lib/aggregator');
 const lists = require('../lib/firewall/lists');
-const sync = require('../lib/firewall/sync');
+const { createStore } = require('../lib/firewall/store');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
 const { aggregateCount } = require('../lib/util');
@@ -17,20 +14,27 @@ const RELOAD_INTERVAL = 5000;
 
 let matcher = () => null;
 
-const filePath = () =>
-  (constants.modules.firewall && constants.modules.firewall.path) ||
-  path.join(process.cwd(), 'firewall.json');
+// Where the lists are kept (see ../lib/firewall/store), set by init()
+let store = null;
+// The first load, awaited by hyperwatch.start() before the inputs start
+let loading = Promise.resolve(false);
+// Edits run one after the other: each reads, changes and writes the lists
+let editing = Promise.resolve();
 
-// Load and compile the lists. A missing or invalid file keeps the lists
+const getStore = () => store || (store = createStore(constants));
+
+// Load and compile the lists. Missing or invalid lists keep the lists
 // already loaded, so a bad edit never disables the firewall.
-function load(file = filePath()) {
+async function load(from = getStore(), options) {
   try {
-    const data = lists.load(file);
+    const data = await from.readLists(options);
     matcher = lists.compile(data);
-    debug(`Loaded ${data.lists.length} list(s) from ${file}`);
+    debug(`Loaded ${data.lists.length} list(s) from ${from.where}`);
     return true;
   } catch (err) {
-    console.warn(`firewall: keeping previous lists, ${file}: ${err.message}`);
+    console.warn(
+      `firewall: keeping previous lists, ${from.where}: ${err.message}`
+    );
     return false;
   }
 }
@@ -43,9 +47,9 @@ function augment(log) {
 // Lists with their entries. Linked lists also get `pending`: the values
 // added and removed locally since the last Cloudflare sync, or null when the
 // list was never synced.
-function summary(file = filePath()) {
-  const data = lists.load(file);
-  const state = sync.loadState(sync.defaultStatePath(file));
+async function summary(from = getStore()) {
+  const data = await from.readLists();
+  const state = await from.readState();
   return {
     lists: data.lists.map((list) => {
       if (!list.cloudflare) {
@@ -86,23 +90,28 @@ function lookup({ addresses = [], user_agents = [] } = {}) {
   return result;
 }
 
-// Add or remove one entry, then reload so matching is updated right away
-function edit(file, listId, op, { value, reason, source } = {}) {
-  const data = lists.load(file);
-  const next =
-    op === 'add'
-      ? lists.addEntry(data, listId, { value, reason, source })
-      : lists.removeEntry(data, listId, value);
-  if (next !== data) {
-    lists.save(file, next);
-    load(file);
-  }
+// Add or remove one entry, then reload so matching is updated right away.
+// Reads the stored lists first, so the edit applies to their latest version.
+function edit(to, listId, op, { value, reason, source } = {}) {
+  const run = editing.then(async () => {
+    const data = await to.readLists();
+    const next =
+      op === 'add'
+        ? lists.addEntry(data, listId, { value, reason, source })
+        : lists.removeEntry(data, listId, value);
+    if (next !== data) {
+      await to.writeLists(next);
+      await load(to);
+    }
+  });
+  editing = run.catch(() => {});
+  return run;
 }
 
 function registerRoutes() {
-  const send = (res, fn) => {
+  const send = async (res, fn) => {
     try {
-      res.json(fn() || { ok: true });
+      res.json((await fn()) || { ok: true });
     } catch (err) {
       res.status(400).json({ error: err.message });
     }
@@ -112,17 +121,18 @@ function registerRoutes() {
   api.post('/firewall/lookup', (req, res) => send(res, () => lookup(req.body)));
   for (const op of ['add', 'remove']) {
     api.post(`/firewall/lists/:id/${op}`, (req, res) =>
-      send(res, () => {
-        edit(filePath(), req.params.id, op, req.body || {});
-      })
+      send(res, () => edit(getStore(), req.params.id, op, req.body || {}))
     );
   }
 }
 
 function init() {
-  const file = filePath();
-  load(file);
-  fs.watchFile(file, { interval: RELOAD_INTERVAL }, () => load(file)).unref();
+  store = createStore(constants);
+  // Bounded like restoring persistence (seconds)
+  const { deadlines = {} } = constants.persistence;
+  const deadline = deadlines.load || 60;
+  loading = load(store, { signal: AbortSignal.timeout(deadline * 1000) });
+  store.watch(() => load(store), RELOAD_INTERVAL);
 
   pipeline.getNode('main').map(augment).registerNode('main');
 }
@@ -156,9 +166,13 @@ function start() {
   api.registerAggregator('firewall', aggregator);
 }
 
+// Resolves once the lists are first loaded (or failed to)
+const ready = () => loading;
+
 module.exports = {
   init,
   start,
+  ready,
   load,
   augment,
   summary,

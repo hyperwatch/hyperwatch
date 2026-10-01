@@ -78,6 +78,10 @@ describe('hyperwatch.stop', () => {
       }
 
       const started = hyperwatch.start();
+      // Stop once the restore is under way
+      while (!restored) {
+        await new Promise((resolve) => setImmediate(resolve));
+      }
       await hyperwatch.stop();
       restored();
       await started;

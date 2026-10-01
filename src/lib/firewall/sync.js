@@ -216,11 +216,11 @@ const hasChanges = (item) => !!(item.patch || item.localChanged);
 /**
  * Apply a plan. `up` patches Cloudflare, `down` writes firewall.json. Lists
  * with errors are skipped, as is a rule whose version moved since the plan
- * was made, and firewall.json when it changed on disk meanwhile; running the
+ * was made, and firewall.json when it changed in storage meanwhile; running the
  * sync again finishes the job.
  *
  * - originalData: the firewall.json the plan was made from
- * - readData / writeData: read and write firewall.json
+ * - readData / writeData: read and write firewall.json (sync or async)
  * - state: sync state, updated in place with the new base of each list synced
  *
  * Returns the plan items annotated with `applied` / `skipped` reasons.
@@ -267,10 +267,10 @@ async function apply(
   let localWritten = false;
   const toWrite = done.filter((item) => item.localChanged);
   if (toWrite.length) {
-    const latest = readData();
+    const latest = await readData();
     if (JSON.stringify(latest) === JSON.stringify(originalData)) {
       const byId = new Map(toWrite.map((item) => [item.listId, item.list]));
-      writeData({
+      await writeData({
         ...latest,
         lists: latest.lists.map((list) => byId.get(list.id) || list),
       });

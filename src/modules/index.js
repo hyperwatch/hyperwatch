@@ -72,9 +72,20 @@ function start() {
   }
 }
 
+// Resolves once every active module that loads something asynchronously at
+// init (module.ready()) has done so
+function ready() {
+  return Promise.all(
+    activeModules()
+      .filter((module) => module.ready)
+      .map((module) => module.ready())
+  );
+}
+
 module.exports = {
   get,
   init,
   start,
+  ready,
   activeModules,
 };

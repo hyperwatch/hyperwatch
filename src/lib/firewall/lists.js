@@ -133,8 +133,13 @@ function validate(data) {
   return { ...data, lists };
 }
 
+// Validated lists from a firewall.json document
+function parse(body) {
+  return validate(JSON.parse(body));
+}
+
 function load(path) {
-  return validate(JSON.parse(fs.readFileSync(path, 'utf8')));
+  return parse(fs.readFileSync(path, 'utf8'));
 }
 
 // Stable output: entries sorted by value so diffs stay readable
@@ -280,6 +285,7 @@ module.exports = {
   canonicalIp,
   canonicalValue,
   validate,
+  parse,
   load,
   save,
   serialize,

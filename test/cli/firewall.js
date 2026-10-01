@@ -12,6 +12,8 @@ describe('hyperwatch firewall', () => {
         ['firewall'],
         ['firewall', 'sync', '--dry-run'],
         ['firewall', 'check'],
+        ['firewall', 'import', 'firewall.json'],
+        ['firewall', 'export', 'firewall.json'],
         ['firewall', 'migrate', 'old.json'],
         ['firewall', '--help'],
       ]) {
@@ -63,6 +65,54 @@ describe('hyperwatch firewall', () => {
       for (const argv of [['sync'], ['sync', 'both']]) {
         await assert.rejects(firewall.run(argv), /"sync up".*"sync down"/);
       }
+    });
+
+    it('imports local files into the storage, and exports them', async () => {
+      const lists = path.join(dir, 'local.json');
+      fs.writeFileSync(
+        lists,
+        JSON.stringify({
+          lists: [
+            { id: 'block-ips', type: 'ip', action: 'block', entries: [] },
+          ],
+        })
+      );
+      fs.writeFileSync(
+        path.join(dir, 'local.sync.json'),
+        JSON.stringify({ lists: { 'block-ips': { values: [] } } })
+      );
+      // --file stands for the configured storage
+      const stored = path.join(dir, 'stored.json');
+
+      assert.strictEqual(
+        await firewall.run(['import', lists, '--file', stored]),
+        0
+      );
+      assert.ok(fs.existsSync(stored));
+      assert.ok(fs.existsSync(path.join(dir, 'stored.sync.json')));
+      await assert.rejects(
+        firewall.run(['import', lists, '--file', stored]),
+        /has lists; pass --force/
+      );
+      assert.strictEqual(
+        await firewall.run(['import', lists, '--file', stored, '--force']),
+        0
+      );
+
+      const exported = path.join(dir, 'exported.json');
+      assert.strictEqual(
+        await firewall.run(['export', exported, '--file', stored]),
+        0
+      );
+      assert.deepStrictEqual(
+        JSON.parse(fs.readFileSync(exported, 'utf8')).lists[0].id,
+        'block-ips'
+      );
+      assert.ok(fs.existsSync(path.join(dir, 'exported.sync.json')));
+      await assert.rejects(
+        firewall.run(['export', exported, '--file', stored]),
+        /exists; pass --force/
+      );
     });
 
     it('migrates a legacy file, then checks it', async () => {

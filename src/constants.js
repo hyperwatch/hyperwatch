@@ -53,6 +53,9 @@ const constants = {
       active: false,
       priority: 650, // depends on: address, cloudflare (client IP)
       path: null, // defaults to ./firewall.json
+      // Where the lists are kept: 'file' (path above), or a persistence
+      // backend such as 's3'. Defaults to persistence.backend
+      backend: null,
     },
     // --- Output: depends on full enrichment ---
     history: {

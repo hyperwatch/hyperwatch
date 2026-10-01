@@ -32,6 +32,12 @@ async function start() {
   }
   stopping = false;
   modules.start();
+  // Modules that load data at init (e.g. firewall lists from S3) are ready
+  // before the inputs start
+  await modules.ready();
+  if (stopping) {
+    return;
+  }
   // Modules have registered their aggregators: restore them before the
   // inputs start
   if (constants.persistence.enabled) {
