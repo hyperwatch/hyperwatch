@@ -10,6 +10,30 @@ exports.now = () => Math.floor(new Date().getTime() / 1000);
 exports.parseBoolean = (value) =>
   ['true', '1'].includes(String(value).trim().toLowerCase());
 
+// A number, given as a number or as a decimal string (as set in an
+// environment variable), within `min` and `max`, and whole with `integer`;
+// null for anything else. Number() alone reads false, '', ' ' or [0] as 0,
+// true as 1, and '0x10' as 16
+exports.parseNumber = (
+  value,
+  { integer = false, min = -Infinity, max = Infinity } = {}
+) => {
+  const number =
+    typeof value === 'number' ||
+    (typeof value === 'string' && /^\s*-?(\d+(\.\d*)?|\.\d+)\s*$/.test(value))
+      ? Number(value)
+      : NaN;
+  if (
+    !Number.isFinite(number) ||
+    (integer && !Number.isInteger(number)) ||
+    number < min ||
+    number > max
+  ) {
+    return null;
+  }
+  return number;
+};
+
 /**
  * Return the complement of the predicate `pred`.
  *

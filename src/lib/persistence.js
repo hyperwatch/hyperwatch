@@ -12,7 +12,7 @@ const debug = require('debug');
 
 const monitoring = require('./monitoring');
 const storages = require('./storage');
-const { parseBoolean } = require('./util');
+const { parseBoolean, parseNumber } = require('./util');
 
 const debugPersistence = debug('hyperwatch:persistence');
 
@@ -46,8 +46,12 @@ const toMs = (seconds) => Math.round(seconds * 1000);
 
 // Seconds, as a number timers support, or null
 const positive = (value) => {
-  const ms = toMs(Number(value));
-  return isSet(value) && ms >= 1 && ms <= MAX_TIMER ? Number(value) : null;
+  const seconds = parseNumber(value);
+  if (seconds === null) {
+    return null;
+  }
+  const ms = toMs(seconds);
+  return ms >= 1 && ms <= MAX_TIMER ? seconds : null;
 };
 
 /**
