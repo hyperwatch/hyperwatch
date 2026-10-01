@@ -452,6 +452,22 @@ describe('firewall sync', () => {
       assert.deepStrictEqual(st.lists['block-ips'].values, ['1.1.1.1']);
     });
 
+    it('keeps the state of a list named __proto__', async () => {
+      const cf = fakeCloudflare([ipRule(['1.1.1.1'])]);
+      const data = firewall(['1.1.1.1', '2.2.2.2'], { id: '__proto__' });
+      const st = { lists: {} };
+      await run(data, cf, st, 'up');
+
+      // Saved as an own property, so it survives JSON
+      const saved = JSON.parse(JSON.stringify(st));
+      assert.ok(Object.prototype.hasOwnProperty.call(saved.lists, '__proto__'));
+      assert.deepStrictEqual(
+        sync.savedState(saved, '__proto__').values.sort(),
+        ['1.1.1.1', '2.2.2.2']
+      );
+      assert.strictEqual(Object.getPrototypeOf(st.lists), Object.prototype);
+    });
+
     it('does nothing for lists with errors', async () => {
       const cf = fakeCloudflare([
         ipRule([], { expression: '(ip.src in $list)' }),

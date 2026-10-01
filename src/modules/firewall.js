@@ -104,7 +104,7 @@ async function summary(from = getStore()) {
       if (!list.cloudflare) {
         return list;
       }
-      const saved = state.lists[list.id];
+      const saved = sync.savedState(state, list.id);
       if (!saved || saved.rule_id !== list.cloudflare.rule_id) {
         return { ...list, pending: null };
       }
@@ -279,9 +279,18 @@ function startAutoSync(to, client, { delay, interval }) {
   stopAutoSync();
   let upTimer = null;
   const timers = [];
+  // Set by stop(): syncs still queued don't run
+  let cancelled = false;
+  // A full sync waiting or running: periodic ticks meanwhile are dropped,
+  // instead of queueing up when a sync takes longer than the interval
+  let fullPending = false;
   const run = (directions) =>
-    enqueue(() => syncLists(to, client, directions)).then(
-      (results) => reportSync(directions, results),
+    enqueue(() => (cancelled ? null : syncLists(to, client, directions))).then(
+      (results) => {
+        if (results) {
+          reportSync(directions, results);
+        }
+      },
       (err) => {
         console.warn(
           `firewall: sync ${directions.join(', ')} failed: ${err.message}`
@@ -289,7 +298,15 @@ function startAutoSync(to, client, { delay, interval }) {
         reportSync(directions, null, err);
       }
     );
-  const full = () => run(['down', 'up']);
+  const full = () => {
+    if (fullPending || cancelled) {
+      return;
+    }
+    fullPending = true;
+    run(['down', 'up']).finally(() => {
+      fullPending = false;
+    });
+  };
 
   timers.push(setTimeout(full, delay * 1000).unref());
   if (interval) {
@@ -298,11 +315,12 @@ function startAutoSync(to, client, { delay, interval }) {
   autoSync = {
     run,
     stop() {
+      cancelled = true;
       timers.forEach(clearTimeout);
       clearTimeout(upTimer);
     },
     scheduleUp() {
-      if (upTimer) {
+      if (upTimer || cancelled) {
         return;
       }
       upTimer = setTimeout(() => {

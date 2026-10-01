@@ -712,4 +712,29 @@ describe('firewall review fixes', () => {
     await assert.rejects(store.readState());
     await assert.rejects(store.readLists());
   });
+
+  it("doesn't pile up periodic syncs, nor run queued ones after stop", async () => {
+    let calls = 0;
+    const client = {
+      getEntrypoint: async () => {
+        calls++;
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        return { id: 'ruleset', rules: [] };
+      },
+      patchRule: async () => assert.fail('nothing to push'),
+    };
+    const storage = createMemoryStorage();
+    storage.documents.set('firewall-lists', JSON.stringify(LISTS));
+    firewall.startAutoSync(createStorageStore(storage), client, {
+      delay: 0.005,
+      interval: 0.005,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 70));
+    firewall.stopAutoSync();
+    const atStop = calls;
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // The full sync in progress may finish (down, then up): nothing queued
+    assert.ok(calls <= atStop + 2, `${calls - atStop} calls after stop`);
+  });
 });

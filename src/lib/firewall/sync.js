@@ -33,6 +33,21 @@ function saveState(path, state) {
 
 const DIRECTIONS = ['up', 'down'];
 
+// The saved state of a list, read and written as own properties: a list
+// named "__proto__" would otherwise set the prototype instead
+const savedState = (state, id) =>
+  Object.prototype.hasOwnProperty.call(state.lists, id)
+    ? state.lists[id]
+    : undefined;
+
+const setSavedState = (state, id, value) =>
+  Object.defineProperty(state.lists, id, {
+    value,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
+
 /**
  * Work out what a sync would do, without side effects.
  *
@@ -105,7 +120,7 @@ function planList(list, rule, state, direction) {
   }
 
   const local = new Set(list.entries.map((entry) => entry.value));
-  const saved = state.lists[list.id];
+  const saved = savedState(state, list.id);
   const base = new Set(
     saved && saved.rule_id === item.ruleId ? saved.values : []
   );
@@ -292,12 +307,12 @@ async function apply(
       continue;
     }
     item.applied = true;
-    state.lists[item.listId] = {
+    setSavedState(state, item.listId, {
       rule_id: item.ruleId,
       version: item.newVersion || item.ruleVersion,
       values: item.values,
       synced_at: new Date().toISOString(),
-    };
+    });
   }
   return { items, localWritten, state };
 }
@@ -310,4 +325,5 @@ module.exports = {
   plan,
   apply,
   hasChanges,
+  savedState,
 };
