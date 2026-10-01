@@ -133,11 +133,16 @@ function planList(list, rule, state, direction) {
       remote: rule.action,
     });
   }
-  if (list.description && list.description !== rule.description) {
+  // A list with a description field owns it, even empty: a description
+  // cleared in Cloudflare is "", and keeps syncing
+  if (
+    list.description !== undefined &&
+    list.description !== (rule.description || '')
+  ) {
     item.conflicts.push({
       field: 'description',
       local: list.description,
-      remote: rule.description,
+      remote: rule.description || '',
     });
   }
   if (rule.enabled === false) {
@@ -175,8 +180,8 @@ function planDown(item, list, rule, { local, remote, base }) {
       }))
     );
   item.list = { ...list, action, entries };
-  if (list.description) {
-    item.list.description = rule.description;
+  if (list.description !== undefined) {
+    item.list.description = rule.description || '';
   }
   item.localChanged =
     item.toLocal.add.length > 0 ||
@@ -214,7 +219,8 @@ function planUp(item, list, rule, { local, remote, base }) {
           entries: [...next].map((value) => ({ value })),
         }),
         action: CLOUDFLARE_ACTIONS[list.action],
-        description: list.description || rule.description,
+        description:
+          list.description !== undefined ? list.description : rule.description,
         enabled: rule.enabled,
       };
     } catch (err) {

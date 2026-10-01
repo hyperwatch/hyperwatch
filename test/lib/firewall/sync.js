@@ -521,6 +521,34 @@ describe('firewall sync', () => {
       );
     });
 
+    it('keeps syncing a description cleared in Cloudflare', () => {
+      const values = ['1.1.1.1'];
+      // Cleared in Cloudflare: the list stores ""
+      const cleared = planOne(
+        firewall(values, { description: 'Old' }),
+        [ipRule(values, { description: undefined })],
+        state(values)
+      );
+      assert.strictEqual(cleared.list.description, '');
+
+      // Set again in Cloudflare: imported, not ignored
+      const again = planOne(
+        firewall(values, { description: '' }),
+        [ipRule(values, { description: 'Back again' })],
+        state(values)
+      );
+      assert.strictEqual(again.list.description, 'Back again');
+      assert.ok(again.localChanged);
+
+      // "" and no description in Cloudflare agree
+      const same = planOne(
+        firewall(values, { description: '' }),
+        [ipRule(values, { description: undefined })],
+        state(values)
+      );
+      assert.deepStrictEqual(same.conflicts, []);
+    });
+
     it('does nothing for lists with errors', async () => {
       const cf = fakeCloudflare([
         ipRule([], { expression: '(ip.src in $list)' }),
