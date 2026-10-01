@@ -168,3 +168,54 @@ describe('history per node', () => {
     assert.ok(persistence.documents['history-test-later']);
   });
 });
+
+describe('history of a node turned off, then on again', () => {
+  const { Persistence } = require('../../src/lib/persistence');
+  const LogBuffer = require('../../src/lib/log-buffer');
+  const { createMemoryStorage } = require('../helpers/memory-storage');
+
+  // One run of an instance: registers the node's history like history.js
+  // does (nothing when its capacity is 0), restores, then dumps
+  async function run(storage, capacity, logs = []) {
+    const instance = new Persistence();
+    instance.setStorage(storage);
+    let buffer = null;
+    if (history.capacityFor('node', { nodes: { node: capacity } })) {
+      buffer = new LogBuffer(capacity);
+      instance.register('history-node', buffer);
+    }
+    await instance.load();
+    for (const id of logs) {
+      buffer.push(fromJS({ id }));
+    }
+    await instance.dump();
+    return buffer;
+  }
+
+  let log;
+
+  beforeEach(() => {
+    log = console.log;
+    console.log = () => {};
+  });
+
+  afterEach(() => {
+    console.log = log;
+  });
+
+  it('keeps the document saved before, and restores it when turned on', async () => {
+    const storage = createMemoryStorage();
+    await run(storage, 10, ['a', 'b']);
+
+    // Turned off: the document is neither read, written nor deleted
+    assert.strictEqual(await run(storage, 0), null);
+    assert.ok(storage.documents.has('history-node'));
+
+    // Turned on again: the earlier logs come back
+    const buffer = await run(storage, 10);
+    assert.deepStrictEqual(
+      buffer.toArray().map((l) => l.get('id')),
+      ['b', 'a']
+    );
+  });
+});
