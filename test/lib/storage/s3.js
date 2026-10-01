@@ -4,7 +4,11 @@ const { Readable } = require('stream');
 const { CreateBucketCommand, S3Client } = require('@aws-sdk/client-s3');
 
 const { Persistence, normalize } = require('../../../src/lib/persistence');
-const { createS3Storage, key } = require('../../../src/lib/storage/s3');
+const {
+  createS3Storage,
+  key,
+  uncertainWrites,
+} = require('../../../src/lib/storage/s3');
 
 const { storageContract } = require('./contract');
 
@@ -46,6 +50,9 @@ storageContract('s3 (fake client)', () =>
 );
 
 describe('s3 storage', () => {
+  // Kept for the whole process: each test starts without any
+  afterEach(() => uncertainWrites.clear());
+
   it('keys documents <prefix><namespace>/<name>.json', () => {
     assert.strictEqual(key({ s3: {} }, 'addresses'), 'addresses.json');
     assert.strictEqual(
@@ -248,6 +255,24 @@ describe('s3 storage', () => {
     await assert.rejects(storage.write('doc', '[2]'), /ECONNREFUSED/);
     await assert.rejects(storage.write('doc', '[3]'), /unknown outcome/);
     await storage.close();
+  });
+
+  it('keeps refusing an uncertain upload for a storage created later', async () => {
+    const failing = fakeClient();
+    failing.send = async () => {
+      throw new Error('Lost upload response');
+    };
+    const config = { s3: { bucket: 'bucket' } };
+    const first = createS3Storage(config, { client: failing });
+    await assert.rejects(first.write('doc', '[1]'));
+    await first.close();
+
+    // e.g. after Hyperwatch restarted: a new storage, same object
+    const client = fakeClient();
+    const second = createS3Storage(config, { client });
+    await assert.rejects(second.write('doc', '[2]'), /unknown outcome/);
+    assert.strictEqual(client.sent.length, 0);
+    await second.close();
   });
 
   it('allows another upload after a definitive rejection', async () => {
