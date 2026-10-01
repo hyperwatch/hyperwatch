@@ -943,4 +943,31 @@ describe('firewall review fixes', () => {
       fs.rmSync(dir, { recursive: true });
     }
   });
+
+  it('drops a load started by an earlier open', async () => {
+    const current = createMemoryStorage();
+    current.documents.set(
+      'firewall-lists',
+      JSON.stringify({
+        lists: [
+          {
+            id: 'block-ips',
+            type: 'ip',
+            action: 'block',
+            entries: [{ value: '4.3.2.1' }],
+          },
+        ],
+      })
+    );
+    assert.ok(await firewall.load(createStorageStore(current)));
+
+    // An older snapshot, loaded for an open() that isn't the current one
+    const old = createMemoryStorage();
+    old.documents.set('firewall-lists', JSON.stringify(LISTS));
+    assert.strictEqual(
+      await firewall.load(createStorageStore(old), undefined, -1),
+      false
+    );
+    assert.ok(firewall.augment(log('4.3.2.1')).has('firewall'));
+  });
 });

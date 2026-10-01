@@ -88,9 +88,15 @@ async function current(from, options, defaults = configuredLists()) {
 
 // Load and compile the lists. Missing or invalid lists keep the lists
 // already loaded, so a bad edit never disables the firewall.
-async function load(from = getStore(), options) {
+// `opened`: the open() generation that started the load. A load from an
+// earlier one (still running after a stop() and a new start()) is dropped
+// rather than replacing the current lists
+async function load(from = getStore(), options, opened) {
   try {
     const data = await current(from, options);
+    if (opened !== undefined && opened !== generation) {
+      return false;
+    }
     matcher = lists.compile(data);
     listsLoaded = true;
     debug(`Loaded ${data.lists.length} list(s) from ${from.where}`);
@@ -430,10 +436,18 @@ function open() {
   const { deadlines = {} } = constants.persistence;
   const deadline = deadlines.load || 60;
   // Whole milliseconds: AbortSignal.timeout() throws otherwise (1.001 s)
-  loading = load(store, {
-    signal: AbortSignal.timeout(Math.max(1, Math.round(deadline * 1000))),
-  });
-  store.watch(() => load(store), RELOAD_INTERVAL);
+  // Aborted at stop() too, so a pending read ends with the store
+  loading = load(
+    store,
+    {
+      signal: AbortSignal.any([
+        AbortSignal.timeout(Math.max(1, Math.round(deadline * 1000))),
+        shutdown.signal,
+      ]),
+    },
+    opened
+  );
+  store.watch(() => load(store, undefined, opened), RELOAD_INTERVAL);
 
   const settings = syncSettings(constants.modules.firewall);
   if (settings.auto) {
