@@ -56,6 +56,10 @@ const constants = {
       // Where the lists are kept: 'file' (path above), or a persistence
       // backend such as 's3'. Defaults to persistence.backend
       backend: null,
+      // Automatic Cloudflare sync, with CLOUDFLARE_API_TOKEN and
+      // CLOUDFLARE_ZONE_ID: `up` `delay` seconds after an edit, and `down`
+      // then `up` every `interval` seconds (0: never)
+      sync: { auto: false, delay: 10, interval: 300 },
     },
     // --- Output: depends on full enrichment ---
     history: {

@@ -126,6 +126,31 @@ Sync refuses to touch a list, and says why, when:
 
 A rule's enabled/disabled state is left as it is in Cloudflare.
 
+### Automatic sync
+
+The running instance can sync by itself, with no one running the CLI:
+
+```json
+{
+  "modules": {
+    "firewall": {
+      "active": true,
+      "sync": { "auto": true, "delay": 10, "interval": 300 }
+    }
+  }
+}
+```
+
+With `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ZONE_ID` in the environment:
+
+- `delay` seconds (10) after an edit through the HTTP API, `sync up` pushes it to Cloudflare. Edits made meanwhile go out in the same sync.
+- `delay` seconds after start, then every `interval` seconds (300; `0` for never), a full sync runs: `down`, then `up`.
+- Edits and syncs run one at a time. A Cloudflare request is abandoned after 30 seconds.
+- Each change is logged (`firewall: sync up block-ips: +203.0.113.7 (rule v12)`), and so are lists left alone and failures.
+- `auto` accepts `true`, `1`, `"true"` and `"1"`. Without the Cloudflare variables, it warns and stays off.
+
+There's no review step: an edit through the API, mistakes included, reaches Cloudflare within `delay` seconds. Use a token that can only edit the zone's custom rules (Zone WAF: Edit), and one instance syncing per zone.
+
 ## CLI
 
 ```

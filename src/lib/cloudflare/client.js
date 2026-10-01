@@ -6,6 +6,10 @@ const API = 'https://api.cloudflare.com/client/v4';
 
 const PHASE = 'http_request_firewall_custom';
 
+// Milliseconds before a request is abandoned, so a stalled API can't hold a
+// sync (and the firewall edits queued behind it) forever
+const REQUEST_TIMEOUT = 30000;
+
 class CloudflareError extends Error {
   constructor(message, { status, errors, cause } = {}) {
     super(message, { cause });
@@ -35,6 +39,7 @@ function createClient({
         'Content-Type': 'application/json',
       },
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
     });
     let json;
     try {

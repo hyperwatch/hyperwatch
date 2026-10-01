@@ -305,3 +305,175 @@ describe('firewall store', () => {
     );
   });
 });
+
+describe('firewall automatic Cloudflare sync', () => {
+  const { createStorageStore } = require('../../src/lib/firewall/store');
+  const { createMemoryStorage } = require('../helpers/memory-storage');
+
+  const RULE = 'rule-ips';
+
+  // A fake Cloudflare zone holding one IP rule
+  function fakeCloudflare(values, expression) {
+    const zone = {
+      id: 'ruleset',
+      rules: [
+        {
+          id: RULE,
+          version: '3',
+          action: 'block',
+          description: 'Block IP blacklist',
+          enabled: true,
+          expression: expression || `(ip.src in {${values.join(' ')}})`,
+        },
+      ],
+    };
+    const patches = [];
+    return {
+      zone,
+      patches,
+      getEntrypoint: async () => JSON.parse(JSON.stringify(zone)),
+      patchRule: async (rulesetId, ruleId, rule) => {
+        patches.push(rule);
+        const target = zone.rules.find((r) => r.id === ruleId);
+        Object.assign(target, rule, {
+          version: String(Number(target.version) + 1),
+        });
+        return JSON.parse(JSON.stringify(zone));
+      },
+    };
+  }
+
+  function stored(values, synced) {
+    const storage = createMemoryStorage();
+    storage.documents.set(
+      'firewall',
+      JSON.stringify({
+        lists: [
+          {
+            id: 'block-ips',
+            type: 'ip',
+            action: 'block',
+            description: 'Block IP blacklist',
+            cloudflare: { rule_id: RULE },
+            entries: values.map((value) => ({ value })),
+          },
+        ],
+      })
+    );
+    if (synced) {
+      storage.documents.set(
+        'firewall.sync',
+        JSON.stringify({
+          lists: {
+            'block-ips': { rule_id: RULE, version: '3', values: synced },
+          },
+        })
+      );
+    }
+    return storage;
+  }
+
+  const storedValues = (storage) =>
+    JSON.parse(storage.documents.get('firewall'))
+      .lists[0].entries.map((entry) => entry.value)
+      .sort();
+
+  let logs;
+  let warnings;
+  let original;
+
+  beforeEach(() => {
+    logs = [];
+    warnings = [];
+    original = { log: console.log, warn: console.warn };
+    console.log = (...args) => logs.push(args.join(' '));
+    console.warn = (...args) => warnings.push(args.join(' '));
+  });
+
+  afterEach(() => {
+    firewall.stopAutoSync();
+    console.log = original.log;
+    console.warn = original.warn;
+  });
+
+  it('reads its settings, off by default', () => {
+    assert.deepStrictEqual(firewall.syncSettings({}), {
+      auto: false,
+      delay: 10,
+      interval: 300,
+    });
+    assert.deepStrictEqual(
+      firewall.syncSettings({
+        sync: { auto: '1', delay: '2', interval: '0' },
+      }),
+      { auto: true, delay: 2, interval: 0 }
+    );
+    assert.strictEqual(
+      firewall.syncSettings({ sync: { delay: 'soon' } }).delay,
+      10
+    );
+    assert.strictEqual(warnings.length, 1);
+  });
+
+  it('pushes local changes up, and records the new base', async () => {
+    const storage = stored(['1.1.1.1', '2.2.2.2'], ['1.1.1.1']);
+    const cf = fakeCloudflare(['1.1.1.1']);
+
+    await firewall.syncLists(createStorageStore(storage), cf, ['up']);
+
+    assert.match(cf.zone.rules[0].expression, /1\.1\.1\.1 2\.2\.2\.2/);
+    const state = JSON.parse(storage.documents.get('firewall.sync'));
+    assert.deepStrictEqual(state.lists['block-ips'].values.sort(), [
+      '1.1.1.1',
+      '2.2.2.2',
+    ]);
+    assert.match(
+      logs.join('\n'),
+      /sync up block-ips: \+2\.2\.2\.2 \(rule v4\)/
+    );
+  });
+
+  it('brings Cloudflare changes down, and matches them right away', async () => {
+    const storage = stored(['1.1.1.1'], ['1.1.1.1']);
+    const cf = fakeCloudflare(['1.1.1.1', '3.3.3.3']);
+    const store = createStorageStore(storage);
+    await firewall.load(store);
+
+    await firewall.syncLists(store, cf, ['down', 'up']);
+
+    assert.deepStrictEqual(storedValues(storage), ['1.1.1.1', '3.3.3.3']);
+    assert.ok(firewall.augment(log('3.3.3.3')).has('firewall'));
+    assert.strictEqual(cf.patches.length, 0);
+  });
+
+  it("reports a list it won't touch, without failing", async () => {
+    const storage = stored(['1.1.1.1'], ['1.1.1.1']);
+    const cf = fakeCloudflare(
+      [],
+      '(ip.src in {1.1.1.1}) or (http.host eq "x")'
+    );
+
+    await firewall.syncLists(createStorageStore(storage), cf, ['up']);
+
+    assert.strictEqual(cf.patches.length, 0);
+    assert.match(warnings.join('\n'), /sync up block-ips skipped/);
+  });
+
+  it('syncs up shortly after an edit, a burst of edits at once', async () => {
+    const storage = stored(['1.1.1.1'], ['1.1.1.1']);
+    const cf = fakeCloudflare(['1.1.1.1']);
+    const store = createStorageStore(storage);
+    await firewall.load(store);
+    firewall.startAutoSync(store, cf, { delay: 0.05, interval: 0 });
+    // The full sync after start
+    await new Promise((resolve) => setTimeout(resolve, 80));
+
+    await firewall.edit(store, 'block-ips', 'add', { value: '4.4.4.4' });
+    await firewall.edit(store, 'block-ips', 'add', { value: '5.5.5.5' });
+    assert.strictEqual(cf.patches.length, 0);
+    await new Promise((resolve) => setTimeout(resolve, 120));
+
+    assert.strictEqual(cf.patches.length, 1);
+    assert.match(cf.zone.rules[0].expression, /4\.4\.4\.4 5\.5\.5\.5/);
+  });
+});

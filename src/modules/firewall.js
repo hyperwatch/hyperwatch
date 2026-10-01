@@ -4,11 +4,13 @@ const { Map, fromJS } = require('immutable');
 const api = require('../app/api');
 const constants = require('../constants');
 const { Aggregator } = require('../lib/aggregator');
+const { createClient } = require('../lib/cloudflare/client');
 const lists = require('../lib/firewall/lists');
 const { createStore } = require('../lib/firewall/store');
+const sync = require('../lib/firewall/sync');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
-const { aggregateCount } = require('../lib/util');
+const { aggregateCount, parseBoolean, parseNumber } = require('../lib/util');
 
 const RELOAD_INTERVAL = 5000;
 
@@ -18,8 +20,18 @@ let matcher = () => null;
 let store = null;
 // The first load, awaited by hyperwatch.start() before the inputs start
 let loading = Promise.resolve(false);
-// Edits run one after the other: each reads, changes and writes the lists
-let editing = Promise.resolve();
+// Edits and Cloudflare syncs run one after the other: each reads, changes
+// and writes the lists
+let queue = Promise.resolve();
+
+function enqueue(fn) {
+  const run = queue.then(fn);
+  queue = run.catch(() => {});
+  return run;
+}
+
+// Automatic Cloudflare sync (modules.firewall.sync), when on
+let autoSync = null;
 
 const getStore = () => store || (store = createStore(constants));
 
@@ -93,7 +105,7 @@ function lookup({ addresses = [], user_agents = [] } = {}) {
 // Add or remove one entry, then reload so matching is updated right away.
 // Reads the stored lists first, so the edit applies to their latest version.
 function edit(to, listId, op, { value, reason, source } = {}) {
-  const run = editing.then(async () => {
+  return enqueue(async () => {
     const data = await to.readLists();
     const next =
       op === 'add'
@@ -102,10 +114,133 @@ function edit(to, listId, op, { value, reason, source } = {}) {
     if (next !== data) {
       await to.writeLists(next);
       await load(to);
+      if (autoSync) {
+        autoSync.scheduleUp();
+      }
     }
   });
-  editing = run.catch(() => {});
-  return run;
+}
+
+const changes = ({ add, remove }) =>
+  [...add.map((v) => `+${v}`), ...remove.map((v) => `-${v}`)].join(' ');
+
+// Sync the stored lists with Cloudflare in each direction, in order (see
+// ../lib/firewall/sync), and report what changed or was skipped
+async function syncLists(to, client, directions) {
+  for (const direction of directions) {
+    const data = await to.readLists();
+    const state = await to.readState();
+    const items = sync.plan({
+      data,
+      state,
+      ruleset: await client.getEntrypoint(),
+      direction,
+    });
+    const result = await sync.apply(items, {
+      client,
+      originalData: data,
+      readData: () => to.readLists(),
+      writeData: (next) => to.writeLists(next),
+      state,
+    });
+    if (result.items.some((item) => item.applied)) {
+      await to.writeState(result.state);
+    }
+    if (result.localWritten) {
+      await load(to);
+    }
+    for (const item of result.items) {
+      const where = `firewall: sync ${direction} ${item.listId}`;
+      for (const warning of item.warnings) {
+        console.warn(`${where}: ${warning}`);
+      }
+      if (item.errors.length) {
+        console.warn(`${where} skipped: ${item.errors.join('; ')}`);
+      } else if (item.skipped) {
+        console.warn(`${where} skipped: ${item.skipped}`);
+      } else if (sync.hasChanges(item)) {
+        const change = changes(
+          direction === 'up' ? item.toRemote : item.toLocal
+        );
+        const version = item.newVersion ? ` (rule v${item.newVersion})` : '';
+        console.log(`${where}: ${change || 'action or description'}${version}`);
+      }
+    }
+  }
+}
+
+const MAX_SECONDS = (2 ** 31 - 1) / 1000;
+
+// modules.firewall.sync: { auto, delay, interval }, with defaults
+function syncSettings(config = {}) {
+  const settings = config.sync || {};
+  const seconds = (key, fallback) => {
+    if (settings[key] === undefined || settings[key] === null) {
+      return fallback;
+    }
+    const value = parseNumber(settings[key], { min: 0, max: MAX_SECONDS });
+    if (value === null) {
+      console.warn(
+        `Invalid modules.firewall.sync.${key} "${settings[key]}": using ${fallback}.`
+      );
+      return fallback;
+    }
+    return value;
+  };
+  return {
+    auto: parseBoolean(settings.auto),
+    delay: seconds('delay', 10),
+    interval: seconds('interval', 300),
+  };
+}
+
+/**
+ * Keep Cloudflare in sync without anyone running the CLI: `up` a few seconds
+ * (`delay`) after each edit, a burst of edits going out as one sync, and a
+ * full sync (`down` then `up`) after start and every `interval` seconds (0:
+ * never). Syncs wait for the edits and syncs before them.
+ */
+function startAutoSync(to, client, { delay, interval }) {
+  stopAutoSync();
+  let upTimer = null;
+  const timers = [];
+  const run = (directions) =>
+    enqueue(() => syncLists(to, client, directions)).catch((err) =>
+      console.warn(
+        `firewall: sync ${directions.join(', ')} failed: ${err.message}`
+      )
+    );
+  const full = () => run(['down', 'up']);
+
+  timers.push(setTimeout(full, delay * 1000).unref());
+  if (interval) {
+    timers.push(setInterval(full, interval * 1000).unref());
+  }
+  autoSync = {
+    run,
+    stop() {
+      timers.forEach(clearTimeout);
+      clearTimeout(upTimer);
+    },
+    scheduleUp() {
+      if (upTimer) {
+        return;
+      }
+      upTimer = setTimeout(() => {
+        upTimer = null;
+        run(['up']);
+      }, delay * 1000);
+      upTimer.unref();
+    },
+  };
+  return autoSync;
+}
+
+function stopAutoSync() {
+  if (autoSync) {
+    autoSync.stop();
+    autoSync = null;
+  }
 }
 
 function registerRoutes() {
@@ -133,6 +268,22 @@ function init() {
   const deadline = deadlines.load || 60;
   loading = load(store, { signal: AbortSignal.timeout(deadline * 1000) });
   store.watch(() => load(store), RELOAD_INTERVAL);
+
+  const settings = syncSettings(constants.modules.firewall);
+  if (settings.auto) {
+    let client;
+    try {
+      client = createClient();
+    } catch (err) {
+      console.warn(
+        `firewall: automatic Cloudflare sync is off: ${err.message}`
+      );
+    }
+    if (client) {
+      const to = store;
+      loading.then(() => startAutoSync(to, client, settings));
+    }
+  }
 
   pipeline.getNode('main').map(augment).registerNode('main');
 }
@@ -173,6 +324,10 @@ module.exports = {
   init,
   start,
   ready,
+  syncLists,
+  syncSettings,
+  startAutoSync,
+  stopAutoSync,
   load,
   augment,
   summary,
