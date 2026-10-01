@@ -234,6 +234,10 @@ function planUp(item, list, rule, { local, remote, base }) {
       if (rule.logging) {
         item.patch.logging = rule.logging;
       }
+      // The rule's stable reference, used by automation such as Terraform
+      if (rule.ref) {
+        item.patch.ref = rule.ref;
+      }
     } catch (err) {
       item.errors.push(err.message);
       return item;

@@ -553,6 +553,7 @@ describe('firewall sync', () => {
       const settings = {
         action_parameters: { response: { status_code: 403, content: 'No' } },
         logging: { enabled: true },
+        ref: 'terraform-block-ips',
       };
       const same = planOne(
         firewall(['1.1.1.1', '2.2.2.2']),
@@ -565,6 +566,7 @@ describe('firewall sync', () => {
         settings.action_parameters
       );
       assert.deepStrictEqual(same.patch.logging, settings.logging);
+      assert.strictEqual(same.patch.ref, 'terraform-block-ips');
 
       const challenged = planOne(
         firewall(['1.1.1.1', '2.2.2.2'], { action: 'challenge' }),

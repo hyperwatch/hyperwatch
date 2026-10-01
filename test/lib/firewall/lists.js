@@ -117,6 +117,39 @@ describe('firewall lists', () => {
       assert.strictEqual(at('203.0.113.7'), 'all-v4');
     });
 
+    it('stores IPv4-mapped entries as IPv4, so they match', () => {
+      assert.strictEqual(
+        lists.canonicalValue('ip', '::ffff:192.0.2.1'),
+        '192.0.2.1'
+      );
+      assert.strictEqual(
+        lists.canonicalValue('ip', '::ffff:192.0.2.0/120'),
+        '192.0.2.0/24'
+      );
+      assert.strictEqual(
+        lists.canonicalValue('ip', '::ffff:c000:200/120'),
+        '192.0.2.0/24'
+      );
+      const match = lists.compile(
+        lists.validate({
+          lists: [
+            {
+              id: 'ips',
+              type: 'ip',
+              action: 'block',
+              entries: [
+                { value: '::ffff:192.0.2.1' },
+                { value: '::ffff:198.51.100.0/120' },
+              ],
+            },
+          ],
+        })
+      );
+      const at = (address) => match(fromJS({ request: { address } }));
+      assert.strictEqual(at('192.0.2.1').value, '192.0.2.1');
+      assert.strictEqual(at('::ffff:198.51.100.7').value, '198.51.100.0/24');
+    });
+
     it('rejects two lists linked to the same Cloudflare rule', () => {
       const linked = (id) => ({
         id,

@@ -45,7 +45,9 @@ function canonicalIp(value) {
     if (!IPCIDR.isValidAddress(value)) {
       throw new Error(`invalid IP "${value}"`);
     }
-    return canonicalAddress(value);
+    // Like the client addresses it's matched against: ::ffff:192.0.2.1 is
+    // 192.0.2.1
+    return clientAddress(value);
   }
   if (!IPCIDR.isValidCIDR(value)) {
     throw new Error(`invalid CIDR "${value}"`);
@@ -53,11 +55,22 @@ function canonicalIp(value) {
   const [address, digits] = value.split('/');
   // 10.0.0.0/08 is 10.0.0.0/8
   const prefix = Number(digits);
-  const network = canonicalAddress(new IPCIDR(value).start());
-  if (canonicalAddress(address) !== network) {
+  // Canonical first: ip-cidr misreads the dotted form of mapped addresses
+  // (::ffff:192.0.2.0/120 as the single address 192.0.2.0)
+  const canonical = canonicalAddress(address);
+  const network = canonicalAddress(
+    new IPCIDR(`${canonical}/${prefix}`).start()
+  );
+  if (canonical !== network) {
     throw new Error(
       `CIDR "${value}" has host bits set, did you mean "${network}/${prefix}"?`
     );
+  }
+  // A CIDR within ::ffff:0:0/96 covers IPv4 addresses, matched as IPv4:
+  // ::ffff:192.0.2.0/120 is 192.0.2.0/24
+  const mapped = clientAddress(network);
+  if (mapped !== network && prefix >= 96) {
+    return `${mapped}/${prefix - 96}`;
   }
   return `${network}/${prefix}`;
 }

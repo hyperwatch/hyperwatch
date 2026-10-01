@@ -85,6 +85,7 @@ function createClient({
         enabled: rule.enabled,
         action_parameters: rule.action_parameters,
         logging: rule.logging,
+        ref: rule.ref,
       },
       signal
     );
