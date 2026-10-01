@@ -529,7 +529,14 @@ describe('persistence configuration', () => {
   it('turns snapshots off for an invalid interval, with a warning', () => {
     assert.strictEqual(normalize({ interval: 'soon' }).interval, null);
     assert.strictEqual(normalize({ interval: -5 }).interval, null);
-    assert.strictEqual(warnings.length, 2);
+    // Number() would read these as 1 and 5 seconds
+    assert.strictEqual(normalize({ interval: true }).interval, null);
+    assert.strictEqual(normalize({ interval: [5] }).interval, null);
+    assert.strictEqual(
+      normalize({ deadlines: { stop: true } }).deadlines.stop,
+      20
+    );
+    assert.strictEqual(warnings.length, 5);
   });
 
   it('only accepts durations timers support', async () => {

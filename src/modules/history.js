@@ -3,7 +3,7 @@ const constants = require('../constants');
 const LogBuffer = require('../lib/log-buffer');
 const persistence = require('../lib/persistence');
 const pipeline = require('../lib/pipeline');
-const { logMatches } = require('../lib/util');
+const { logMatches, parseNumber } = require('../lib/util');
 
 const DEFAULT_CAPACITY = 100;
 // The longest array JavaScript allows
@@ -18,14 +18,12 @@ function parseCapacity(value, setting) {
   if (value === undefined || value === null || value === '') {
     return null;
   }
-  // Only numbers and digit strings: Number() turns false, ' ', [] or [0]
-  // into 0, which would silently turn the node's history off
-  const number =
-    typeof value === 'number' ||
-    (typeof value === 'string' && /^\s*\d+\s*$/.test(value))
-      ? Number(value)
-      : NaN;
-  if (Number.isInteger(number) && number >= 0 && number <= MAX_CAPACITY) {
+  const number = parseNumber(value, {
+    integer: true,
+    min: 0,
+    max: MAX_CAPACITY,
+  });
+  if (number !== null) {
     return number;
   }
   console.warn(`Invalid ${setting} "${value}": using the default.`);
