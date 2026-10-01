@@ -55,20 +55,20 @@ Modules enrich logs and expose API endpoints. Each module is configured under `m
 
 Only `status` is active by default.
 
-| Module     | Description                                                                                                                                                | Endpoints               |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| status     | Status of inputs and pipeline nodes                                                                                                                        | `/`, `/status`          |
-| logs       | Streams every pipeline node over HTTP and WebSocket                                                                                                        | `/logs`, `/logs/<node>` |
-| cloudflare | Uses Cloudflare headers (`cf-connecting-ip`, `cf-ipcountry`, `cf-ray`) for the client address and data                                                     | –                       |
-| geoip      | Geolocates addresses                                                                                                                                       | –                       |
-| agent      | Parses User-Agents with [@hyperwatch/useragent](https://github.com/hyperwatch/useragent)                                                                   | –                       |
-| hostname   | Reverse DNS lookup and forward verification of client addresses                                                                                            | –                       |
-| language   | Parses the `Accept-Language` header                                                                                                                        | –                       |
-| dnsbl      | Checks client addresses against DNS blocklists                                                                                                             | –                       |
-| address    | Aggregates traffic per address                                                                                                                             | `/addresses`            |
-| signature  | Aggregates traffic per request signature                                                                                                                   | `/signatures`           |
-| identity   | Identifies known robots and crawlers. Depends on `agent`, `hostname`, `signature` and `address`                                                            | `/identities`           |
-| history    | Keeps the latest logs of each pipeline node in memory (`capacity`, default `1000`, and per node, see below), saved and restored when `persistence.enabled` | `/history/<node>.json`  |
+| Module     | Description                                                                                                                                               | Endpoints               |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| status     | Status of inputs and pipeline nodes                                                                                                                       | `/`, `/status`          |
+| logs       | Streams every pipeline node over HTTP and WebSocket                                                                                                       | `/logs`, `/logs/<node>` |
+| cloudflare | Uses Cloudflare headers (`cf-connecting-ip`, `cf-ipcountry`, `cf-ray`) for the client address and data                                                    | –                       |
+| geoip      | Geolocates addresses                                                                                                                                      | –                       |
+| agent      | Parses User-Agents with [@hyperwatch/useragent](https://github.com/hyperwatch/useragent)                                                                  | –                       |
+| hostname   | Reverse DNS lookup and forward verification of client addresses                                                                                           | –                       |
+| language   | Parses the `Accept-Language` header                                                                                                                       | –                       |
+| dnsbl      | Checks client addresses against DNS blocklists                                                                                                            | –                       |
+| address    | Aggregates traffic per address                                                                                                                            | `/addresses`            |
+| signature  | Aggregates traffic per request signature                                                                                                                  | `/signatures`           |
+| identity   | Identifies known robots and crawlers. Depends on `agent`, `hostname`, `signature` and `address`                                                           | `/identities`           |
+| history    | Keeps the latest logs of each pipeline node in memory (`capacity`, default `100`, and per node, see below), saved and restored when `persistence.enabled` | `/history/<node>.json`  |
 
 Aggregator endpoints render an HTML table by default, or JSON and CSV with a `.json` or `.csv` extension. They accept `limit` (default `100`) and `sort` (default `count15m`) query parameters. In the HTML table, the headings of sortable columns link to the table sorted by them, and only the columns of the last 15 minutes are shown, or of the last 24 hours with `?period=24h` (which also sorts by `count24h` by default). `/addresses` and `/identities` also accept `filter=identified` or `filter=unidentified`, to keep only the entries with or without an identity (before `limit`), with links to switch in the HTML table. A single entry is available at `/<aggregator>/<id>.json`, and `DELETE /<aggregator>` resets it.
 
@@ -94,7 +94,7 @@ History is usually what uses the most memory: each node keeps its latest `capaci
 
 - An exact node name comes first; otherwise the first pattern ending with `*` that matches the name (`input-*` matches `input-1`, `input-2`…); otherwise `capacity`.
 - A node with `0` has no buffer and no persistence document: `/history/<node>.json` answers `[]`, and its live logs start empty.
-- Values may be strings (environment variables, through rc). An invalid value is reported, and `capacity` (or `1000`) is used instead.
+- Values may be strings (environment variables, through rc). An invalid value is reported, and `capacity` (or `100`) is used instead.
 
 ## Persistence
 

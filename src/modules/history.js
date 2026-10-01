@@ -5,7 +5,7 @@ const persistence = require('../lib/persistence');
 const pipeline = require('../lib/pipeline');
 const { logMatches } = require('../lib/util');
 
-const DEFAULT_CAPACITY = 1000;
+const DEFAULT_CAPACITY = 100;
 
 // Log buffers per pipeline node, once started
 const buffers = {};
@@ -27,7 +27,7 @@ function parseCapacity(value, setting) {
 /**
  * The number of logs kept for a pipeline node: `nodes[name]`, else the first
  * `nodes` pattern ending with `*` that matches (e.g. "input-*"), else
- * `capacity` (1000 by default). 0 keeps no history for that node.
+ * `capacity` (100 by default). 0 keeps no history for that node.
  */
 function capacityFor(name, config = {}) {
   const capacity = parseCapacity(config.capacity, 'modules.history.capacity');

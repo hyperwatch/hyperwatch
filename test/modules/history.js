@@ -22,8 +22,8 @@ describe('history capacity', () => {
     console.warn = warn;
   });
 
-  it('keeps 1000 logs per node by default', () => {
-    assert.strictEqual(capacityFor('main'), 1000);
+  it('keeps 100 logs per node by default', () => {
+    assert.strictEqual(capacityFor('main'), 100);
     assert.strictEqual(capacityFor('main', { capacity: 300 }), 300);
   });
 
@@ -39,20 +39,20 @@ describe('history capacity', () => {
   });
 
   it('uses the first matching pattern', () => {
-    const config = { nodes: { 'graphql-*': 100, 'graphql-slow*': 500 } };
-    assert.strictEqual(capacityFor('graphql-slow', config), 100);
-    assert.strictEqual(capacityFor('graphql', config), 1000);
+    const config = { nodes: { 'graphql-*': 200, 'graphql-slow*': 500 } };
+    assert.strictEqual(capacityFor('graphql-slow', config), 200);
+    assert.strictEqual(capacityFor('graphql', config), 100);
   });
 
   it('reads environment strings, and warns about invalid values', () => {
     assert.strictEqual(capacityFor('raw', { nodes: { raw: '0' } }), 0);
     assert.strictEqual(capacityFor('main', { capacity: '250' }), 250);
-    assert.strictEqual(capacityFor('main', { capacity: 'lots' }), 1000);
+    assert.strictEqual(capacityFor('main', { capacity: 'lots' }), 100);
     assert.strictEqual(
       capacityFor('raw', { capacity: 300, nodes: { raw: -1 } }),
       300
     );
-    assert.strictEqual(capacityFor('raw', { nodes: { raw: 1.5 } }), 1000);
+    assert.strictEqual(capacityFor('raw', { nodes: { raw: 1.5 } }), 100);
     assert.strictEqual(warnings.length, 3);
   });
 });
