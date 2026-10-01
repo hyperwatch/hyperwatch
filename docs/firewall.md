@@ -20,10 +20,10 @@ Hyperwatch doesn't block anything itself: matching logs get a `firewall` field (
 
 The lists and their sync state can live in the storage that persistence uses instead of local files, e.g. S3 on a platform with an ephemeral disk, so edits made through the HTTP API survive restarts and deploys. The location follows `modules.firewall.backend`, else `persistence.backend` (see [Persistence](./configuration.md#persistence)):
 
-| Backend          | Lists                                         | Sync state                                         |
-| ---------------- | --------------------------------------------- | -------------------------------------------------- |
-| `file` (default) | `modules.firewall.path` (`./firewall.json`)   | Next to it, `firewall.sync.json`                   |
-| `s3`             | `<prefix><namespace>/firewall.json` in bucket | `<prefix><namespace>/firewall.sync.json` in bucket |
+| Backend          | Lists                                               | Sync state                                               |
+| ---------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| `file` (default) | `modules.firewall.path` (`./firewall.json`)         | Next to it, `firewall.sync.json`                         |
+| `s3`             | `<prefix><namespace>/firewall-lists.json` in bucket | `<prefix><namespace>/firewall-lists.sync.json` in bucket |
 
 ```json
 {

@@ -245,6 +245,11 @@ async function apply(
       continue;
     }
     if (item.patch) {
+      // The plan pushes the lists as they were: not if they changed since
+      if (JSON.stringify(await readData()) !== JSON.stringify(originalData)) {
+        item.skipped = 'the lists changed during the sync';
+        continue;
+      }
       const result = await client.patchRule(rulesetId, item.ruleId, item.patch);
       const updated = (result.rules || []).find((r) => r.id === item.ruleId);
       if (!updated || updated.expression !== item.patch.expression) {

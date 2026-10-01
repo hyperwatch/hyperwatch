@@ -33,6 +33,8 @@ function enqueue(fn) {
 
 // Automatic Cloudflare sync (modules.firewall.sync), when on
 let autoSync = null;
+// Set by stop(), so a load finishing later doesn't start syncing
+let stopped = false;
 
 const getStore = () => store || (store = createStore(constants));
 
@@ -339,13 +341,17 @@ function registerRoutes() {
 }
 
 function init() {
+  stopped = false;
   // Invalid list definitions fail here, before anything starts
   configuredLists();
   store = createStore(constants);
   // Bounded like restoring persistence (seconds)
   const { deadlines = {} } = constants.persistence;
   const deadline = deadlines.load || 60;
-  loading = load(store, { signal: AbortSignal.timeout(deadline * 1000) });
+  // Whole milliseconds: AbortSignal.timeout() throws otherwise (1.001 s)
+  loading = load(store, {
+    signal: AbortSignal.timeout(Math.max(1, Math.round(deadline * 1000))),
+  });
   store.watch(() => load(store), RELOAD_INTERVAL);
 
   const settings = syncSettings(constants.modules.firewall);
@@ -360,7 +366,11 @@ function init() {
     }
     if (client) {
       const to = store;
-      loading.then(() => startAutoSync(to, client, settings));
+      loading.then(() => {
+        if (!stopped) {
+          startAutoSync(to, client, settings);
+        }
+      });
     }
   }
 
@@ -399,10 +409,21 @@ function start() {
 // Resolves once the lists are first loaded (or failed to)
 const ready = () => loading;
 
+// No more automatic syncs once Hyperwatch stops. A sync already running
+// finishes: a Cloudflare update is applied whole or not at all
+async function stop() {
+  stopped = true;
+  stopAutoSync();
+  if (store) {
+    await store.close();
+  }
+}
+
 module.exports = {
   init,
   start,
   ready,
+  stop,
   syncLists,
   syncSettings,
   configuredLists,

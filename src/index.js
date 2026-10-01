@@ -53,6 +53,8 @@ async function start() {
 async function stop() {
   stopping = true;
   persistence.stopSnapshots();
+  // Background work of modules first, e.g. the firewall's Cloudflare syncs
+  await modules.stop();
   try {
     await pipeline.stop();
   } catch (err) {

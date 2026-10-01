@@ -5,9 +5,10 @@
  *
  * - file (default): `modules.firewall.path` (./firewall.json by default),
  *   the sync state next to it. Reloaded when the file changes.
- * - any other persistence backend, e.g. s3: the documents "firewall" and
- *   "firewall.sync" of the persistence storage, so
- *   <prefix><namespace>/firewall.json in the bucket. Read at start and when
+ * - any other persistence backend, e.g. s3: the documents "firewall-lists"
+ *   and "firewall-lists.sync" of the persistence storage, so
+ *   <prefix><namespace>/firewall-lists.json in the bucket. Not "firewall":
+ *   persistence saves the firewall aggregator under that name. Read at start and when
  *   the instance edits or syncs them, never polled: nothing else is expected
  *   to change them.
  *
@@ -21,8 +22,8 @@ const storages = require('../storage');
 const lists = require('./lists');
 const sync = require('./sync');
 
-const LISTS = 'firewall';
-const STATE = 'firewall.sync';
+const LISTS = 'firewall-lists';
+const STATE = 'firewall-lists.sync';
 
 const emptyState = () => ({ lists: {} });
 

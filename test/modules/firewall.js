@@ -215,28 +215,28 @@ describe('firewall lists in a persistence storage', () => {
     console.warn = warn;
   });
 
-  it('loads, edits and summarizes the documents "firewall" and "firewall.sync"', async () => {
+  it('loads, edits and summarizes the documents "firewall-lists" and "firewall-lists.sync"', async () => {
     const storage = createMemoryStorage();
     const store = createStorageStore(storage);
 
     // Nothing stored yet
     assert.strictEqual(await firewall.load(store), false);
 
-    storage.documents.set('firewall', JSON.stringify(LISTS));
+    storage.documents.set('firewall-lists', JSON.stringify(LISTS));
     assert.ok(await firewall.load(store));
     assert.ok(firewall.augment(log('1.1.1.1')).has('firewall'));
 
     await firewall.edit(store, 'block-ips', 'add', { value: '9.9.9.9' });
     assert.ok(firewall.augment(log('9.9.9.9')).has('firewall'));
     assert.deepStrictEqual(
-      JSON.parse(storage.documents.get('firewall')).lists[0].entries.map(
+      JSON.parse(storage.documents.get('firewall-lists')).lists[0].entries.map(
         (entry) => entry.value
       ),
       ['1.1.1.1', '9.9.9.9']
     );
 
     storage.documents.set(
-      'firewall.sync',
+      'firewall-lists.sync',
       JSON.stringify({
         lists: { 'block-ips': { rule_id: 'abc', values: ['1.1.1.1'] } },
       })
@@ -247,7 +247,7 @@ describe('firewall lists in a persistence storage', () => {
 
   it('runs edits one after the other, so none is lost', async () => {
     const storage = createMemoryStorage();
-    storage.documents.set('firewall', JSON.stringify(LISTS));
+    storage.documents.set('firewall-lists', JSON.stringify(LISTS));
     const write = storage.write;
     storage.write = async (...args) => {
       await new Promise((resolve) => setTimeout(resolve, 5));
@@ -261,7 +261,8 @@ describe('firewall lists in a persistence storage', () => {
       )
     );
     assert.strictEqual(
-      JSON.parse(storage.documents.get('firewall')).lists[0].entries.length,
+      JSON.parse(storage.documents.get('firewall-lists')).lists[0].entries
+        .length,
       4
     );
   });
@@ -346,7 +347,7 @@ describe('firewall automatic Cloudflare sync', () => {
   function stored(values, synced) {
     const storage = createMemoryStorage();
     storage.documents.set(
-      'firewall',
+      'firewall-lists',
       JSON.stringify({
         lists: [
           {
@@ -362,7 +363,7 @@ describe('firewall automatic Cloudflare sync', () => {
     );
     if (synced) {
       storage.documents.set(
-        'firewall.sync',
+        'firewall-lists.sync',
         JSON.stringify({
           lists: {
             'block-ips': { rule_id: RULE, version: '3', values: synced },
@@ -374,7 +375,7 @@ describe('firewall automatic Cloudflare sync', () => {
   }
 
   const storedValues = (storage) =>
-    JSON.parse(storage.documents.get('firewall'))
+    JSON.parse(storage.documents.get('firewall-lists'))
       .lists[0].entries.map((entry) => entry.value)
       .sort();
 
@@ -422,7 +423,7 @@ describe('firewall automatic Cloudflare sync', () => {
     await firewall.syncLists(createStorageStore(storage), cf, ['up']);
 
     assert.match(cf.zone.rules[0].expression, /1\.1\.1\.1 2\.2\.2\.2/);
-    const state = JSON.parse(storage.documents.get('firewall.sync'));
+    const state = JSON.parse(storage.documents.get('firewall-lists.sync'));
     assert.deepStrictEqual(state.lists['block-ips'].values.sort(), [
       '1.1.1.1',
       '2.2.2.2',
@@ -544,26 +545,26 @@ describe('firewall lists from the configuration', () => {
       (await firewall.summary(store)).lists.map((list) => list.id),
       ['block-ips', 'monitor-ips']
     );
-    assert.strictEqual(storage.documents.has('firewall'), false);
+    assert.strictEqual(storage.documents.has('firewall-lists'), false);
 
     await firewall.syncLists(store, fakeCloudflare(['1.1.1.1', '2.2.2.2']), [
       'down',
       'up',
     ]);
-    const stored = JSON.parse(storage.documents.get('firewall'));
+    const stored = JSON.parse(storage.documents.get('firewall-lists'));
     assert.deepStrictEqual(
       stored.lists[0].entries.map((entry) => entry.value),
       ['1.1.1.1', '2.2.2.2']
     );
     assert.strictEqual(stored.lists[1].id, 'monitor-ips');
-    assert.ok(storage.documents.has('firewall.sync'));
+    assert.ok(storage.documents.has('firewall-lists.sync'));
     assert.ok(firewall.augment(log('2.2.2.2')).has('firewall'));
   });
 
   it('adds configured lists the stored ones lack, and keeps the stored ones', async () => {
     const storage = createMemoryStorage();
     storage.documents.set(
-      'firewall',
+      'firewall-lists',
       JSON.stringify({
         lists: [
           {
@@ -617,5 +618,63 @@ describe('firewall lists from the configuration', () => {
     assert.deepStrictEqual(entry.firewallSync.results, [
       { direction: 'down', list: 'block-ips', change: '+1.1.1.1' },
     ]);
+  });
+});
+
+describe('firewall review fixes', () => {
+  const { Persistence } = require('../../src/lib/persistence');
+  const { createStorageStore } = require('../../src/lib/firewall/store');
+  const { createMemoryStorage } = require('../helpers/memory-storage');
+
+  const LISTS = {
+    lists: [{ id: 'block-ips', type: 'ip', action: 'block', entries: [] }],
+  };
+
+  let original;
+
+  beforeEach(() => {
+    original = { log: console.log, warn: console.warn };
+    console.log = () => {};
+    console.warn = () => {};
+  });
+
+  afterEach(() => {
+    firewall.stopAutoSync();
+    console.log = original.log;
+    console.warn = original.warn;
+  });
+
+  it("doesn't share a document with the persisted firewall aggregator", async () => {
+    const storage = createMemoryStorage();
+    const store = createStorageStore(storage);
+    await store.writeLists(LISTS);
+
+    // What persistence does with api.registerAggregator('firewall', …)
+    const persistence = new Persistence();
+    persistence.setStorage(storage);
+    persistence.register('firewall', { dump: () => [], load() {} });
+    await persistence.dump();
+
+    assert.strictEqual((await store.readLists()).lists[0].id, 'block-ips');
+  });
+
+  it('stops syncing when Hyperwatch stops', async () => {
+    let calls = 0;
+    const client = {
+      getEntrypoint: async () => {
+        calls++;
+        return { id: 'ruleset', rules: [] };
+      },
+      patchRule: async () => assert.fail('no sync after stop'),
+    };
+    const storage = createMemoryStorage();
+    storage.documents.set('firewall-lists', JSON.stringify(LISTS));
+    firewall.startAutoSync(createStorageStore(storage), client, {
+      delay: 0.03,
+      interval: 0.03,
+    });
+    await firewall.stop();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.strictEqual(calls, 0);
   });
 });

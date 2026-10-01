@@ -437,6 +437,21 @@ describe('firewall sync', () => {
       assert.deepStrictEqual(st.lists['block-ips'].values, ['1.1.1.1']);
     });
 
+    it("up doesn't push lists that changed during the sync", async () => {
+      const cf = fakeCloudflare([ipRule(['1.1.1.1'])]);
+      const st = state(['1.1.1.1']);
+      const { items } = await run(
+        firewall(['1.1.1.1', '2.2.2.2']),
+        cf,
+        st,
+        'up',
+        { changedLocally: true }
+      );
+      assert.strictEqual(cf.calls.length, 0);
+      assert.match(items[0].skipped, /lists changed during the sync/);
+      assert.deepStrictEqual(st.lists['block-ips'].values, ['1.1.1.1']);
+    });
+
     it('does nothing for lists with errors', async () => {
       const cf = fakeCloudflare([
         ipRule([], { expression: '(ip.src in $list)' }),

@@ -82,10 +82,24 @@ function ready() {
   );
 }
 
+// Stops what active modules run in the background (module.stop())
+async function stop() {
+  for (const module of activeModules()) {
+    if (module.stop) {
+      try {
+        await module.stop();
+      } catch (err) {
+        console.error('Error stopping a module:', err.message);
+      }
+    }
+  }
+}
+
 module.exports = {
   get,
   init,
   start,
   ready,
+  stop,
   activeModules,
 };
