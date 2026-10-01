@@ -54,6 +54,27 @@ describe('firewall lists', () => {
       }
     });
 
+    it('normalizes a CIDR prefix written with leading zeros', () => {
+      assert.strictEqual(
+        lists.canonicalValue('ip', '10.0.0.0/08'),
+        '10.0.0.0/8'
+      );
+      assert.throws(
+        () =>
+          lists.validate({
+            lists: [
+              {
+                id: 'ips',
+                type: 'ip',
+                action: 'block',
+                entries: [{ value: '10.0.0.0/8' }, { value: '10.0.0.0/08' }],
+              },
+            ],
+          }),
+        /duplicate/
+      );
+    });
+
     it('rejects two lists linked to the same Cloudflare rule', () => {
       const linked = (id) => ({
         id,

@@ -37,7 +37,9 @@ function canonicalIp(value) {
   if (!IPCIDR.isValidCIDR(value)) {
     throw new Error(`invalid CIDR "${value}"`);
   }
-  const [address, prefix] = value.split('/');
+  const [address, digits] = value.split('/');
+  // 10.0.0.0/08 is 10.0.0.0/8
+  const prefix = Number(digits);
   const network = canonicalAddress(new IPCIDR(value).start());
   if (canonicalAddress(address) !== network) {
     throw new Error(

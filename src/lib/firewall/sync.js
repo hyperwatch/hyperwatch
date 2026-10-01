@@ -223,6 +223,17 @@ function planUp(item, list, rule, { local, remote, base }) {
           list.description !== undefined ? list.description : rule.description,
         enabled: rule.enabled,
       };
+      // Settings Hyperwatch doesn't manage, kept as they are: a block rule's
+      // custom response only while the action stays the same
+      if (
+        rule.action_parameters &&
+        rule.action === CLOUDFLARE_ACTIONS[list.action]
+      ) {
+        item.patch.action_parameters = rule.action_parameters;
+      }
+      if (rule.logging) {
+        item.patch.logging = rule.logging;
+      }
     } catch (err) {
       item.errors.push(err.message);
       return item;
@@ -248,9 +259,12 @@ const hasChanges = (item) => !!(item.patch || item.localChanged);
  */
 async function apply(
   items,
-  { client, originalData, readData, writeData, state }
+  { client, originalData, readData, writeData, state, signal }
 ) {
-  const current = await client.getEntrypoint();
+  // Aborted (e.g. Hyperwatch stopping): no further update or write
+  const check = () => signal && signal.throwIfAborted();
+  check();
+  const current = await client.getEntrypoint({ signal });
   const rules = new Map((current.rules || []).map((rule) => [rule.id, rule]));
   const done = [];
   let rulesetId = current.id;
@@ -271,7 +285,13 @@ async function apply(
         item.skipped = 'the lists changed during the sync';
         continue;
       }
-      const result = await client.patchRule(rulesetId, item.ruleId, item.patch);
+      check();
+      const result = await client.patchRule(
+        rulesetId,
+        item.ruleId,
+        item.patch,
+        { signal }
+      );
       const updated = (result.rules || []).find((r) => r.id === item.ruleId);
       if (!updated || updated.expression !== item.patch.expression) {
         throw new Error(
@@ -302,6 +322,7 @@ async function apply(
     const latest = await readData();
     if (JSON.stringify(latest) === JSON.stringify(originalData)) {
       const byId = new Map(toWrite.map((item) => [item.listId, item.list]));
+      check();
       await writeData({
         ...latest,
         lists: latest.lists.map((list) => byId.get(list.id) || list),

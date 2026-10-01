@@ -131,8 +131,8 @@ Each linked list owns one custom rule in the zone's `http_request_firewall_custo
 
 Syncing is done by the running instance (see [Automatic sync](#automatic-sync)). Each sync goes one way:
 
-- `down` applies the values added or removed in Cloudflare since the last sync to the lists, along with the rule's action and description. It never writes to Cloudflare. Values added in Cloudflare get `"source": "cloudflare"`.
-- `up` applies the values added or removed in the lists since the last sync to the Cloudflare rule, along with the list's action and description. It never changes the lists.
+- `down` applies the values added or removed in Cloudflare since the last sync to the lists, along with the rule's action, and its description for lists that have a `description` field (set `"description": ""` to take Cloudflare's). It never writes to Cloudflare. Values added in Cloudflare get `"source": "cloudflare"`.
+- `up` applies the values added or removed in the lists since the last sync to the Cloudflare rule, along with the list's action and, when the list has one, description. The rule's other settings (e.g. a custom block response, logging) are kept. It never changes the lists.
 - Neither direction undoes a change still pending on the side it writes to: `down` doesn't bring back a value removed locally, and `up` doesn't remove a value added in Cloudflare.
 - A full sync runs `down`, then `up`.
 - The last agreed state is kept in `firewall.sync.json`, next to `firewall.json` (or in the storage, see above). Keep it with the lists: without it, the next sync is treated as a first sync, and removals are lost. On a first sync, `down` imports every value only in Cloudflare and `up` pushes every value only in the lists.

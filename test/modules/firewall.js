@@ -640,6 +640,7 @@ describe('firewall review fixes', () => {
 
   afterEach(() => {
     firewall.stopAutoSync();
+    firewall.resume();
     console.log = original.log;
     console.warn = original.warn;
   });
@@ -678,12 +679,17 @@ describe('firewall review fixes', () => {
     assert.strictEqual(calls, 0);
   });
 
-  it('finishes the edit in progress before stopping', async () => {
+  it('finishes the edit in progress before stopping, and refuses new ones', async () => {
     const storage = createMemoryStorage();
     storage.documents.set('firewall-lists', JSON.stringify(LISTS));
     const events = [];
+    let writing;
+    const started = new Promise((resolve) => {
+      writing = resolve;
+    });
     const write = storage.write;
     storage.write = async (...args) => {
+      writing();
       await new Promise((resolve) => setTimeout(resolve, 30));
       await write(...args);
       events.push('written');
@@ -693,7 +699,13 @@ describe('firewall review fixes', () => {
     const edit = firewall.edit(store, 'block-ips', 'add', {
       value: '6.6.6.6',
     });
-    await firewall.stop();
+    await started;
+    const stopping = firewall.stop();
+    await assert.rejects(
+      firewall.edit(store, 'block-ips', 'add', { value: '7.7.7.7' }),
+      /stopping, edit refused/
+    );
+    await stopping;
     events.push('stopped');
     await edit;
     assert.deepStrictEqual(events, ['written', 'stopped']);
@@ -780,5 +792,52 @@ describe('firewall review fixes', () => {
       /storage down/
     );
     assert.ok(firewall.augment(log('7.7.7.7')).has('firewall'));
+  });
+
+  it('waits for the delay before the first periodic sync', async () => {
+    let calls = 0;
+    const client = {
+      getEntrypoint: async () => {
+        calls++;
+        return { id: 'ruleset', rules: [] };
+      },
+      patchRule: async () => assert.fail('nothing to push'),
+    };
+    const storage = createMemoryStorage();
+    storage.documents.set('firewall-lists', JSON.stringify(LISTS));
+    firewall.startAutoSync(createStorageStore(storage), client, {
+      delay: 0.1,
+      interval: 0.01,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    assert.strictEqual(calls, 0);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.ok(calls > 0);
+  });
+
+  it('answers a lookup for a user agent named __proto__', () => {
+    const result = firewall.lookup({ user_agents: ['__proto__'] });
+    assert.ok(
+      Object.prototype.hasOwnProperty.call(result.user_agents, '__proto__')
+    );
+    assert.strictEqual(
+      Object.getPrototypeOf(result.user_agents),
+      Object.prototype
+    );
+  });
+
+  it('stops watching the file when closed', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'firewall-watch-'));
+    const file = path.join(dir, 'firewall.json');
+    fs.writeFileSync(file, JSON.stringify(LISTS));
+    const store = createFileStore({ file });
+    let changes = 0;
+    store.watch(() => changes++, 10);
+    await store.close();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    fs.writeFileSync(file, JSON.stringify({ lists: [] }));
+    await new Promise((resolve) => setTimeout(resolve, 60));
+    assert.strictEqual(changes, 0);
+    fs.rmSync(dir, { recursive: true });
   });
 });

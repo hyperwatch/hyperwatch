@@ -31,7 +31,7 @@ function createClient({
     throw new Error('Cloudflare: CLOUDFLARE_ZONE_ID is not set');
   }
 
-  async function request(method, path, body) {
+  async function request(method, path, body, signal) {
     const res = await fetch(`${API}${path}`, {
       method,
       headers: {
@@ -39,7 +39,9 @@ function createClient({
         'Content-Type': 'application/json',
       },
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
+      signal: signal
+        ? AbortSignal.any([signal, AbortSignal.timeout(REQUEST_TIMEOUT)])
+        : AbortSignal.timeout(REQUEST_TIMEOUT),
     });
     let json;
     try {
@@ -62,17 +64,30 @@ function createClient({
   }
 
   // The zone's custom rules ruleset: { id, version, rules: [...] }
-  const getEntrypoint = () =>
-    request('GET', `/zones/${zoneId}/rulesets/phases/${PHASE}/entrypoint`);
+  const getEntrypoint = ({ signal } = {}) =>
+    request(
+      'GET',
+      `/zones/${zoneId}/rulesets/phases/${PHASE}/entrypoint`,
+      undefined,
+      signal
+    );
 
-  // Update one rule. Every field is sent: omitted fields are reset.
-  const patchRule = (rulesetId, ruleId, rule) =>
-    request('PATCH', `/zones/${zoneId}/rulesets/${rulesetId}/rules/${ruleId}`, {
-      expression: rule.expression,
-      action: rule.action,
-      description: rule.description,
-      enabled: rule.enabled,
-    });
+  // Update one rule. Every field is sent: omitted fields are reset, so the
+  // plan carries the rule's other settings (action_parameters, logging)
+  const patchRule = (rulesetId, ruleId, rule, { signal } = {}) =>
+    request(
+      'PATCH',
+      `/zones/${zoneId}/rulesets/${rulesetId}/rules/${ruleId}`,
+      {
+        expression: rule.expression,
+        action: rule.action,
+        description: rule.description,
+        enabled: rule.enabled,
+        action_parameters: rule.action_parameters,
+        logging: rule.logging,
+      },
+      signal
+    );
 
   return { getEntrypoint, patchRule };
 }

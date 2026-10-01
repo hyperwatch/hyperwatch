@@ -34,6 +34,7 @@ const emptyState = () => ({ lists: {} });
 function createFileStore({ file, state } = {}) {
   const listsPath = file || path.join(process.cwd(), 'firewall.json');
   const statePath = state || sync.defaultStatePath(listsPath);
+  let listener = null;
   return {
     name: 'file',
     where: listsPath,
@@ -58,15 +59,24 @@ function createFileStore({ file, state } = {}) {
       sync.saveState(statePath, value);
     },
     watch(onChange, interval) {
-      fs.watchFile(listsPath, { interval }, onChange).unref();
+      listener = onChange;
+      fs.watchFile(listsPath, { interval }, listener).unref();
     },
-    async close() {},
+    async close() {
+      if (listener) {
+        fs.unwatchFile(listsPath, listener);
+        listener = null;
+      }
+    },
   };
 }
 
 // On a persistence storage (see ../storage): read(), write() and close()
 function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
-  const bounded = (signal) => signal || AbortSignal.timeout(timeout);
+  const bounded = (signal) =>
+    signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(timeout)])
+      : AbortSignal.timeout(timeout);
   return {
     name: storage.name,
     where: `the ${storage.name} document "${LISTS}"`,
@@ -75,9 +85,9 @@ function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
       const body = await storage.read(LISTS, { signal: bounded(signal) });
       return body === null ? null : lists.parse(body);
     },
-    async writeLists(data) {
+    async writeLists(data, { signal } = {}) {
       await storage.write(LISTS, lists.serialize(lists.validate(data)), {
-        signal: bounded(),
+        signal: bounded(signal),
       });
     },
     async readState() {
@@ -88,9 +98,9 @@ function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
       const value = JSON.parse(body);
       return value && value.lists ? value : emptyState();
     },
-    async writeState(value) {
+    async writeState(value, { signal } = {}) {
       await storage.write(STATE, `${JSON.stringify(value, null, 2)}\n`, {
-        signal: bounded(),
+        signal: bounded(signal),
       });
     },
     watch() {},

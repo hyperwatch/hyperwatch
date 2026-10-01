@@ -33,8 +33,20 @@ function enqueue(fn) {
 
 // Automatic Cloudflare sync (modules.firewall.sync), when on
 let autoSync = null;
-// Set by stop(), so a load finishing later doesn't start syncing
+// Set by stop(), so a load finishing later doesn't start syncing, and new
+// edits are refused
 let stopped = false;
+// Aborted when stop() gives up waiting: work still running makes no
+// further Cloudflare update or storage write
+let shutdown = new AbortController();
+
+// Back to running, after stop(): init() does it when Hyperwatch starts
+function resume() {
+  stopped = false;
+  if (shutdown.signal.aborted) {
+    shutdown = new AbortController();
+  }
+}
 
 const getStore = () => store || (store = createStore(constants));
 
@@ -122,19 +134,31 @@ async function summary(from = getStore()) {
 }
 
 // Which list, if any, each IP address and user agent falls into
+// Results keyed by the values asked for, as own properties: a user agent
+// "__proto__" would otherwise set the prototype
+const setResult = (target, key, log) =>
+  Object.defineProperty(target, key, {
+    value: log.has('firewall') ? log.get('firewall').toJS() : null,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
+
 function lookup({ addresses = [], user_agents = [] } = {}) {
   const result = { addresses: {}, user_agents: {} };
   for (const address of addresses) {
-    const log = augment(fromJS({ address: { value: address } }));
-    result.addresses[address] = log.has('firewall')
-      ? log.get('firewall').toJS()
-      : null;
+    setResult(
+      result.addresses,
+      address,
+      augment(fromJS({ address: { value: address } }))
+    );
   }
   for (const ua of user_agents) {
-    const log = augment(fromJS({ request: { headers: { 'user-agent': ua } } }));
-    result.user_agents[ua] = log.has('firewall')
-      ? log.get('firewall').toJS()
-      : null;
+    setResult(
+      result.user_agents,
+      ua,
+      augment(fromJS({ request: { headers: { 'user-agent': ua } } }))
+    );
   }
   return result;
 }
@@ -142,14 +166,25 @@ function lookup({ addresses = [], user_agents = [] } = {}) {
 // Add or remove one entry, then reload so matching is updated right away.
 // Reads the stored lists first, so the edit applies to their latest version.
 function edit(to, listId, op, { value, reason, source } = {}) {
+  const refuse = () => {
+    if (stopped) {
+      throw new Error('firewall: Hyperwatch is stopping, edit refused');
+    }
+  };
+  if (stopped) {
+    return Promise.reject(
+      new Error('firewall: Hyperwatch is stopping, edit refused')
+    );
+  }
   return enqueue(async () => {
+    refuse();
     const data = await current(to);
     const next =
       op === 'add'
         ? lists.addEntry(data, listId, { value, reason, source })
         : lists.removeEntry(data, listId, value);
     if (next !== data) {
-      await to.writeLists(next);
+      await to.writeLists(next, { signal: shutdown.signal });
       await load(to);
       if (autoSync) {
         autoSync.scheduleUp();
@@ -164,30 +199,34 @@ const changes = ({ add, remove }) =>
 // Sync the stored lists with Cloudflare in each direction, in order (see
 // ../lib/firewall/sync). Logs and returns what changed or was skipped:
 // [{ direction, list, change | skipped }]
-async function syncLists(to, client, directions) {
+async function syncLists(to, client, directions, { signal } = {}) {
   const results = [];
   for (const direction of directions) {
+    if (signal) {
+      signal.throwIfAborted();
+    }
     const data = await current(to);
     const state = await to.readState();
     const items = sync.plan({
       data,
       state,
-      ruleset: await client.getEntrypoint(),
+      ruleset: await client.getEntrypoint({ signal }),
       direction,
     });
     const result = await sync.apply(items, {
       client,
       originalData: data,
       readData: () => current(to),
-      writeData: (next) => to.writeLists(next),
+      writeData: (next) => to.writeLists(next, { signal }),
       state,
+      signal,
     });
     // Lists written: match them now, even if saving the state fails next
     if (result.localWritten) {
       await load(to);
     }
     if (result.items.some((item) => item.applied)) {
-      await to.writeState(result.state);
+      await to.writeState(result.state, { signal });
     }
     for (const item of result.items) {
       const where = `firewall: sync ${direction} ${item.listId}`;
@@ -286,7 +325,11 @@ function startAutoSync(to, client, { delay, interval }) {
   // instead of queueing up when a sync takes longer than the interval
   let fullPending = false;
   const run = (directions) =>
-    enqueue(() => (cancelled ? null : syncLists(to, client, directions))).then(
+    enqueue(() =>
+      cancelled
+        ? null
+        : syncLists(to, client, directions, { signal: shutdown.signal })
+    ).then(
       (results) => {
         if (results) {
           reportSync(directions, results);
@@ -309,10 +352,15 @@ function startAutoSync(to, client, { delay, interval }) {
     });
   };
 
-  timers.push(setTimeout(full, delay * 1000).unref());
-  if (interval) {
-    timers.push(setInterval(full, interval * 1000).unref());
-  }
+  // The first full sync after `delay`, then every `interval` from there
+  timers.push(
+    setTimeout(() => {
+      full();
+      if (interval && !cancelled) {
+        timers.push(setInterval(full, interval * 1000).unref());
+      }
+    }, delay * 1000).unref()
+  );
   autoSync = {
     run,
     stop() {
@@ -360,7 +408,7 @@ function registerRoutes() {
 }
 
 function init() {
-  stopped = false;
+  resume();
   // Invalid list definitions fail here, before anything starts
   configuredLists();
   store = createStore(constants);
@@ -444,6 +492,8 @@ async function stop() {
     }),
   ]);
   clearTimeout(timer);
+  // Whatever still runs: no further Cloudflare update or storage write
+  shutdown.abort(new Error('firewall: Hyperwatch stopped'));
   if (store) {
     await store.close();
   }
@@ -454,6 +504,7 @@ module.exports = {
   start,
   ready,
   stop,
+  resume,
   syncLists,
   syncSettings,
   configuredLists,

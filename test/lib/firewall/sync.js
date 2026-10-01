@@ -549,6 +549,59 @@ describe('firewall sync', () => {
       assert.deepStrictEqual(same.conflicts, []);
     });
 
+    it("keeps the rule's other settings, a custom response only for the same action", () => {
+      const settings = {
+        action_parameters: { response: { status_code: 403, content: 'No' } },
+        logging: { enabled: true },
+      };
+      const same = planOne(
+        firewall(['1.1.1.1', '2.2.2.2']),
+        [ipRule(['1.1.1.1'], settings)],
+        state(['1.1.1.1']),
+        'up'
+      );
+      assert.deepStrictEqual(
+        same.patch.action_parameters,
+        settings.action_parameters
+      );
+      assert.deepStrictEqual(same.patch.logging, settings.logging);
+
+      const challenged = planOne(
+        firewall(['1.1.1.1', '2.2.2.2'], { action: 'challenge' }),
+        [ipRule(['1.1.1.1'], settings)],
+        state(['1.1.1.1']),
+        'up'
+      );
+      assert.strictEqual(challenged.patch.action_parameters, undefined);
+      assert.deepStrictEqual(challenged.patch.logging, settings.logging);
+    });
+
+    it('makes no update once its signal is aborted', async () => {
+      const cf = fakeCloudflare([ipRule(['1.1.1.1'])]);
+      const data = firewall(['1.1.1.1', '2.2.2.2']);
+      const st = state(['1.1.1.1']);
+      const items = sync.plan({
+        data,
+        state: st,
+        ruleset: await cf.client.getEntrypoint(),
+        direction: 'up',
+      });
+      const controller = new AbortController();
+      controller.abort(new Error('stopping'));
+      await assert.rejects(
+        sync.apply(items, {
+          client: cf.client,
+          originalData: data,
+          readData: () => data,
+          writeData: () => assert.fail('no write'),
+          state: st,
+          signal: controller.signal,
+        }),
+        /stopping/
+      );
+      assert.strictEqual(cf.calls.length, 0);
+    });
+
     it('does nothing for lists with errors', async () => {
       const cf = fakeCloudflare([
         ipRule([], { expression: '(ip.src in $list)' }),
