@@ -329,7 +329,7 @@ if (endpoint) {
         },
       });
       try {
-        await assert.rejects(store.readLists(), /no lists in/);
+        assert.strictEqual(await store.readLists(), null);
         assert.deepStrictEqual(await store.readState(), { lists: {} });
 
         const data = {
