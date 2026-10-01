@@ -119,8 +119,8 @@ function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
       const body = lists.serialize(lists.validate(data));
       await settle(storage.write(LISTS, body, { signal: bound }), bound);
     },
-    async readState() {
-      const bound = bounded();
+    async readState({ signal } = {}) {
+      const bound = bounded(signal);
       const body = await settle(storage.read(STATE, { signal: bound }), bound);
       if (body === null) {
         return emptyState();

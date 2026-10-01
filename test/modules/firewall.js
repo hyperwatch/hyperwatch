@@ -1066,4 +1066,30 @@ describe('firewall review fixes', () => {
       constants.persistence.deadlines = deadlines;
     }
   });
+
+  it('releases a sync stuck on a storage read when stopping', async () => {
+    const storage = createMemoryStorage();
+    storage.documents.set('firewall-lists', JSON.stringify(LISTS));
+    const read = storage.read;
+    // Reading the sync state stalls, abort or not
+    storage.read = (name, ...args) =>
+      name === 'firewall-lists.sync'
+        ? new Promise(() => {})
+        : read(name, ...args);
+    const client = {
+      getEntrypoint: async () => assert.fail('never reached'),
+      patchRule: async () => assert.fail('never reached'),
+    };
+    const controller = new AbortController();
+    const syncing = firewall.syncLists(
+      createStorageStore(storage, { timeout: 60000 }),
+      client,
+      ['down'],
+      { signal: controller.signal }
+    );
+    setTimeout(() => controller.abort(new Error('stopping')), 20);
+    const started = Date.now();
+    await assert.rejects(syncing, /stopping/);
+    assert.ok(Date.now() - started < 1000);
+  });
 });

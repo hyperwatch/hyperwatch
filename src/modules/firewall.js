@@ -222,8 +222,9 @@ async function syncLists(to, client, directions, { signal } = {}) {
     if (signal) {
       signal.throwIfAborted();
     }
-    const data = await current(to);
-    const state = await to.readState();
+    // The sync's signal on every read too: stop() releases a stalled one
+    const data = await current(to, { signal });
+    const state = await to.readState({ signal });
     const items = sync.plan({
       data,
       state,
@@ -233,7 +234,7 @@ async function syncLists(to, client, directions, { signal } = {}) {
     const result = await sync.apply(items, {
       client,
       originalData: data,
-      readData: () => current(to),
+      readData: () => current(to, { signal }),
       writeData: (next) => to.writeLists(next, { signal }),
       state,
       signal,
