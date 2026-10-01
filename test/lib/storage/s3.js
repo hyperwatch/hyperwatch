@@ -1,4 +1,5 @@
 const assert = require('assert');
+const { Readable } = require('stream');
 
 const { CreateBucketCommand, S3Client } = require('@aws-sdk/client-s3');
 
@@ -109,6 +110,30 @@ describe('s3 storage', () => {
       );
       return true;
     });
+  });
+
+  it('stops downloading a body when the read is aborted', async () => {
+    // Headers arrived, the body never ends
+    const body = new Readable({ read() {} });
+    body.push('[1,');
+    body.transformToString = async () => {
+      const chunks = [];
+      for await (const chunk of body) {
+        chunks.push(chunk);
+      }
+      return Buffer.concat(chunks).toString('utf-8');
+    };
+    const client = fakeClient();
+    client.send = async () => ({ Body: body });
+    const storage = createS3Storage({ s3: { bucket: 'bucket' } }, { client });
+
+    const controller = new AbortController();
+    const read = storage.read('doc', { signal: controller.signal });
+    await new Promise((resolve) => setImmediate(resolve));
+    controller.abort();
+
+    await assert.rejects(read);
+    assert.strictEqual(body.destroyed, true);
   });
 
   it('follows region redirects', () => {

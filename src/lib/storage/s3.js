@@ -51,6 +51,30 @@ function describe(operation, objectKey, err) {
   return error;
 }
 
+// The abort signal only bounds send(), which resolves with the headers:
+// destroy the body when it aborts, so a slow download doesn't carry on in
+// the background
+async function readBody(body, signal) {
+  if (!signal) {
+    return body.transformToString('utf-8');
+  }
+  const abort = () => {
+    if (typeof body.destroy === 'function') {
+      body.destroy(signal.reason);
+    }
+  };
+  if (signal.aborted) {
+    abort();
+    signal.throwIfAborted();
+  }
+  signal.addEventListener('abort', abort, { once: true });
+  try {
+    return await body.transformToString('utf-8');
+  } finally {
+    signal.removeEventListener('abort', abort);
+  }
+}
+
 function createS3Storage(config = {}, { client } = {}) {
   const s3 = config.s3 || {};
   const { GetObjectCommand, PutObjectCommand, S3Client } = sdk();
@@ -80,7 +104,7 @@ function createS3Storage(config = {}, { client } = {}) {
           new GetObjectCommand({ Bucket: s3.bucket, Key: objectKey }),
           { abortSignal: signal }
         );
-        return await response.Body.transformToString('utf-8');
+        return await readBody(response.Body, signal);
       } catch (err) {
         if (err.name === 'NoSuchKey') {
           return null;
