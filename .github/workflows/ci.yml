@@ -27,6 +27,32 @@ jobs:
       - run: npm ci
       - run: npm test
 
+  test-s3:
+    runs-on: ubuntu-latest
+
+    env:
+      # Any credentials: S3Mock doesn't check them
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      HYPERWATCH_TEST_S3_ENDPOINT: http://127.0.0.1:9090
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - run: npm ci
+      - name: Start S3Mock
+        run: |
+          docker run -d -p 9090:9090 adobe/s3mock:5
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:9090/ || true)
+            [ "$code" != "000" ] && exit 0
+            sleep 1
+          done
+          exit 1
+      - run: npx mocha test/lib/storage/s3.js
+
   lint:
     runs-on: ubuntu-latest
 

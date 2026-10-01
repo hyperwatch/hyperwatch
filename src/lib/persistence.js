@@ -89,6 +89,13 @@ function normalize(config) {
       ).join(', ')})`
     );
   }
+  if (config.s3) {
+    config.s3.forcePathStyle = parseBoolean(config.s3.forcePathStyle);
+  }
+  const backend = storages.backends[config.backend];
+  if (config.enabled && backend.validate) {
+    backend.validate(config);
+  }
 
   return config;
 }
