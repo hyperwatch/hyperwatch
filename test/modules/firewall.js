@@ -970,4 +970,51 @@ describe('firewall review fixes', () => {
     );
     assert.ok(firewall.augment(log('4.3.2.1')).has('firewall'));
   });
+
+  it('refuses edits over HTTP unless they are turned on', async () => {
+    const http = require('http');
+    const express = require('express');
+    const constants = require('../../src/constants');
+    const api = require('../../src/app/api');
+    const config = constants.modules.firewall;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'firewall-http-'));
+    const file = path.join(dir, 'firewall.json');
+    fs.writeFileSync(file, JSON.stringify(LISTS));
+    constants.modules.firewall = { ...config, path: file, backend: 'file' };
+    // Opens the module's store on that file, and registers the routes
+    await firewall.stop();
+    firewall.start();
+    await firewall.ready();
+
+    const app = express();
+    app.use(express.json());
+    app.use(api);
+    const server = http.createServer(app);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const add = (value) =>
+      fetch(
+        `http://127.0.0.1:${server.address().port}/firewall/lists/block-ips/add`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value }),
+        }
+      );
+    try {
+      const refused = await add('5.6.7.8');
+      assert.strictEqual(refused.status, 403);
+      assert.match((await refused.json()).error, /edits are off/);
+
+      constants.modules.firewall.edits = '1';
+      const accepted = await add('5.6.7.8');
+      assert.strictEqual(accepted.status, 200);
+      assert.match(fs.readFileSync(file, 'utf8'), /5\.6\.7\.8/);
+    } finally {
+      await new Promise((resolve) => server.close(resolve));
+      await firewall.stop();
+      firewall.resume();
+      constants.modules.firewall = config;
+      fs.rmSync(dir, { recursive: true });
+    }
+  });
 });

@@ -415,10 +415,20 @@ function registerRoutes() {
 
   api.get('/firewall/lists.json', (req, res) => send(res, () => summary()));
   api.post('/firewall/lookup', (req, res) => send(res, () => lookup(req.body)));
+  // Edits change what Cloudflare blocks (with automatic sync), and
+  // Hyperwatch has no authentication of its own: they're off unless
+  // modules.firewall.edits is on, for instances behind authentication
   for (const op of ['add', 'remove']) {
-    api.post(`/firewall/lists/:id/${op}`, (req, res) =>
-      send(res, () => edit(getStore(), req.params.id, op, req.body || {}))
-    );
+    api.post(`/firewall/lists/:id/${op}`, (req, res) => {
+      if (!parseBoolean((constants.modules.firewall || {}).edits)) {
+        res.status(403).json({
+          error:
+            'firewall: edits are off; set modules.firewall.edits behind authentication',
+        });
+        return;
+      }
+      send(res, () => edit(getStore(), req.params.id, op, req.body || {}));
+    });
   }
 }
 

@@ -120,6 +120,8 @@ Besides the `/firewall` aggregator (matches per list), the module serves:
 | `POST /firewall/lists/:id/add`    | `{ "value", "reason", "source" }` adds an entry                                                                            |
 | `POST /firewall/lists/:id/remove` | `{ "value" }` removes an entry                                                                                             |
 
+The two edit routes are off by default, answering `403`: Hyperwatch has no authentication of its own, and with automatic sync an edit reaches Cloudflare. Turn them on with `"edits": true` under `modules.firewall` only when the instance is behind authentication (e.g. a proxy or Cloudflare Access).
+
 Edits write the lists (`firewall.json`, or the stored document) and apply right away. With [automatic sync](#automatic-sync), they reach Cloudflare within `delay` seconds; without it, Cloudflare isn't changed.
 
 ## Syncing with Cloudflare

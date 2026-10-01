@@ -63,6 +63,9 @@ const constants = {
       // CLOUDFLARE_ZONE_ID: `up` `delay` seconds after an edit, and `down`
       // then `up` every `interval` seconds (0: never)
       sync: { auto: false, delay: 10, interval: 300 },
+      // POST /firewall/lists/:id/add|remove: off by default, turn on only
+      // behind authentication (Hyperwatch has none)
+      edits: false,
     },
     // --- Output: depends on full enrichment ---
     history: {
