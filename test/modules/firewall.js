@@ -908,4 +908,39 @@ describe('firewall review fixes', () => {
     await firewall.syncLists(store, client, ['down', 'up']);
     assert.ok(firewall.augment(log('8.8.4.4')).has('firewall'));
   });
+
+  it('opens again when Hyperwatch starts after a stop', async () => {
+    const constants = require('../../src/constants');
+    const config = constants.modules.firewall;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'firewall-restart-'));
+    const file = path.join(dir, 'firewall.json');
+    fs.writeFileSync(file, JSON.stringify(LISTS));
+    constants.modules.firewall = { ...config, path: file, backend: 'file' };
+    try {
+      await firewall.stop();
+      await assert.rejects(
+        firewall.edit(createFileStore({ file }), 'block-ips', 'add', {
+          value: '3.3.3.3',
+        }),
+        /stopping/
+      );
+
+      firewall.start();
+      await firewall.ready();
+      await firewall.edit(createFileStore({ file }), 'block-ips', 'add', {
+        value: '3.3.3.3',
+      });
+      // The module's own store is open again, on the configured file
+      const { lists } = await firewall.summary();
+      assert.deepStrictEqual(
+        lists[0].entries.map((entry) => entry.value),
+        ['3.3.3.3']
+      );
+    } finally {
+      await firewall.stop();
+      firewall.resume();
+      constants.modules.firewall = config;
+      fs.rmSync(dir, { recursive: true });
+    }
+  });
 });

@@ -416,10 +416,10 @@ function registerRoutes() {
   }
 }
 
-function init() {
+// Open the store, load the lists and start the automatic sync: at init, and
+// again when Hyperwatch starts after a stop() (init() runs only once)
+function open() {
   resume();
-  // Invalid list definitions fail here, before anything starts
-  configuredLists();
   store = createStore(constants);
   // Bounded like restoring persistence (seconds)
   const { deadlines = {} } = constants.persistence;
@@ -449,11 +449,27 @@ function init() {
       });
     }
   }
+}
 
+function init() {
+  // Invalid list definitions fail here, before anything starts
+  configuredLists();
+  open();
   pipeline.getNode('main').map(augment).registerNode('main');
 }
 
+// Set once start() registered the aggregator and the routes
+let started = false;
+
 function start() {
+  // Hyperwatch starting again after stop()
+  if (stopped) {
+    open();
+  }
+  if (started) {
+    return;
+  }
+  started = true;
   const aggregator = new Aggregator();
 
   aggregator.setIdentifier((log) => log.getIn(['firewall', 'list']));
