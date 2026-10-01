@@ -275,6 +275,28 @@ describe('s3 storage', () => {
     await second.close();
   });
 
+  it('refuses a new upload while an abandoned one is still running', async () => {
+    const { createStorageStore } = require('../../../src/lib/firewall/store');
+    const config = { s3: { bucket: 'bucket' } };
+    // Never answers, abort or not
+    const stalled = fakeClient();
+    stalled.send = () => new Promise(() => {});
+    const first = createStorageStore(
+      createS3Storage(config, { client: stalled }),
+      { timeout: 20 }
+    );
+    await assert.rejects(
+      first.writeLists({ lists: [] }),
+      (err) => err.name === 'TimeoutError'
+    );
+
+    // e.g. after a restart: the old upload could still land
+    const client = fakeClient();
+    const second = createStorageStore(createS3Storage(config, { client }));
+    await assert.rejects(second.writeLists({ lists: [] }), /still running/);
+    assert.strictEqual(client.sent.length, 0);
+  });
+
   it('allows another upload after a definitive rejection', async () => {
     const client = fakeClient();
     const send = client.send.bind(client);

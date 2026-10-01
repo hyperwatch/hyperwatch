@@ -160,11 +160,15 @@ function createS3Storage(config = {}, { client } = {}) {
       if (signal) {
         signal.throwIfAborted();
       }
-      if (uncertainWrites.has(target(objectKey))) {
+      const uploaded = target(objectKey);
+      if (uncertainWrites.has(uploaded)) {
         throw new Error(
-          `S3 PutObject ${objectKey}: an earlier upload has an unknown outcome; further writes are disabled for this document`
+          `S3 PutObject ${objectKey}: an earlier upload is still running or has an unknown outcome; further writes are disabled for this document`
         );
       }
+      // Reserved until the outcome is known: a caller giving up on this
+      // upload early (a deadline) can't start a newer one meanwhile
+      uncertainWrites.add(uploaded);
       const command = new PutObjectCommand({
         Bucket: s3.bucket,
         Key: objectKey,
@@ -174,16 +178,18 @@ function createS3Storage(config = {}, { client } = {}) {
       const request = trackSending(command);
       try {
         await client.send(command, { abortSignal: signal });
+        uncertainWrites.delete(uploaded);
       } catch (err) {
         const status = err.$metadata && err.$metadata.httpStatusCode;
         // Explicit client errors (e.g. AccessDenied) are definitive failures,
         // and so is a failure before the request was sent (e.g. credentials).
-        // Aborts, transport errors, timeouts and server errors are ambiguous.
+        // Aborts, transport errors, timeouts and server errors are ambiguous:
+        // the upload stays reserved
         const definitive =
           (status >= 400 && status < 500 && status !== 408) ||
           request.failedBeforeSending();
-        if (!definitive) {
-          uncertainWrites.add(target(objectKey));
+        if (definitive) {
+          uncertainWrites.delete(uploaded);
         }
         throw describe('PutObject', objectKey, err);
       }
