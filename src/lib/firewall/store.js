@@ -22,6 +22,10 @@ const storages = require('../storage');
 const lists = require('./lists');
 const sync = require('./sync');
 
+// Milliseconds before a storage operation is abandoned, so a stalled one
+// can't hold the firewall's edits and syncs, which run one at a time
+const OPERATION_TIMEOUT = 60000;
+
 const LISTS = 'firewall-lists';
 const STATE = 'firewall-lists.sync';
 
@@ -61,20 +65,23 @@ function createFileStore({ file, state } = {}) {
 }
 
 // On a persistence storage (see ../storage): read(), write() and close()
-function createStorageStore(storage) {
+function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
+  const bounded = (signal) => signal || AbortSignal.timeout(timeout);
   return {
     name: storage.name,
     where: `the ${storage.name} document "${LISTS}"`,
     stateWhere: `the ${storage.name} document "${STATE}"`,
     async readLists({ signal } = {}) {
-      const body = await storage.read(LISTS, { signal });
+      const body = await storage.read(LISTS, { signal: bounded(signal) });
       return body === null ? null : lists.parse(body);
     },
     async writeLists(data) {
-      await storage.write(LISTS, lists.serialize(lists.validate(data)));
+      await storage.write(LISTS, lists.serialize(lists.validate(data)), {
+        signal: bounded(),
+      });
     },
     async readState() {
-      const body = await storage.read(STATE);
+      const body = await storage.read(STATE, { signal: bounded() });
       if (body === null) {
         return emptyState();
       }
@@ -82,7 +89,9 @@ function createStorageStore(storage) {
       return value && value.lists ? value : emptyState();
     },
     async writeState(value) {
-      await storage.write(STATE, `${JSON.stringify(value, null, 2)}\n`);
+      await storage.write(STATE, `${JSON.stringify(value, null, 2)}\n`, {
+        signal: bounded(),
+      });
     },
     watch() {},
     close: () => storage.close(),

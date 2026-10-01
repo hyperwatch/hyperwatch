@@ -67,6 +67,9 @@ function validate(data) {
     throw new Error('firewall: expected an object with a "lists" array');
   }
   const ids = new Set();
+  // Cloudflare rule id -> the list linked to it: one list per rule, or each
+  // list's sync would overwrite the other's changes to the rule
+  const rules = new Map();
   const lists = data.lists.map((list, i) => {
     const where = `firewall: list ${list && list.id ? `"${list.id}"` : `#${i}`}`;
     if (!list || typeof list !== 'object') {
@@ -107,6 +110,12 @@ function validate(data) {
           `${where}: "${list.action}" lists can't be linked to Cloudflare`
         );
       }
+      if (rules.has(list.cloudflare.rule_id)) {
+        throw new Error(
+          `${where}: Cloudflare rule "${list.cloudflare.rule_id}" is already linked to list "${rules.get(list.cloudflare.rule_id)}"`
+        );
+      }
+      rules.set(list.cloudflare.rule_id, list.id);
     }
     if (!Array.isArray(list.entries)) {
       throw new Error(`${where}: "entries" must be an array`);

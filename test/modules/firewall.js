@@ -677,4 +677,39 @@ describe('firewall review fixes', () => {
     await new Promise((resolve) => setTimeout(resolve, 100));
     assert.strictEqual(calls, 0);
   });
+
+  it('finishes the edit in progress before stopping', async () => {
+    const storage = createMemoryStorage();
+    storage.documents.set('firewall-lists', JSON.stringify(LISTS));
+    const events = [];
+    const write = storage.write;
+    storage.write = async (...args) => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      await write(...args);
+      events.push('written');
+    };
+    const store = createStorageStore(storage);
+
+    const edit = firewall.edit(store, 'block-ips', 'add', {
+      value: '6.6.6.6',
+    });
+    await firewall.stop();
+    events.push('stopped');
+    await edit;
+    assert.deepStrictEqual(events, ['written', 'stopped']);
+  });
+
+  it('gives up on a stalled storage operation', async () => {
+    const storage = createMemoryStorage();
+    // Never answers: only an abort ends it
+    storage.read = (name, { signal } = {}) =>
+      new Promise((resolve, reject) => {
+        if (signal) {
+          signal.addEventListener('abort', () => reject(signal.reason));
+        }
+      });
+    const store = createStorageStore(storage, { timeout: 20 });
+    await assert.rejects(store.readState());
+    await assert.rejects(store.readLists());
+  });
 });

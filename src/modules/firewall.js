@@ -409,11 +409,22 @@ function start() {
 // Resolves once the lists are first loaded (or failed to)
 const ready = () => loading;
 
-// No more automatic syncs once Hyperwatch stops. A sync already running
-// finishes: a Cloudflare update is applied whole or not at all
+// No more automatic syncs once Hyperwatch stops. An edit or sync already
+// running finishes first, within the persistence stop deadline, so its
+// writes aren't cut short when the storage closes
 async function stop() {
   stopped = true;
   stopAutoSync();
+  const { deadlines = {} } = constants.persistence;
+  const ms = Math.max(1, Math.round((deadlines.stop || 20) * 1000));
+  let timer;
+  await Promise.race([
+    queue,
+    new Promise((resolve) => {
+      timer = setTimeout(resolve, ms);
+    }),
+  ]);
+  clearTimeout(timer);
   if (store) {
     await store.close();
   }

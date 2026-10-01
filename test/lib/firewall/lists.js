@@ -54,6 +54,20 @@ describe('firewall lists', () => {
       }
     });
 
+    it('rejects two lists linked to the same Cloudflare rule', () => {
+      const linked = (id) => ({
+        id,
+        type: 'ip',
+        action: 'block',
+        cloudflare: { rule_id: 'rule-1' },
+        entries: [],
+      });
+      assert.throws(
+        () => lists.validate({ lists: [linked('a'), linked('b')] }),
+        /list "b".*rule "rule-1" is already linked to list "a"/
+      );
+    });
+
     it('rejects bad list definitions', () => {
       const bad = [
         [{ lists: {} }, /"lists" array/],
