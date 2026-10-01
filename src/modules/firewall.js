@@ -416,10 +416,15 @@ function registerRoutes() {
   }
 }
 
+// Incremented by each open(): a load started by an earlier open, still
+// running after a stop() and a new start(), doesn't start syncing
+let generation = 0;
+
 // Open the store, load the lists and start the automatic sync: at init, and
 // again when Hyperwatch starts after a stop() (init() runs only once)
 function open() {
   resume();
+  const opened = ++generation;
   store = createStore(constants);
   // Bounded like restoring persistence (seconds)
   const { deadlines = {} } = constants.persistence;
@@ -443,7 +448,7 @@ function open() {
     if (client) {
       const to = store;
       loading.then(() => {
-        if (!stopped) {
+        if (!stopped && opened === generation) {
           startAutoSync(to, client, settings);
         }
       });
