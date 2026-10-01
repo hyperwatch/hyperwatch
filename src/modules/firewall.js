@@ -202,7 +202,7 @@ function edit(to, listId, op, { value, reason, source } = {}) {
     if (next !== data) {
       await to.writeLists(next, { signal });
       signal.throwIfAborted();
-      await load(to, undefined, opened);
+      await load(to, { signal }, opened);
       if (autoSync && opened === generation) {
         autoSync.scheduleUp();
       }
@@ -241,7 +241,7 @@ async function syncLists(to, client, directions, { signal } = {}) {
     });
     // Lists written: match them now, even if saving the state fails next
     if (result.localWritten) {
-      await load(to);
+      await load(to, { signal });
     }
     if (result.items.some((item) => item.applied)) {
       await to.writeState(result.state, { signal });
@@ -272,7 +272,7 @@ async function syncLists(to, client, directions, { signal } = {}) {
   // The lists read fine: if the latest load failed (e.g. storage briefly
   // down at start), match them now rather than at the next local change
   if (!listsLoaded) {
-    await load(to);
+    await load(to, { signal });
   }
   return results;
 }

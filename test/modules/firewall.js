@@ -1092,4 +1092,61 @@ describe('firewall review fixes', () => {
     await assert.rejects(syncing, /stopping/);
     assert.ok(Date.now() - started < 1000);
   });
+
+  it('releases a sync stuck on its reload when stopping', async () => {
+    const storage = createMemoryStorage();
+    storage.documents.set(
+      'firewall-lists',
+      JSON.stringify({
+        lists: [
+          {
+            id: 'block-ips',
+            type: 'ip',
+            action: 'block',
+            cloudflare: { rule_id: 'rule-ips' },
+            entries: [],
+          },
+        ],
+      })
+    );
+    const read = storage.read;
+    let written = false;
+    const write = storage.write;
+    storage.write = async (...args) => {
+      written = true;
+      return write(...args);
+    };
+    // Once the sync has written the lists, reading them back stalls
+    storage.read = (name, ...args) =>
+      written && name === 'firewall-lists'
+        ? new Promise(() => {})
+        : read(name, ...args);
+    const client = {
+      getEntrypoint: async () => ({
+        id: 'ruleset',
+        rules: [
+          {
+            id: 'rule-ips',
+            version: '1',
+            action: 'block',
+            enabled: true,
+            expression: '(ip.src in {6.6.6.6})',
+          },
+        ],
+      }),
+      patchRule: async () => assert.fail('down never updates Cloudflare'),
+    };
+    const controller = new AbortController();
+    const syncing = firewall.syncLists(
+      createStorageStore(storage, { timeout: 60000 }),
+      client,
+      ['down'],
+      { signal: controller.signal }
+    );
+    setTimeout(() => controller.abort(new Error('stopping')), 50);
+    const started = Date.now();
+    await syncing.catch(() => {});
+    assert.ok(written);
+    assert.ok(Date.now() - started < 1000);
+  });
 });
