@@ -7,10 +7,11 @@
  *   the sync state next to it. Reloaded when the file changes.
  * - any other persistence backend, e.g. s3: the documents "firewall" and
  *   "firewall.sync" of the persistence storage, so
- *   <prefix><namespace>/firewall.json in the bucket. Read at start and after
- *   the instance's own edits, never polled: nothing else is expected to
- *   change them while the instance runs, and a change made elsewhere (the
- *   CLI) is picked up at the next restart.
+ *   <prefix><namespace>/firewall.json in the bucket. Read at start and when
+ *   the instance edits or syncs them, never polled: nothing else is expected
+ *   to change them.
+ *
+ * readLists() resolves to null when nothing is stored yet.
  */
 const fs = require('fs');
 const path = require('path');
@@ -33,7 +34,14 @@ function createFileStore({ file, state } = {}) {
     where: listsPath,
     stateWhere: statePath,
     async readLists() {
-      return lists.load(listsPath);
+      try {
+        return lists.load(listsPath);
+      } catch (err) {
+        if (err.code === 'ENOENT') {
+          return null;
+        }
+        throw err;
+      }
     },
     async writeLists(data) {
       lists.save(listsPath, data);
@@ -53,19 +61,13 @@ function createFileStore({ file, state } = {}) {
 
 // On a persistence storage (see ../storage): read(), write() and close()
 function createStorageStore(storage) {
-  const where = `the ${storage.name} document "${LISTS}"`;
   return {
     name: storage.name,
-    where,
+    where: `the ${storage.name} document "${LISTS}"`,
     stateWhere: `the ${storage.name} document "${STATE}"`,
     async readLists({ signal } = {}) {
       const body = await storage.read(LISTS, { signal });
-      if (body === null) {
-        throw new Error(
-          `no lists in ${where} yet: use "hyperwatch firewall import"`
-        );
-      }
-      return lists.parse(body);
+      return body === null ? null : lists.parse(body);
     },
     async writeLists(data) {
       await storage.write(LISTS, lists.serialize(lists.validate(data)));

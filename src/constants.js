@@ -56,6 +56,9 @@ const constants = {
       // Where the lists are kept: 'file' (path above), or a persistence
       // backend such as 's3'. Defaults to persistence.backend
       backend: null,
+      // List definitions ({ id, type, action, cloudflare, entries }), used
+      // when nothing is stored yet and to add lists the stored ones lack
+      lists: [],
       // Automatic Cloudflare sync, with CLOUDFLARE_API_TOKEN and
       // CLOUDFLARE_ZONE_ID: `up` `delay` seconds after an edit, and `down`
       // then `up` every `interval` seconds (0: never)

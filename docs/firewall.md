@@ -38,9 +38,36 @@ The lists and their sync state can live in the storage that persistence uses ins
 ```
 
 - Only the backend is shared with persistence: the firewall uses it whether `persistence.enabled` is on or not. `"backend": "file"` under `modules.firewall` keeps the lists in a local file while persistence uses S3.
-- With a storage backend, the lists are read when Hyperwatch starts, before the inputs (within `persistence.deadlines.load`), and after the instance's own edits. They aren't polled: a change made elsewhere, e.g. with the CLI, is picked up at the next restart.
-- Edits through the HTTP API run one at a time, each reading the stored lists, changing them and writing them back.
-- Nothing is stored at first: copy a local `firewall.json` (and its `firewall.sync.json`) with `hyperwatch firewall import` (see [CLI](#cli)). Until then, the module has no lists and warns.
+- With a storage backend, the lists are read when Hyperwatch starts, before the inputs (within `persistence.deadlines.load`), and when the instance edits or syncs them. They aren't polled: nothing else is expected to change them.
+- Edits through the HTTP API and syncs run one at a time, each reading the stored lists, changing them and writing them back.
+- Nothing is stored at first: the module starts from the lists declared in the configuration (below), and writes them on the first change, e.g. when the first sync brings their entries from Cloudflare.
+
+### Declaring lists in the configuration
+
+`modules.firewall.lists` declares lists with the same fields as `firewall.json` (below), entries optional:
+
+```json
+{
+  "modules": {
+    "firewall": {
+      "active": true,
+      "lists": [
+        {
+          "id": "block-ips",
+          "type": "ip",
+          "action": "block",
+          "cloudflare": { "rule_id": "0123456789abcdef0123456789abcdef" }
+        },
+        { "id": "monitor-ips", "type": "ip", "action": "monitor" }
+      ]
+    }
+  }
+}
+```
+
+- When nothing is stored yet, these are the lists. A linked list gets its entries from its Cloudflare rule at the first sync (see [Automatic sync](#automatic-sync)); a local list gets them through the HTTP API.
+- Once lists are stored, they win: the configuration only adds the lists they don't have. Changing a declared list's action or description doesn't change the stored list.
+- Invalid definitions fail when Hyperwatch starts.
 
 ## `firewall.json`
 
@@ -51,7 +78,7 @@ The lists and their sync state can live in the storage that persistence uses ins
       "id": "block-ips",
       "type": "ip",
       "action": "block",
-      "cloudflare": { "rule_id": "c7fdacfb7ae3498a9d268e9117b3f8eb" },
+      "cloudflare": { "rule_id": "0123456789abcdef0123456789abcdef" },
       "entries": [
         { "value": "203.0.113.7", "reason": "Spam signups", "added": "2026-09-23", "source": "dashboard" },
         { "value": "2001:db8::/32" }
@@ -62,7 +89,7 @@ The lists and their sync state can live in the storage that persistence uses ins
       "type": "user_agent",
       "match": "eq",
       "action": "challenge",
-      "cloudflare": { "rule_id": "45b7c00748d04d16b213d0dac77f536e" },
+      "cloudflare": { "rule_id": "fedcba9876543210fedcba9876543210" },
       "entries": [{ "value": "Mozilla/5.0 (X11; Linux x86_64) HeadlessChrome/104.0.5112.48" }]
     }
   ]
@@ -93,7 +120,7 @@ Besides the `/firewall` aggregator (matches per list), the module serves:
 | `POST /firewall/lists/:id/add`    | `{ "value", "reason", "source" }` adds an entry                                                                            |
 | `POST /firewall/lists/:id/remove` | `{ "value" }` removes an entry                                                                                             |
 
-Edits write the lists (`firewall.json`, or the stored document) and apply right away. They don't touch Cloudflare: run `hyperwatch firewall sync up` to push them.
+Edits write the lists (`firewall.json`, or the stored document) and apply right away. With [automatic sync](#automatic-sync), they reach Cloudflare within `delay` seconds; without it, Cloudflare isn't changed.
 
 ## Syncing with Cloudflare
 
@@ -102,33 +129,27 @@ Each linked list owns one custom rule in the zone's `http_request_firewall_custo
 - `ip`: `(ip.src in {203.0.113.7 2001:db8::/32})`
 - `user_agent`: `(http.user_agent eq "a") or (http.user_agent eq "b")`, or `contains` for `contains` lists
 
-```sh
-CLOUDFLARE_API_TOKEN=... CLOUDFLARE_ZONE_ID=... hyperwatch firewall sync down --dry-run
-```
+Syncing is done by the running instance (see [Automatic sync](#automatic-sync)). Each sync goes one way:
 
-The token needs permission to edit the zone's WAF custom rules. `--dry-run` only reads them.
-
-Each sync goes one way:
-
-- `sync down` applies the values added or removed in Cloudflare since the last sync to `firewall.json`, along with the rule's action and description. It never writes to Cloudflare. Values added in Cloudflare get `"source": "cloudflare"`.
-- `sync up` applies the values added or removed in `firewall.json` since the last sync to the Cloudflare rule, along with the list's action and description. It never changes `firewall.json`.
-- Neither direction undoes a change still pending on the side it writes to: `sync down` doesn't bring back a value you removed locally, and `sync up` doesn't remove a value added in Cloudflare.
-- For a full sync, run `sync down`, then `sync up`.
-- The last agreed state is kept in `firewall.sync.json`, next to `firewall.json` (or in the storage, see above). Keep it with `firewall.json`: without it, the next sync is treated as a first sync, and removals are lost. On a first sync, `down` imports every value only in Cloudflare and `up` pushes every value only in `firewall.json`.
+- `down` applies the values added or removed in Cloudflare since the last sync to the lists, along with the rule's action and description. It never writes to Cloudflare. Values added in Cloudflare get `"source": "cloudflare"`.
+- `up` applies the values added or removed in the lists since the last sync to the Cloudflare rule, along with the list's action and description. It never changes the lists.
+- Neither direction undoes a change still pending on the side it writes to: `down` doesn't bring back a value removed locally, and `up` doesn't remove a value added in Cloudflare.
+- A full sync runs `down`, then `up`.
+- The last agreed state is kept in `firewall.sync.json`, next to `firewall.json` (or in the storage, see above). Keep it with the lists: without it, the next sync is treated as a first sync, and removals are lost. On a first sync, `down` imports every value only in Cloudflare and `up` pushes every value only in the lists.
 - If the rule or `firewall.json` changes while a sync runs, that list is left alone, and the next sync finishes the job.
 
 Sync refuses to touch a list, and says why, when:
 
 - the rule's expression isn't one Hyperwatch would write (someone edited the rule by hand)
-- the rule's action has no list equivalent (`sync down`)
-- the expression would go over Cloudflare's 4,096-character limit. Split the list (`sync up`)
-- the rule would end up empty (`sync up`)
+- the rule's action has no list equivalent (`down`)
+- the expression would go over Cloudflare's 4,096-character limit. Split the list (`up`)
+- the rule would end up empty (`up`)
 
 A rule's enabled/disabled state is left as it is in Cloudflare.
 
 ### Automatic sync
 
-The running instance can sync by itself, with no one running the CLI:
+The running instance syncs by itself:
 
 ```json
 {
@@ -143,39 +164,10 @@ The running instance can sync by itself, with no one running the CLI:
 
 With `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ZONE_ID` in the environment:
 
-- `delay` seconds (10) after an edit through the HTTP API, `sync up` pushes it to Cloudflare. Edits made meanwhile go out in the same sync.
+- `delay` seconds (10) after an edit through the HTTP API, `up` pushes it to Cloudflare. Edits made meanwhile go out in the same sync.
 - `delay` seconds after start, then every `interval` seconds (300; `0` for never), a full sync runs: `down`, then `up`.
 - Edits and syncs run one at a time. A Cloudflare request is abandoned after 30 seconds.
-- Each change is logged (`firewall: sync up block-ips: +203.0.113.7 (rule v12)`), and so are lists left alone and failures.
+- Each change is logged (`firewall: sync up block-ips: +203.0.113.7 (rule v12)`), and so are lists left alone and failures. The latest sync is on `/status` (`firewall sync`), and in detail in `/status.json?raw=1`.
 - `auto` accepts `true`, `1`, `"true"` and `"1"`. Without the Cloudflare variables, it warns and stays off.
 
 There's no review step: an edit through the API, mistakes included, reaches Cloudflare within `delay` seconds. Use a token that can only edit the zone's custom rules (Zone WAF: Edit), and one instance syncing per zone.
-
-## CLI
-
-```
-hyperwatch firewall sync up|down [--dry-run] [--list <id>] [--file firewall.json] [--state firewall.sync.json]
-hyperwatch firewall check [--file firewall.json]
-hyperwatch firewall import <firewall.json> [<firewall.sync.json>] [--force]
-hyperwatch firewall export <firewall.json> [<firewall.sync.json>] [--force]
-hyperwatch firewall migrate <legacy-firewall.json> [--out firewall.json] [--force]
-```
-
-`sync`, `check`, `import` and `export` work on the lists where the configuration keeps them (`.hyperwatchrc`, or `hyperwatch_*` environment variables through rc), `./firewall.json` by default. `--file` (and `--state`) use these local files instead. With S3, e.g.:
-
-```sh
-hyperwatch_persistence__backend=s3 hyperwatch_persistence__namespace=all \
-hyperwatch_persistence__s3__bucket=my-hyperwatch-bucket \
-hyperwatch firewall sync up --dry-run
-```
-
-- `import` copies a local `firewall.json` into the configured storage, and its sync state when the file exists (by default next to it). It refuses to replace stored lists without `--force`.
-- `export` copies the stored lists and sync state into local files, refusing to overwrite them without `--force`.
-- A running instance with a storage backend doesn't see changes made by the CLI until it restarts, and its own HTTP edits read the stored lists first, so they don't undo them.
-
-`hyperwatch firewall` is only treated as a firewall command when it's followed by one of these commands, an option, or nothing. Any other `hyperwatch <path>` still starts the server with that config file.
-
-`migrate` converts the older rule-based format (`{ "rules": [{ "id", "action", "match", "cloudflare" }] }`):
-
-- Rules that only match IPs (`address`, `addresses`, `cidrs`) or exact user agents (`user_agents`) become lists. Cloudflare-linked rules keep their link.
-- Everything else (signatures, headers, identity, ASNs, `ua_regex`, combined conditions) is written unchanged to `firewall.legacy.json`.

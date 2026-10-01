@@ -477,3 +477,145 @@ describe('firewall automatic Cloudflare sync', () => {
     assert.match(cf.zone.rules[0].expression, /4\.4\.4\.4 5\.5\.5\.5/);
   });
 });
+
+describe('firewall lists from the configuration', () => {
+  const constants = require('../../src/constants');
+  const monitoring = require('../../src/lib/monitoring');
+  const { createStorageStore } = require('../../src/lib/firewall/store');
+  const { createMemoryStorage } = require('../helpers/memory-storage');
+
+  const RULE = 'rule-ips';
+  const DEFINITIONS = [
+    {
+      id: 'block-ips',
+      type: 'ip',
+      action: 'block',
+      description: 'Block IP blacklist',
+      cloudflare: { rule_id: RULE },
+    },
+    { id: 'monitor-ips', type: 'ip', action: 'monitor' },
+  ];
+
+  function fakeCloudflare(values) {
+    const zone = {
+      id: 'ruleset',
+      rules: [
+        {
+          id: RULE,
+          version: '7',
+          action: 'block',
+          description: 'Block IP blacklist',
+          enabled: true,
+          expression: `(ip.src in {${values.join(' ')}})`,
+        },
+      ],
+    };
+    return {
+      zone,
+      getEntrypoint: async () => JSON.parse(JSON.stringify(zone)),
+      patchRule: async () => assert.fail('nothing to push'),
+    };
+  }
+
+  let config;
+  let original;
+
+  beforeEach(() => {
+    config = constants.modules.firewall;
+    constants.modules.firewall = { ...config, lists: DEFINITIONS };
+    original = { log: console.log, warn: console.warn };
+    console.log = () => {};
+    console.warn = () => {};
+  });
+
+  afterEach(() => {
+    firewall.stopAutoSync();
+    constants.modules.firewall = config;
+    console.log = original.log;
+    console.warn = original.warn;
+  });
+
+  it('starts from the configured lists, then gets the entries from Cloudflare', async () => {
+    const storage = createMemoryStorage();
+    const store = createStorageStore(storage);
+
+    assert.ok(await firewall.load(store));
+    assert.deepStrictEqual(
+      (await firewall.summary(store)).lists.map((list) => list.id),
+      ['block-ips', 'monitor-ips']
+    );
+    assert.strictEqual(storage.documents.has('firewall'), false);
+
+    await firewall.syncLists(store, fakeCloudflare(['1.1.1.1', '2.2.2.2']), [
+      'down',
+      'up',
+    ]);
+    const stored = JSON.parse(storage.documents.get('firewall'));
+    assert.deepStrictEqual(
+      stored.lists[0].entries.map((entry) => entry.value),
+      ['1.1.1.1', '2.2.2.2']
+    );
+    assert.strictEqual(stored.lists[1].id, 'monitor-ips');
+    assert.ok(storage.documents.has('firewall.sync'));
+    assert.ok(firewall.augment(log('2.2.2.2')).has('firewall'));
+  });
+
+  it('adds configured lists the stored ones lack, and keeps the stored ones', async () => {
+    const storage = createMemoryStorage();
+    storage.documents.set(
+      'firewall',
+      JSON.stringify({
+        lists: [
+          {
+            id: 'block-ips',
+            type: 'ip',
+            action: 'monitor',
+            entries: [{ value: '9.9.9.9' }],
+          },
+        ],
+      })
+    );
+    const { lists } = await firewall.summary(createStorageStore(storage));
+    assert.deepStrictEqual(
+      lists.map((list) => [list.id, list.action, list.entries.length]),
+      [
+        ['block-ips', 'monitor', 1],
+        ['monitor-ips', 'monitor', 0],
+      ]
+    );
+  });
+
+  it('has no lists with nothing stored and nothing configured', async () => {
+    constants.modules.firewall = { ...config, lists: [] };
+    assert.strictEqual(
+      await firewall.load(createStorageStore(createMemoryStorage())),
+      false
+    );
+  });
+
+  it('rejects invalid definitions', () => {
+    assert.throws(() =>
+      firewall.configuredLists({ lists: [{ id: 'x', type: 'nope' }] })
+    );
+  });
+
+  it('shows the latest sync on /status', async () => {
+    const store = createStorageStore(createMemoryStorage());
+    firewall.startAutoSync(store, fakeCloudflare(['1.1.1.1']), {
+      delay: 0.01,
+      interval: 0,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 80));
+
+    const entry = monitoring.items.find(
+      (item) => item.name === 'firewall sync'
+    );
+    assert.match(
+      entry.status,
+      /^down, up at \d{4}-.*: down block-ips \+1\.1\.1\.1$/
+    );
+    assert.deepStrictEqual(entry.firewallSync.results, [
+      { direction: 'down', list: 'block-ips', change: '+1.1.1.1' },
+    ]);
+  });
+});

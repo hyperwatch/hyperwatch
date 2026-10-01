@@ -1,17 +1,3 @@
 #!/usr/bin/env node
 
-const firewall = require('../src/cli/firewall');
-
-const argv = process.argv.slice(2);
-
-if (firewall.isFirewallCommand(argv)) {
-  firewall.run(argv.slice(1)).then(
-    (code) => process.exit(code),
-    (err) => {
-      console.error(err.message);
-      process.exit(1);
-    }
-  );
-} else {
-  require('../start');
-}
+require('../start');

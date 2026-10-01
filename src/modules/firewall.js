@@ -9,6 +9,7 @@ const lists = require('../lib/firewall/lists');
 const { createStore } = require('../lib/firewall/store');
 const sync = require('../lib/firewall/sync');
 const { Formatter } = require('../lib/formatter');
+const monitoring = require('../lib/monitoring');
 const pipeline = require('../lib/pipeline');
 const { aggregateCount, parseBoolean, parseNumber } = require('../lib/util');
 
@@ -35,11 +36,45 @@ let autoSync = null;
 
 const getStore = () => store || (store = createStore(constants));
 
+// The lists declared in modules.firewall.lists (id, type, action, optional
+// cloudflare link and entries), validated
+function configuredLists(config = constants.modules.firewall || {}) {
+  return lists.validate({
+    lists: (config.lists || []).map((list) => ({
+      entries: [],
+      ...list,
+    })),
+  });
+}
+
+/**
+ * The lists to work with: the stored ones, plus the configured lists they
+ * don't have (empty, so a linked list gets its entries from Cloudflare at
+ * the next sync). With nothing stored yet, the configured lists alone. The
+ * stored lists win: configuration only adds missing lists.
+ */
+async function current(from, options, defaults = configuredLists()) {
+  const stored = await from.readLists(options);
+  if (!stored) {
+    if (!defaults.lists.length) {
+      throw new Error(
+        'no lists stored yet, and none in modules.firewall.lists'
+      );
+    }
+    return defaults;
+  }
+  const ids = new Set(stored.lists.map((list) => list.id));
+  const missing = defaults.lists.filter((list) => !ids.has(list.id));
+  return missing.length
+    ? lists.validate({ ...stored, lists: [...stored.lists, ...missing] })
+    : stored;
+}
+
 // Load and compile the lists. Missing or invalid lists keep the lists
 // already loaded, so a bad edit never disables the firewall.
 async function load(from = getStore(), options) {
   try {
-    const data = await from.readLists(options);
+    const data = await current(from, options);
     matcher = lists.compile(data);
     debug(`Loaded ${data.lists.length} list(s) from ${from.where}`);
     return true;
@@ -60,7 +95,7 @@ function augment(log) {
 // added and removed locally since the last Cloudflare sync, or null when the
 // list was never synced.
 async function summary(from = getStore()) {
-  const data = await from.readLists();
+  const data = await current(from);
   const state = await from.readState();
   return {
     lists: data.lists.map((list) => {
@@ -106,7 +141,7 @@ function lookup({ addresses = [], user_agents = [] } = {}) {
 // Reads the stored lists first, so the edit applies to their latest version.
 function edit(to, listId, op, { value, reason, source } = {}) {
   return enqueue(async () => {
-    const data = await to.readLists();
+    const data = await current(to);
     const next =
       op === 'add'
         ? lists.addEntry(data, listId, { value, reason, source })
@@ -125,10 +160,12 @@ const changes = ({ add, remove }) =>
   [...add.map((v) => `+${v}`), ...remove.map((v) => `-${v}`)].join(' ');
 
 // Sync the stored lists with Cloudflare in each direction, in order (see
-// ../lib/firewall/sync), and report what changed or was skipped
+// ../lib/firewall/sync). Logs and returns what changed or was skipped:
+// [{ direction, list, change | skipped }]
 async function syncLists(to, client, directions) {
+  const results = [];
   for (const direction of directions) {
-    const data = await to.readLists();
+    const data = await current(to);
     const state = await to.readState();
     const items = sync.plan({
       data,
@@ -139,7 +176,7 @@ async function syncLists(to, client, directions) {
     const result = await sync.apply(items, {
       client,
       originalData: data,
-      readData: () => to.readLists(),
+      readData: () => current(to),
       writeData: (next) => to.writeLists(next),
       state,
     });
@@ -154,19 +191,55 @@ async function syncLists(to, client, directions) {
       for (const warning of item.warnings) {
         console.warn(`${where}: ${warning}`);
       }
-      if (item.errors.length) {
-        console.warn(`${where} skipped: ${item.errors.join('; ')}`);
-      } else if (item.skipped) {
-        console.warn(`${where} skipped: ${item.skipped}`);
+      const result = { direction, list: item.listId };
+      const skipped = item.errors.length
+        ? item.errors.join('; ')
+        : item.skipped;
+      if (skipped) {
+        console.warn(`${where} skipped: ${skipped}`);
+        results.push({ ...result, skipped });
       } else if (sync.hasChanges(item)) {
-        const change = changes(
-          direction === 'up' ? item.toRemote : item.toLocal
-        );
         const version = item.newVersion ? ` (rule v${item.newVersion})` : '';
-        console.log(`${where}: ${change || 'action or description'}${version}`);
+        const change = `${
+          changes(direction === 'up' ? item.toRemote : item.toLocal) ||
+          'action or description'
+        }${version}`;
+        console.log(`${where}: ${change}`);
+        results.push({ ...result, change });
       }
     }
   }
+  return results;
+}
+
+// The "firewall sync" entry of /status: the latest sync and what it did
+let syncMonitor = null;
+
+function reportSync(directions, results, error) {
+  if (!syncMonitor) {
+    syncMonitor = monitoring.register({
+      name: 'firewall sync',
+      type: 'firewall',
+      speeds: [],
+      status: 'Waiting for the first sync',
+    });
+  }
+  const at = new Date().toISOString();
+  const what = error
+    ? `failed: ${error.message}`
+    : results
+        .map(
+          (r) =>
+            `${r.direction} ${r.list} ${r.change || `skipped: ${r.skipped}`}`
+        )
+        .join('; ') || 'in sync';
+  syncMonitor.status = `${directions.join(', ')} at ${at}: ${what}`;
+  syncMonitor.firewallSync = {
+    at,
+    directions,
+    results: results || [],
+    error: error ? error.message : null,
+  };
 }
 
 const MAX_SECONDS = (2 ** 31 - 1) / 1000;
@@ -205,10 +278,14 @@ function startAutoSync(to, client, { delay, interval }) {
   let upTimer = null;
   const timers = [];
   const run = (directions) =>
-    enqueue(() => syncLists(to, client, directions)).catch((err) =>
-      console.warn(
-        `firewall: sync ${directions.join(', ')} failed: ${err.message}`
-      )
+    enqueue(() => syncLists(to, client, directions)).then(
+      (results) => reportSync(directions, results),
+      (err) => {
+        console.warn(
+          `firewall: sync ${directions.join(', ')} failed: ${err.message}`
+        );
+        reportSync(directions, null, err);
+      }
     );
   const full = () => run(['down', 'up']);
 
@@ -262,6 +339,8 @@ function registerRoutes() {
 }
 
 function init() {
+  // Invalid list definitions fail here, before anything starts
+  configuredLists();
   store = createStore(constants);
   // Bounded like restoring persistence (seconds)
   const { deadlines = {} } = constants.persistence;
@@ -326,6 +405,7 @@ module.exports = {
   ready,
   syncLists,
   syncSettings,
+  configuredLists,
   startAutoSync,
   stopAutoSync,
   load,
