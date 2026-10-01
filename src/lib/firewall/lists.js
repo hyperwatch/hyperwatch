@@ -3,6 +3,7 @@
  * owning one Cloudflare custom rule. See docs/firewall.md.
  */
 const fs = require('fs');
+const net = require('net');
 
 const IPCIDR = require('ip-cidr').default;
 
@@ -20,6 +21,18 @@ function canonicalAddress(address) {
     return address;
   }
   return new URL(`http://[${address}]`).hostname.slice(1, -1);
+}
+
+// The address a client really has: an IPv4 client seen through a dual-stack
+// socket (::ffff:192.0.2.1) is that IPv4 address
+function clientAddress(address) {
+  const canonical = canonicalAddress(address);
+  const mapped = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(canonical);
+  if (!mapped) {
+    return canonical;
+  }
+  const [high, low] = [mapped[1], mapped[2]].map((hex) => parseInt(hex, 16));
+  return [high >> 8, high & 255, low >> 8, low & 255].join('.');
 }
 
 // Canonical form of an IP or CIDR, so the same value written differently
@@ -177,7 +190,9 @@ function compileList(list) {
     const cidrs = [];
     for (const { value } of list.entries) {
       if (value.includes('/')) {
-        cidrs.push(new IPCIDR(value));
+        const cidr = new IPCIDR(value);
+        // ip-cidr finds IPv6 addresses in 0.0.0.0/0, and IPv4 in ::/0
+        cidrs.push({ cidr, v4: net.isIPv4(cidr.start()) });
       } else {
         addresses.add(value);
       }
@@ -188,12 +203,15 @@ function compileList(list) {
       if (!address || !IPCIDR.isValidAddress(address)) {
         return null;
       }
-      const canonical = canonicalAddress(address);
+      const canonical = clientAddress(address);
       if (addresses.has(canonical)) {
         return canonical;
       }
-      const cidr = cidrs.find((c) => c.contains(canonical));
-      return cidr ? cidr.toString() : null;
+      const v4 = net.isIPv4(canonical);
+      const match = cidrs.find(
+        ({ cidr, v4: family }) => family === v4 && cidr.contains(canonical)
+      );
+      return match ? match.cidr.toString() : null;
     };
   }
 

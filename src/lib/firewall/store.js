@@ -71,6 +71,34 @@ function createFileStore({ file, state } = {}) {
   };
 }
 
+// Settles with `promise`, or rejects when `signal` aborts, whichever comes
+// first: some stalls ignore the abort (e.g. an S3 client stuck resolving its
+// credentials). A write abandoned this way can't land later over a newer
+// one: the S3 backend refuses further writes to that document
+function settle(promise, signal) {
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      promise.catch(() => {});
+      reject(signal.reason);
+    };
+    if (signal.aborted) {
+      onAbort();
+      return;
+    }
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (err) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(err);
+      }
+    );
+  });
+}
+
 // On a persistence storage (see ../storage): read(), write() and close()
 function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
   const bounded = (signal) =>
@@ -82,16 +110,18 @@ function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
     where: `the ${storage.name} document "${LISTS}"`,
     stateWhere: `the ${storage.name} document "${STATE}"`,
     async readLists({ signal } = {}) {
-      const body = await storage.read(LISTS, { signal: bounded(signal) });
+      const bound = bounded(signal);
+      const body = await settle(storage.read(LISTS, { signal: bound }), bound);
       return body === null ? null : lists.parse(body);
     },
     async writeLists(data, { signal } = {}) {
-      await storage.write(LISTS, lists.serialize(lists.validate(data)), {
-        signal: bounded(signal),
-      });
+      const bound = bounded(signal);
+      const body = lists.serialize(lists.validate(data));
+      await settle(storage.write(LISTS, body, { signal: bound }), bound);
     },
     async readState() {
-      const body = await storage.read(STATE, { signal: bounded() });
+      const bound = bounded();
+      const body = await settle(storage.read(STATE, { signal: bound }), bound);
       if (body === null) {
         return emptyState();
       }
@@ -99,9 +129,9 @@ function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
       return value && value.lists ? value : emptyState();
     },
     async writeState(value, { signal } = {}) {
-      await storage.write(STATE, `${JSON.stringify(value, null, 2)}\n`, {
-        signal: bounded(signal),
-      });
+      const bound = bounded(signal);
+      const body = `${JSON.stringify(value, null, 2)}\n`;
+      await settle(storage.write(STATE, body, { signal: bound }), bound);
     },
     watch() {},
     close: () => storage.close(),

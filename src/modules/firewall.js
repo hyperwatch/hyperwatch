@@ -16,6 +16,8 @@ const { aggregateCount, parseBoolean, parseNumber } = require('../lib/util');
 const RELOAD_INTERVAL = 5000;
 
 let matcher = () => null;
+// Whether the latest load succeeded: a sync reloads otherwise
+let listsLoaded = false;
 
 // Where the lists are kept (see ../lib/firewall/store), set by init()
 let store = null;
@@ -90,9 +92,11 @@ async function load(from = getStore(), options) {
   try {
     const data = await current(from, options);
     matcher = lists.compile(data);
+    listsLoaded = true;
     debug(`Loaded ${data.lists.length} list(s) from ${from.where}`);
     return true;
   } catch (err) {
+    listsLoaded = false;
     console.warn(
       `firewall: keeping previous lists, ${from.where}: ${err.message}`
     );
@@ -250,6 +254,11 @@ async function syncLists(to, client, directions, { signal } = {}) {
         results.push({ ...result, change });
       }
     }
+  }
+  // The lists read fine: if the latest load failed (e.g. storage briefly
+  // down at start), match them now rather than at the next local change
+  if (!listsLoaded) {
+    await load(to);
   }
   return results;
 }

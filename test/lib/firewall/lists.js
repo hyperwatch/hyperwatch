@@ -75,6 +75,48 @@ describe('firewall lists', () => {
       );
     });
 
+    it('matches IPv4 clients seen through a dual-stack socket', () => {
+      const match = lists.compile(
+        lists.validate({
+          lists: [
+            {
+              id: 'ips',
+              type: 'ip',
+              action: 'block',
+              entries: [{ value: '192.0.2.1' }, { value: '198.51.100.0/24' }],
+            },
+          ],
+        })
+      );
+      const at = (address) => match(fromJS({ request: { address } }));
+      assert.strictEqual(at('::ffff:192.0.2.1').value, '192.0.2.1');
+      assert.strictEqual(at('::ffff:198.51.100.7').value, '198.51.100.0/24');
+    });
+
+    it("doesn't match an address against a CIDR of the other family", () => {
+      const match = lists.compile(
+        lists.validate({
+          lists: [
+            {
+              id: 'all-v4',
+              type: 'ip',
+              action: 'block',
+              entries: [{ value: '0.0.0.0/0' }],
+            },
+            {
+              id: 'all-v6',
+              type: 'ip',
+              action: 'monitor',
+              entries: [{ value: '::/0' }],
+            },
+          ],
+        })
+      );
+      const at = (address) => match(fromJS({ request: { address } })).list;
+      assert.strictEqual(at('2001:db8::1'), 'all-v6');
+      assert.strictEqual(at('203.0.113.7'), 'all-v4');
+    });
+
     it('rejects two lists linked to the same Cloudflare rule', () => {
       const linked = (id) => ({
         id,

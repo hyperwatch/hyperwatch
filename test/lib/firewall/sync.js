@@ -614,13 +614,117 @@ describe('firewall sync', () => {
       assert.deepStrictEqual(st.lists, {});
     });
 
-    it('fails loudly if Cloudflare does not reflect the update', async () => {
+    it('skips, and reports, a rule Cloudflare did not update', async () => {
       const cf = fakeCloudflare([ipRule(['1.1.1.1'])]);
       cf.client.patchRule = async () => JSON.parse(JSON.stringify(cf.zone));
-      await assert.rejects(
-        run(firewall(['1.1.1.1', '2.2.2.2']), cf, state(['1.1.1.1']), 'up'),
-        /doesn't show the new expression/
+      const st = state(['1.1.1.1']);
+      const { items } = await run(
+        firewall(['1.1.1.1', '2.2.2.2']),
+        cf,
+        st,
+        'up'
       );
+      assert.match(items[0].skipped, /doesn't show the new expression/);
+      assert.ok(!items[0].applied);
+      assert.deepStrictEqual(st.lists['block-ips'].values, ['1.1.1.1']);
+    });
+
+    it('records the updates that worked when a later one fails', async () => {
+      const data = validate({
+        lists: ['rule-a', 'rule-b'].map((ruleId) => ({
+          id: ruleId,
+          type: 'ip',
+          action: 'block',
+          cloudflare: { rule_id: ruleId },
+          entries: [{ value: '1.1.1.1' }, { value: '2.2.2.2' }],
+        })),
+      });
+      const st = {
+        lists: Object.fromEntries(
+          ['rule-a', 'rule-b'].map((id) => [
+            id,
+            { rule_id: id, version: '3', values: ['1.1.1.1'] },
+          ])
+        ),
+      };
+      const cf = fakeCloudflare([
+        ipRule(['1.1.1.1'], { id: 'rule-a' }),
+        ipRule(['1.1.1.1'], { id: 'rule-b' }),
+      ]);
+      const patch = cf.client.patchRule;
+      cf.client.patchRule = async (rulesetId, ruleId, ...rest) => {
+        if (ruleId === 'rule-b') {
+          throw new Error('Cloudflare: 500');
+        }
+        return patch(rulesetId, ruleId, ...rest);
+      };
+      const items = sync.plan({
+        data,
+        state: st,
+        ruleset: await cf.client.getEntrypoint(),
+        direction: 'up',
+      });
+      await sync.apply(items, {
+        client: cf.client,
+        originalData: data,
+        readData: () => data,
+        writeData: () => assert.fail('up never writes the lists'),
+        state: st,
+      });
+
+      assert.strictEqual(items[0].applied, true);
+      assert.deepStrictEqual(st.lists['rule-a'].values, ['1.1.1.1', '2.2.2.2']);
+      assert.match(items[1].skipped, /update failed: Cloudflare: 500/);
+      assert.deepStrictEqual(st.lists['rule-b'].values, ['1.1.1.1']);
+    });
+
+    it('skips a rule deleted during an earlier update of the same sync', async () => {
+      const data = validate({
+        lists: ['rule-a', 'rule-b'].map((ruleId) => ({
+          id: ruleId,
+          type: 'ip',
+          action: 'block',
+          cloudflare: { rule_id: ruleId },
+          entries: [{ value: '1.1.1.1' }, { value: '2.2.2.2' }],
+        })),
+      });
+      const st = {
+        lists: Object.fromEntries(
+          ['rule-a', 'rule-b'].map((id) => [
+            id,
+            { rule_id: id, version: '3', values: ['1.1.1.1'] },
+          ])
+        ),
+      };
+      const cf = fakeCloudflare([
+        ipRule(['1.1.1.1'], { id: 'rule-a' }),
+        ipRule(['1.1.1.1'], { id: 'rule-b' }),
+      ]);
+      const patch = cf.client.patchRule;
+      cf.client.patchRule = async (rulesetId, ruleId, ...rest) => {
+        if (ruleId === 'rule-b') {
+          return assert.fail('rule-b was deleted');
+        }
+        // Someone deletes rule-b while rule-a is being updated
+        cf.zone.rules = cf.zone.rules.filter((r) => r.id !== 'rule-b');
+        return patch(rulesetId, ruleId, ...rest);
+      };
+      const items = sync.plan({
+        data,
+        state: st,
+        ruleset: await cf.client.getEntrypoint(),
+        direction: 'up',
+      });
+      await sync.apply(items, {
+        client: cf.client,
+        originalData: data,
+        readData: () => data,
+        writeData: () => assert.fail('up never writes the lists'),
+        state: st,
+      });
+
+      assert.strictEqual(items[0].applied, true);
+      assert.match(items[1].skipped, /rule changed since the plan/);
     });
   });
 

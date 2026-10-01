@@ -840,4 +840,72 @@ describe('firewall review fixes', () => {
     assert.strictEqual(changes, 0);
     fs.rmSync(dir, { recursive: true });
   });
+
+  it('gives up on a storage call that ignores its abort', async () => {
+    const storage = createMemoryStorage();
+    // Stalls forever, abort or not (like resolving S3 credentials)
+    storage.read = () => new Promise(() => {});
+    storage.write = () => new Promise(() => {});
+    const store = createStorageStore(storage, { timeout: 20 });
+    await assert.rejects(store.readLists());
+    await assert.rejects(store.readState());
+    await assert.rejects(store.writeLists(LISTS));
+  });
+
+  it('matches the lists after a sync when the first load failed', async () => {
+    const storage = createMemoryStorage();
+    storage.documents.set(
+      'firewall-lists',
+      JSON.stringify({
+        lists: [
+          {
+            id: 'block-ips',
+            type: 'ip',
+            action: 'block',
+            cloudflare: { rule_id: 'rule-ips' },
+            entries: [{ value: '8.8.4.4' }],
+          },
+        ],
+      })
+    );
+    storage.documents.set(
+      'firewall-lists.sync',
+      JSON.stringify({
+        lists: {
+          'block-ips': {
+            rule_id: 'rule-ips',
+            version: '1',
+            values: ['8.8.4.4'],
+          },
+        },
+      })
+    );
+    const read = storage.read;
+    let failing = true;
+    storage.read = (...args) =>
+      failing ? Promise.reject(new Error('storage down')) : read(...args);
+    const store = createStorageStore(storage);
+    const client = {
+      getEntrypoint: async () => ({
+        id: 'ruleset',
+        rules: [
+          {
+            id: 'rule-ips',
+            version: '1',
+            action: 'block',
+            enabled: true,
+            expression: '(ip.src in {8.8.4.4})',
+          },
+        ],
+      }),
+      patchRule: async () => assert.fail('in sync, nothing to push'),
+    };
+
+    assert.strictEqual(await firewall.load(store), false);
+    assert.strictEqual(firewall.augment(log('8.8.4.4')).has('firewall'), false);
+
+    failing = false;
+    await firewall.syncLists(store, client, ['down', 'up']);
+    assert.ok(firewall.augment(log('8.8.4.4')).has('firewall'));
+  });
 });

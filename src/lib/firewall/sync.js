@@ -286,30 +286,35 @@ async function apply(
         continue;
       }
       check();
-      const result = await client.patchRule(
-        rulesetId,
-        item.ruleId,
-        item.patch,
-        { signal }
-      );
-      const updated = (result.rules || []).find((r) => r.id === item.ruleId);
-      if (!updated || updated.expression !== item.patch.expression) {
-        throw new Error(
-          `firewall: Cloudflare rule ${item.ruleId} doesn't show the new expression after the update`
-        );
+      let result;
+      try {
+        result = await client.patchRule(rulesetId, item.ruleId, item.patch, {
+          signal,
+        });
+      } catch (err) {
+        // Stopping: nothing more. Otherwise this rule fails alone, and the
+        // updates already made are still recorded
+        check();
+        item.skipped = `the Cloudflare update failed: ${err.message}`;
+        continue;
       }
-      if (updated.version === item.ruleVersion) {
-        throw new Error(
-          `firewall: Cloudflare rule ${item.ruleId} version didn't change after the update`
-        );
-      }
-      item.newVersion = updated.version;
       // The response is the whole ruleset: the next lists are checked
-      // against the rules as they are now, so a rule changed meanwhile is
-      // left alone rather than overwritten
+      // against the rules as they are now, so a rule changed or deleted
+      // meanwhile is left alone rather than overwritten
+      rules.clear();
       for (const rule of result.rules || []) {
         rules.set(rule.id, rule);
       }
+      const updated = rules.get(item.ruleId);
+      if (!updated || updated.expression !== item.patch.expression) {
+        item.skipped = `Cloudflare rule ${item.ruleId} doesn't show the new expression after the update`;
+        continue;
+      }
+      if (updated.version === item.ruleVersion) {
+        item.skipped = `Cloudflare rule ${item.ruleId} version didn't change after the update`;
+        continue;
+      }
+      item.newVersion = updated.version;
       rulesetId = result.id || rulesetId;
     }
     done.push(item);
