@@ -78,6 +78,9 @@ async function readBody(body, signal) {
 function createS3Storage(config = {}, { client } = {}) {
   const s3 = config.s3 || {};
   const { GetObjectCommand, PutObjectCommand, S3Client } = sdk();
+  // A failed request may still commit remotely. Never send a newer snapshot
+  // to that key while the outcome of the older upload is unknown.
+  const uncertainWrites = new Set();
 
   client =
     client ||
@@ -87,6 +90,9 @@ function createS3Storage(config = {}, { client } = {}) {
       followRegionRedirects: true,
       endpoint: s3.endpoint || undefined,
       forcePathStyle: s3.forcePathStyle || undefined,
+      // Retrying an upload after losing its response could leave an older
+      // attempt running after the retry succeeds and the next dump starts.
+      maxAttempts: 1,
       requestHandler: { connectionTimeout: CONNECTION_TIMEOUT },
     });
 
@@ -121,6 +127,11 @@ function createS3Storage(config = {}, { client } = {}) {
       if (signal) {
         signal.throwIfAborted();
       }
+      if (uncertainWrites.has(objectKey)) {
+        throw new Error(
+          `S3 PutObject ${objectKey}: an earlier upload has an unknown outcome; further writes are disabled for this document`
+        );
+      }
       try {
         await client.send(
           new PutObjectCommand({
@@ -132,6 +143,12 @@ function createS3Storage(config = {}, { client } = {}) {
           { abortSignal: signal }
         );
       } catch (err) {
+        const status = err.$metadata && err.$metadata.httpStatusCode;
+        // Explicit client errors (e.g. AccessDenied) are definitive failures.
+        // Aborts, transport errors, timeouts and server errors are ambiguous.
+        if (!(status >= 400 && status < 500 && status !== 408)) {
+          uncertainWrites.add(objectKey);
+        }
         throw describe('PutObject', objectKey, err);
       }
     },

@@ -98,7 +98,7 @@ Each registered aggregator and history buffer is one plain JSON document, not co
 - **One writer per namespace:** an instance writes complete snapshots and only reads them at start. Two instances on the same namespace (including the old and new processes during a rolling deployment) overwrite each other: give independent instances their own namespace.
 - **Metrics:** every load and dump is logged, e.g. `Persistence (file) loaded 26 documents (213 MB) in 2.3s: fetch 0.27s, parse 0.52s, restore 1.5s`, and the latest ones are on `/status` (all the figures in `/status.json?raw=1`). Stage times are summed over the documents, the total is wall-clock time.
 
-A custom storage can replace the backend with `hyperwatch.lib.persistence.setStorage(storage)`, before `hyperwatch.start()`. It has async `read(name, { signal })` (the document, or `null` when missing), `write(name, body, { signal })` and `close()`. A write must not land after its `signal` aborted. `test/lib/storage/contract.js` has the tests a storage should pass.
+A custom storage can replace the backend with `hyperwatch.lib.persistence.setStorage(storage)`, before `hyperwatch.start()`. It has async `read(name, { signal })` (the document, or `null` when missing), `write(name, body, { signal })` and `close()`. An aborted write must not overwrite a newer snapshot: prevent it from committing, or reject further writes to that document when a remote commit cannot be ruled out. `test/lib/storage/contract.js` has the tests a storage should pass.
 
 ### S3
 
@@ -122,7 +122,7 @@ AWS_SECRET_ACCESS_KEY=…
 ```
 
 - **Credentials** come from the AWS SDK's default chain (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, instance roles…), never from the Hyperwatch configuration.
-- **Permissions:** `s3:GetObject` and `s3:PutObject` on `arn:aws:s3:::<bucket>/*` (or `<bucket>/<prefix>*`), and `s3:ListBucket` on `arn:aws:s3:::<bucket>`. Hyperwatch never lists the bucket, but without `ListBucket` S3 answers `403 AccessDenied` instead of `404 NoSuchKey` for a missing object, so every document of a new namespace would be counted as failed. When sharing a bucket, restrict `ListBucket` to the prefix with a `StringLike` condition on `s3:prefix` (`<prefix>*`). Use one bucket (or prefix) and one user per environment, so an environment can't read or overwrite another's data:
+- **Permissions:** `s3:GetObject` and `s3:PutObject` on `arn:aws:s3:::<bucket>/*` (or `<bucket>/<prefix>*`), and unconditional `s3:ListBucket` on `arn:aws:s3:::<bucket>`. Hyperwatch never lists the bucket, but without `ListBucket` S3 answers `403 AccessDenied` instead of `404 NoSuchKey` for a missing object, so every document of a new namespace would be counted as failed. A `StringLike` condition on `s3:prefix` doesn't fix this: it requires a prefix parameter on a listing request, which `GetObject` doesn't supply. Prefer one bucket and one user per environment, as in the policy below. For a shared bucket, restrict `GetObject` and `PutObject` to each environment's prefix; unconditional `ListBucket` still allows that user to list other environments' object keys. If that visibility is unacceptable, use separate buckets, or keep prefix-restricted listing permissions and accept that missing documents are reported as failed reads:
 
   ```json
   {
@@ -143,5 +143,5 @@ AWS_SECRET_ACCESS_KEY=…
   ```
 
 - **Security:** the history holds client IPs, headers and URLs. Keep the bucket private ("Block all public access"), with default encryption. Errors only log the key and the S3 error.
-- **Deadlines:** a request is aborted when its phase's deadline passes. A write S3 has already fully received can still complete.
+- **Deadlines and upload failures:** a request is aborted when its phase's deadline passes. A write S3 has already fully received can still complete. After an upload abort, transport failure, timeout or server error, the backend rejects all further writes to that document for the lifetime of the storage, including the final shutdown snapshot. Other documents continue to be saved. This prevents an uncertain older upload from overwriting a newer snapshot. SDK retries are disabled for the same reason; a definitive rejection such as `403 AccessDenied` allows a later upload. Investigate the failed upload before restarting, and ensure the old remote request has finished before using the same namespace again; a restart alone cannot cancel it. Read errors don't disable uploads.
 - **Size:** a busy instance dumps about 100–200 MB. The upload counts toward `deadlines.stop` at shutdown.

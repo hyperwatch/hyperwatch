@@ -3,7 +3,7 @@ const { Readable } = require('stream');
 
 const { CreateBucketCommand, S3Client } = require('@aws-sdk/client-s3');
 
-const { normalize } = require('../../../src/lib/persistence');
+const { Persistence, normalize } = require('../../../src/lib/persistence');
 const { createS3Storage, key } = require('../../../src/lib/storage/s3');
 
 const { storageContract } = require('./contract');
@@ -142,6 +142,99 @@ describe('s3 storage', () => {
     });
     assert.strictEqual(storage.client.config.followRegionRedirects, true);
     storage.close();
+  });
+
+  it('disables SDK retries so an earlier upload attempt cannot outlive a successful retry', async () => {
+    const storage = createS3Storage({ s3: { bucket: 'bucket' } });
+    assert.strictEqual(await storage.client.config.maxAttempts(), 1);
+    await storage.close();
+  });
+
+  it('does not send a final snapshot over an aborted upload that can still commit', async () => {
+    const client = fakeClient();
+    const send = client.send.bind(client);
+    const received = Promise.withResolvers();
+    let commit;
+    let uploads = 0;
+    client.send = (command, options = {}) => {
+      if (
+        command.constructor.name === 'PutObjectCommand' &&
+        command.input.Key === 'doc.json' &&
+        ++uploads === 1
+      ) {
+        // The server accepted the body, but hasn't acknowledged its commit.
+        // Cancelling the client request doesn't cancel this remote operation.
+        commit = () => send(command);
+        return new Promise((resolve, reject) => {
+          options.abortSignal.addEventListener(
+            'abort',
+            () => reject(options.abortSignal.reason),
+            { once: true }
+          );
+          received.resolve();
+        });
+      }
+      return send(command, options);
+    };
+    const storage = createS3Storage({ s3: { bucket: 'bucket' } }, { client });
+    const persistence = new Persistence();
+    persistence.setStorage(storage);
+    let value = 1;
+    persistence.register('doc', { dump: () => [value] });
+    persistence.register('healthy', { dump: () => [value] });
+    const controller = new AbortController();
+    const dump = persistence.dump({ signal: controller.signal });
+    await received.promise;
+    controller.abort();
+    assert.strictEqual((await dump).timedOut, true);
+
+    value = 2;
+    await persistence.stop();
+    assert.strictEqual(uploads, 1);
+    assert.strictEqual(persistence.latest.dump.failed, 1);
+    assert.strictEqual(persistence.latest.dump.documents, 1);
+    await commit();
+    assert.strictEqual(await storage.read('doc'), '[1]');
+    assert.strictEqual(await storage.read('healthy'), '[2]');
+  });
+
+  for (const status of [undefined, 408, 500, 200]) {
+    it(`blocks later writes after an ambiguous upload failure (${status || 'transport'})`, async () => {
+      const client = fakeClient();
+      const send = client.send.bind(client);
+      client.send = async () => {
+        const err = new Error('Lost upload response');
+        if (status) {
+          err.$metadata = { httpStatusCode: status };
+        }
+        throw err;
+      };
+      const storage = createS3Storage({ s3: { bucket: 'bucket' } }, { client });
+      await assert.rejects(storage.write('doc', '[1]'));
+      client.send = send;
+      await assert.rejects(storage.write('doc', '[2]'), /unknown outcome/);
+      assert.strictEqual(client.sent.length, 0);
+      await storage.write('healthy', '[2]');
+      assert.strictEqual(await storage.read('healthy'), '[2]');
+      await storage.close();
+    });
+  }
+
+  it('allows another upload after a definitive rejection', async () => {
+    const client = fakeClient();
+    const send = client.send.bind(client);
+    client.send = async () => {
+      const err = new Error('Access Denied');
+      err.name = 'AccessDenied';
+      err.$metadata = { httpStatusCode: 403 };
+      throw err;
+    };
+    const storage = createS3Storage({ s3: { bucket: 'bucket' } }, { client });
+    await assert.rejects(storage.write('doc', '[1]'), /AccessDenied/);
+    client.send = send;
+    await storage.write('doc', '[2]');
+    assert.strictEqual(await storage.read('doc'), '[2]');
+    await storage.close();
   });
 });
 
