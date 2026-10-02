@@ -32,6 +32,12 @@ async function start() {
   }
   stopping = false;
   modules.start();
+  // Modules that load data at init (e.g. firewall lists from S3) are ready
+  // before the inputs start
+  await modules.ready();
+  if (stopping) {
+    return;
+  }
   // Modules have registered their aggregators: restore them before the
   // inputs start
   if (constants.persistence.enabled) {
@@ -47,6 +53,8 @@ async function start() {
 async function stop() {
   stopping = true;
   persistence.stopSnapshots();
+  // Background work of modules first, e.g. the firewall's Cloudflare syncs
+  await modules.stop();
   try {
     await pipeline.stop();
   } catch (err) {

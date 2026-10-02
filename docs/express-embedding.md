@@ -36,8 +36,12 @@ hyperwatch.app.mount(app, {
 // Other middleware and application routes
 
 hyperwatch.modules.start();
-hyperwatch.pipeline.start();
-server.listen(PORT);
+// Modules that load data first (e.g. firewall lists from S3) are ready
+// before the inputs start and requests come in
+hyperwatch.modules.ready().then(() => {
+  hyperwatch.pipeline.start();
+  server.listen(PORT);
+});
 ```
 
 Don't call `hyperwatch.start()`: it would start the standalone Hyperwatch server.

@@ -4,7 +4,11 @@ const { Readable } = require('stream');
 const { CreateBucketCommand, S3Client } = require('@aws-sdk/client-s3');
 
 const { Persistence, normalize } = require('../../../src/lib/persistence');
-const { createS3Storage, key } = require('../../../src/lib/storage/s3');
+const {
+  createS3Storage,
+  key,
+  uncertainWrites,
+} = require('../../../src/lib/storage/s3');
 
 const { storageContract } = require('./contract');
 
@@ -46,6 +50,9 @@ storageContract('s3 (fake client)', () =>
 );
 
 describe('s3 storage', () => {
+  // Kept for the whole process: each test starts without any
+  afterEach(() => uncertainWrites.clear());
+
   it('keys documents <prefix><namespace>/<name>.json', () => {
     assert.strictEqual(key({ s3: {} }, 'addresses'), 'addresses.json');
     assert.strictEqual(
@@ -250,6 +257,46 @@ describe('s3 storage', () => {
     await storage.close();
   });
 
+  it('keeps refusing an uncertain upload for a storage created later', async () => {
+    const failing = fakeClient();
+    failing.send = async () => {
+      throw new Error('Lost upload response');
+    };
+    const config = { s3: { bucket: 'bucket' } };
+    const first = createS3Storage(config, { client: failing });
+    await assert.rejects(first.write('doc', '[1]'));
+    await first.close();
+
+    // e.g. after Hyperwatch restarted: a new storage, same object
+    const client = fakeClient();
+    const second = createS3Storage(config, { client });
+    await assert.rejects(second.write('doc', '[2]'), /unknown outcome/);
+    assert.strictEqual(client.sent.length, 0);
+    await second.close();
+  });
+
+  it('refuses a new upload while an abandoned one is still running', async () => {
+    const { createStorageStore } = require('../../../src/lib/firewall/store');
+    const config = { s3: { bucket: 'bucket' } };
+    // Never answers, abort or not
+    const stalled = fakeClient();
+    stalled.send = () => new Promise(() => {});
+    const first = createStorageStore(
+      createS3Storage(config, { client: stalled }),
+      { timeout: 20 }
+    );
+    await assert.rejects(
+      first.writeLists({ lists: [] }),
+      (err) => err.name === 'TimeoutError'
+    );
+
+    // e.g. after a restart: the old upload could still land
+    const client = fakeClient();
+    const second = createStorageStore(createS3Storage(config, { client }));
+    await assert.rejects(second.writeLists({ lists: [] }), /still running/);
+    assert.strictEqual(client.sent.length, 0);
+  });
+
   it('allows another upload after a definitive rejection', async () => {
     const client = fakeClient();
     const send = client.send.bind(client);
@@ -317,5 +364,43 @@ if (endpoint) {
       // A namespace per test: the bucket outlives them
       createS3Storage({ namespace: `test-${Date.now()}-${run++}`, s3 })
     );
+
+    it('keeps the firewall lists and their sync state', async () => {
+      const { createStore } = require('../../../src/lib/firewall/store');
+      const store = createStore({
+        modules: { firewall: {} },
+        persistence: {
+          backend: 's3',
+          namespace: `firewall-${Date.now()}`,
+          s3,
+        },
+      });
+      try {
+        assert.strictEqual(await store.readLists(), null);
+        assert.deepStrictEqual(await store.readState(), { lists: {} });
+
+        const data = {
+          lists: [
+            {
+              id: 'block-ips',
+              type: 'ip',
+              action: 'block',
+              entries: [{ value: '1.2.3.4' }],
+            },
+          ],
+        };
+        await store.writeLists(data);
+        await store.writeState({ lists: { 'block-ips': { values: [] } } });
+        assert.deepStrictEqual(
+          (await store.readLists()).lists[0].entries[0].value,
+          '1.2.3.4'
+        );
+        assert.deepStrictEqual(Object.keys((await store.readState()).lists), [
+          'block-ips',
+        ]);
+      } finally {
+        await store.close();
+      }
+    });
   });
 }

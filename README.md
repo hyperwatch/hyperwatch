@@ -44,6 +44,8 @@ See [Input Configuration](./docs/input.md) for the list of available input types
 
 Modules (live log streams, User-Agent parsing, GeoIP, aggregations, …) and a few constants are configured with a `.hyperwatchrc` file. Only the `status` module is active by default. To learn more, head to [Global Configuration](./docs/configuration.md).
 
+To tag requests from listed IPs and User-Agents, and sync those lists with Cloudflare custom rules, see [Firewall](./docs/firewall.md).
+
 ### Start with custom configuration
 
 ```shell

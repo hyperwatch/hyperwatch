@@ -15,6 +15,8 @@ function get(module) {
       return require('./cloudflare');
     case 'dnsbl':
       return require('./dnsbl');
+    case 'firewall':
+      return require('./firewall');
     case 'geoip':
       return require('./geoip');
     case 'history':
@@ -70,9 +72,34 @@ function start() {
   }
 }
 
+// Resolves once every active module that loads something asynchronously at
+// init (module.ready()) has done so
+function ready() {
+  return Promise.all(
+    activeModules()
+      .filter((module) => module.ready)
+      .map((module) => module.ready())
+  );
+}
+
+// Stops what active modules run in the background (module.stop())
+async function stop() {
+  for (const module of activeModules()) {
+    if (module.stop) {
+      try {
+        await module.stop();
+      } catch (err) {
+        console.error('Error stopping a module:', err.message);
+      }
+    }
+  }
+}
+
 module.exports = {
   get,
   init,
   start,
+  ready,
+  stop,
   activeModules,
 };
