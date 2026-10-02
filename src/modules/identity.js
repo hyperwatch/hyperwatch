@@ -26,11 +26,13 @@ const { identityKey, safeHtml } = require('../lib/util');
 const claudeBotCidrs = claudeBotIps.map((cidr) => new IPCIDR(cidr));
 
 // github-camo (the proxy behind README images) is identified from the ranges
-// GitHub runs its own services from. It also fetches from ranges
-// https://api.github.com/meta lists under `actions` (e.g. 9.234.0.0/17), but
-// Actions runners there run any GitHub user's workflows, which can send the
-// same user agent: those requests stay unidentified.
-const githubCidrs = githubIps.map((cidr) => new IPCIDR(cidr));
+// GitHub runs its own services from, and from 9.234.0.0/17, where it fetches
+// from in production (October 2026). https://api.github.com/meta lists that
+// range under `actions`: Actions runners there run any GitHub user's
+// workflows, which can send the same user agent.
+const githubCamoCidrs = [...githubIps, '9.234.0.0/17'].map(
+  (cidr) => new IPCIDR(cidr)
+);
 
 // Meta's network (AS32934), as its crawler documentation says to check it.
 const metaCidrs = metaIps.map((cidr) => new IPCIDR(cidr));
@@ -329,8 +331,8 @@ function augment(log) {
     // Per CIDR
     case 'github-camo':
       // https://api.github.com/meta
-      return address && githubCidrs.some((cidr) => cidr.contains(address))
-        ? log.set('identity', 'GitHub')
+      return address && githubCamoCidrs.some((cidr) => cidr.contains(address))
+        ? log.set('identity', 'GitHub Camo')
         : log;
     case 'DotBot':
       return address && new IPCIDR('216.244.64.0/19').contains(address)

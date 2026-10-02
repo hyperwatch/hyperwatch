@@ -241,18 +241,24 @@ describe('identity', () => {
     });
   });
 
-  describe('GitHub', () => {
+  describe('GitHub Camo', () => {
     it('should identify github-camo from a GitHub service range', () => {
       const result = identity.augment(
         log({ family: 'github-camo', address: '140.82.115.88' })
       );
-      assert.strictEqual(result.get('identity'), 'GitHub');
+      assert.strictEqual(result.get('identity'), 'GitHub Camo');
     });
 
-    it('should not identify github-camo from the Actions ranges', () => {
-      // Runners there run any GitHub user's workflows
+    it('should identify github-camo from 9.234.0.0/17', () => {
       const result = identity.augment(
         log({ family: 'github-camo', address: '9.234.106.63' })
+      );
+      assert.strictEqual(result.get('identity'), 'GitHub Camo');
+    });
+
+    it('should not identify github-camo from another Actions range', () => {
+      const result = identity.augment(
+        log({ family: 'github-camo', address: '4.148.0.1' })
       );
       assert.strictEqual(result.get('identity'), undefined);
     });
