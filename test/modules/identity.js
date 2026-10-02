@@ -60,14 +60,23 @@ describe('identity', () => {
   });
 
   describe('Meta', () => {
-    const metaFamilies = ['meta-externalagent', 'meta-webindexer'];
+    const metaFamilies = ['meta-externalagent', 'meta-webindexer', 'Hyperlink'];
 
-    it('should identify an address in the Meta allocation', () => {
+    it('should identify an address in the Meta network', () => {
+      for (const family of metaFamilies) {
+        for (const address of ['2a03:2880:f800:1::', '57.141.2.18']) {
+          const result = identity.augment(log({ family, address }));
+          assert.strictEqual(result.get('identity'), 'Meta');
+        }
+      }
+    });
+
+    it('should not identify an address outside the Meta network', () => {
       for (const family of metaFamilies) {
         const result = identity.augment(
-          log({ family, address: '2a03:2880:f800:1::' })
+          log({ family, address: '203.0.113.7' })
         );
-        assert.strictEqual(result.get('identity'), 'Meta');
+        assert.strictEqual(result.get('identity'), undefined);
       }
     });
 
@@ -79,6 +88,23 @@ describe('identity', () => {
         );
         assert.strictEqual(result.get('identity'), undefined);
       }
+    });
+  });
+
+  describe('Facebook', () => {
+    it('should identify FacebookBot from the Meta network', () => {
+      const result = identity.augment(
+        log({ family: 'FacebookBot', address: '57.141.2.18' })
+      );
+      assert.strictEqual(result.get('identity'), 'Facebook');
+    });
+
+    it('should not identify FacebookBot from elsewhere', () => {
+      // Seen in production from residential addresses
+      const result = identity.augment(
+        log({ family: 'FacebookBot', address: '87.122.0.102' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
     });
   });
 

@@ -6,6 +6,7 @@ const html = require('../app/html');
 // Run `node scripts/fetch-openai-ips.js` to update OpenAI lists
 // Run `node scripts/fetch-anthropic-ips.js` to update the Claude list
 // Run `node scripts/fetch-github-ips.js` to update the GitHub lists
+// Run `node scripts/fetch-meta-ips.js` to update the Meta list
 const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
 const amazonUserIps = require('../data/amazon-user-ips.json');
 const amazonBotIps = require('../data/amazonbot-ips.json');
@@ -13,6 +14,7 @@ const chatgptUserIps = require('../data/chatgpt-user-ips.json');
 const claudeBotIps = require('../data/claude-bot-ips.json');
 const githubIps = require('../data/github-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
+const metaIps = require('../data/meta-ips.json');
 const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
 const { Aggregator } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
@@ -29,6 +31,9 @@ const claudeBotCidrs = claudeBotIps.map((cidr) => new IPCIDR(cidr));
 // Actions runners there run any GitHub user's workflows, which can send the
 // same user agent: those requests stay unidentified.
 const githubCidrs = githubIps.map((cidr) => new IPCIDR(cidr));
+
+// Meta's network (AS32934), as its crawler documentation says to check it.
+const metaCidrs = metaIps.map((cidr) => new IPCIDR(cidr));
 
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
@@ -317,7 +322,7 @@ function augment(log) {
         : log;
     case 'FacebookBot':
       return (hostname && hostname.endsWith('.fbsv.net')) ||
-        (address && new IPCIDR('2a03:2880::/29').contains(address))
+        (address && metaCidrs.some((cidr) => cidr.contains(address)))
         ? log.set('identity', 'Facebook')
         : log;
 
@@ -374,7 +379,8 @@ function augment(log) {
         : log;
     case 'meta-externalagent':
     case 'meta-webindexer':
-      return address && new IPCIDR('2a03:2880::/29').contains(address)
+    case 'Hyperlink':
+      return address && metaCidrs.some((cidr) => cidr.contains(address))
         ? log.set('identity', 'Meta')
         : log;
 
