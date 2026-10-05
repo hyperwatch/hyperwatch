@@ -6,7 +6,7 @@ This tutorial describes a two-server setup:
 - a **new server** running the current Hyperwatch (5.3.1), which consumes that stream and does all the enrichment: Cloudflare client address, reverse DNS, User-Agents, aggregations and identities.
 
 ```
-Apache ──syslog :1518──> Hyperwatch 3.9.3 ──ws :3009 /logs/raw──> Hyperwatch 5.3.1
+Apache ──syslog :1514──> Hyperwatch 3.9.3 ──ws :3009 /logs/raw──> Hyperwatch 5.3.1
 (legacy server)          (legacy server)                          (new server)
 ```
 
@@ -32,8 +32,10 @@ Define the `hyperwatch_combined` format, extended with the Cloudflare headers, a
 
 ```apache
 LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\" \"%{Accept}i\" \"%{Accept-Charset}i\" \"%{Accept-Encoding}i\" \"%{Accept-Language}i\" \"%{Connection}i\" \"%{Dnt}i\" \"%{From}i\" \"%{Host}i\" \"%{CF-Connecting-IP}i\" \"%{CF-IPCountry}i\" \"%{CF-Ray}i\"" hyperwatch_combined
-CustomLog "|/usr/bin/logger -n 127.0.0.1 -P 1518 --rfc3164" hyperwatch_combined
+CustomLog "|/usr/bin/logger --tcp -n 127.0.0.1 -P 1514 --rfc3164 --size 8192" hyperwatch_combined
 ```
+
+`logger` sends messages of up to 1 KiB by default, and the Cloudflare headers can make lines longer: `--size 8192` keeps them whole. `--tcp` avoids losing logs the way UDP can.
 
 ```bash
 apachectl configtest && systemctl reload apache2
@@ -61,7 +63,7 @@ module.exports = function (hyperwatch) {
   pipeline.registerInput(
     input.syslog.create({
       name: 'Syslog (Apache hyperwatch_combined + Cloudflare)',
-      port: 1518,
+      port: 1514,
       parse: format.apache.parser({ format: APACHE_FORMAT }),
     })
   );
@@ -91,7 +93,7 @@ Allow port 3009 from the new server only. Hyperwatch 3.9.3 has no authentication
 ufw allow from <new-server> to any port 3009 proto tcp
 ```
 
-The syslog port (1518) only needs to be reachable from `127.0.0.1`: don't open it.
+The syslog port (1514) only needs to be reachable from `127.0.0.1`: don't open it.
 
 #### Why `/logs/raw` and not `/logs/main`
 
@@ -146,12 +148,12 @@ The interface is on port 3000 (`PORT` to change it): `/status`, `/logs/main`, `/
 
 ### Verification and troubleshooting
 
-On the legacy server, check Hyperwatch is running and listens on 3009 (TCP) and 1518 (UDP and TCP), and the firewall rule:
+On the legacy server, check Hyperwatch is running and listens on 3009 and 1514, and the firewall rule:
 
 ```bash
 pm2 status
 pm2 logs apache_hyperwatch_combined_pm2
-ss -lntup | grep -E '3009|1518'
+ss -lntup | grep -E '3009|1514'
 ufw status
 ```
 
@@ -164,7 +166,7 @@ curl -s http://127.0.0.1:3009/logs/raw
 ```
 
 ```bash
-logger -n 127.0.0.1 -P 1518 --rfc3164 '172.68.1.2 - - [05/Oct/2026:12:00:00 +0000] "GET / HTTP/1.1" 200 123 "-" "curl/7.58.0" "*/*" "-" "gzip" "-" "close" "-" "-" "example.org" "203.0.113.7" "FR" "8c1d2e3f4a5b6c7d-CDG"'
+logger --tcp -n 127.0.0.1 -P 1514 --rfc3164 '172.68.1.2 - - [05/Oct/2026:12:00:00 +0000] "GET / HTTP/1.1" 200 123 "-" "curl/7.58.0" "*/*" "-" "gzip" "-" "close" "-" "-" "example.org" "203.0.113.7" "FR" "8c1d2e3f4a5b6c7d-CDG"'
 ```
 
 On the new server, this log shows `203.0.113.7` as its address on `/logs/main`, with `FR` and the `CDG` data center.
@@ -189,4 +191,4 @@ dig -x <ip> +short
 
 An empty answer for a visitor's address is normal: many have no PTR record.
 
-If some logs are rejected by the parser (counted on the legacy server's `/status`), long lines may be truncated by `logger`, which sends messages of up to 1 KiB by default. Raise the limit with `--size`, e.g. `|/usr/bin/logger -n 127.0.0.1 -P 1518 --rfc3164 --size 8192`.
+If some logs are rejected by the parser (counted on the legacy server's `/status`), check the `--size` option of the `CustomLog` line: without it, `logger` cuts lines at 1 KiB.
