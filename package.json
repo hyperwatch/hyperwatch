@@ -36,7 +36,7 @@
     "test": "mocha --recursive"
   },
   "dependencies": {
-    "@hyperwatch/useragent": "^3.9.3",
+    "@hyperwatch/useragent": "^4.0.0",
     "accept-language-parser": "^1.5.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
