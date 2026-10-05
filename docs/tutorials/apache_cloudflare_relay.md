@@ -44,7 +44,7 @@ apachectl configtest && systemctl reload apache2
 The built-in Apache format (`format.apache.formats.hyperwatchCombined` in 3.x, `hyperwatch_combined` in 5.x) doesn't include the Cloudflare fields, so the full format string is passed to `format.apache.parser()`. It must match the Apache `LogFormat` exactly:
 
 ```javascript
-// legacy.js
+// /root/apache_hyperwatch_combined.js
 const APACHE_FORMAT =
   '%h %l %u %t "%r" %>s %b "%{Referer}i" "%{User-agent}i" "%{Accept}i" "%{Accept-Charset}i" "%{Accept-Encoding}i" "%{Accept-Language}i" "%{Connection}i" "%{Dnt}i" "%{From}i" "%{Host}i" "%{CF-Connecting-IP}i" "%{CF-IPCountry}i" "%{CF-Ray}i"';
 
@@ -68,8 +68,17 @@ module.exports = function (hyperwatch) {
 };
 ```
 
+Run it with [pm2](https://pm2.keymetrics.io/), so it restarts if it crashes:
+
 ```bash
-hyperwatch legacy.js
+pm2 start /usr/bin/hyperwatch --name apache_hyperwatch_combined_pm2 -- /root/apache_hyperwatch_combined.js
+```
+
+To start it again after a reboot, save the process list and install pm2's startup script:
+
+```bash
+pm2 save
+pm2 startup
 ```
 
 Only `logs` is active: it serves the web and WebSocket streams on port 3009. No enrichment module runs here.
@@ -137,12 +146,16 @@ The interface is on port 3000 (`PORT` to change it): `/status`, `/logs/main`, `/
 
 ### Verification and troubleshooting
 
-On the legacy server, check Hyperwatch listens on 3009 (TCP) and 1518 (UDP and TCP), and the firewall rule:
+On the legacy server, check Hyperwatch is running and listens on 3009 (TCP) and 1518 (UDP and TCP), and the firewall rule:
 
 ```bash
+pm2 status
+pm2 logs apache_hyperwatch_combined_pm2
 ss -lntup | grep -E '3009|1518'
 ufw status
 ```
+
+After changing the configuration: `pm2 restart apache_hyperwatch_combined_pm2`.
 
 Watch the stream in one terminal, and send a test line through syslog in another:
 
