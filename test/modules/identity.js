@@ -241,6 +241,37 @@ describe('identity', () => {
     });
   });
 
+  describe('Amazon Quick', () => {
+    it('should identify Amazon Quick from a published range', () => {
+      const result = identity.augment(
+        log({ family: 'amazon-Quick-on-behalf-of', address: '52.23.63.230' })
+      );
+      assert.strictEqual(result.get('identity'), 'Amazon Quick');
+    });
+
+    it('should identify Amazon Quick in another region', () => {
+      const result = identity.augment(
+        log({ family: 'amazon-Quick-on-behalf-of', address: '52.210.255.244' })
+      );
+      assert.strictEqual(result.get('identity'), 'Amazon Quick');
+    });
+
+    it('should not identify Amazon Quick outside the published ranges', () => {
+      // Elsewhere in AWS us-east-1
+      const result = identity.augment(
+        log({ family: 'amazon-Quick-on-behalf-of', address: '52.23.63.200' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should not identify another agent from an Amazon Quick range', () => {
+      const result = identity.augment(
+        log({ family: 'curl', address: '52.23.63.230' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
   describe('GitHub Camo', () => {
     it('should identify github-camo from a GitHub service range', () => {
       const result = identity.augment(
