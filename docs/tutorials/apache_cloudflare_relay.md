@@ -178,20 +178,6 @@ On the new server, check the stream is reachable, then the input on `/status`: `
 curl -s http://<legacy-server>:3009/logs/raw
 ```
 
-Check `hostname` looks up visitors' addresses, not Cloudflare's:
-
-```bash
-DEBUG=hyperwatch:hostname hyperwatch receiver.js
-```
-
-`Reverse 104.22.x.x ...` or `Reverse 172.68.x.x ...` means the logs have no `cf-connecting-ip` header: check the Apache `LogFormat` and the parser format match, and that the `cloudflare` module is active. Compare with a manual lookup:
-
-```bash
-dig -x <ip> +short
-```
-
-An empty answer for a visitor's address is normal: many have no PTR record.
-
 If some logs are rejected by the parser (counted on the legacy server's `/status`), check the `--size` option of the `CustomLog` line: without it, `logger` cuts lines at 1 KiB.
 
 ### Security
