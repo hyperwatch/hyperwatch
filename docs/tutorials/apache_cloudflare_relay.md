@@ -186,5 +186,8 @@ This setup is known not to be secure over the public Internet, and is accepted a
 
 - The stream between the servers is plain `ws://`: visitors' addresses, URLs and headers travel unencrypted, and can be intercepted on the way.
 - Hyperwatch 3.9.3 has no authentication. The UFW rule only limits who can connect to port 3009, by source address.
+- The Cloudflare headers are trusted as they are. If Apache is reachable directly, not only through Cloudflare, anyone can send their own `CF-Connecting-IP`, `CF-IPCountry` and `CF-Ray`, and Hyperwatch records the address and country they chose.
 
 To secure it, connect the servers through a private network or a VPN (e.g. WireGuard), or put a TLS-terminating proxy with authentication in front of port 3009 (e.g. Apache with `mod_proxy_wstunnel` and Basic Auth), and use `wss://` with the WebSocket input's `username` and `password` options.
+
+To trust the Cloudflare headers, only accept HTTP and HTTPS on the legacy server from [Cloudflare's IP ranges](https://www.cloudflare.com/ips/).
