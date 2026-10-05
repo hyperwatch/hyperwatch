@@ -70,9 +70,10 @@ module.exports = function (hyperwatch) {
 };
 ```
 
-Run it with [pm2](https://pm2.keymetrics.io/), so it restarts if it crashes:
+Run it with [pm2](https://pm2.keymetrics.io/), so it restarts if it crashes. Pin pm2 6.0.14, which works on this system, where later versions had compatibility issues:
 
 ```bash
+npm install -g pm2@6.0.14
 pm2 start /usr/bin/hyperwatch --name apache_hyperwatch_combined_pm2 -- /root/apache_hyperwatch_combined.js
 ```
 
