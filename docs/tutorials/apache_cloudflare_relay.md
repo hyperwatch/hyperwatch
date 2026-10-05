@@ -6,8 +6,8 @@ This tutorial describes a two-server setup:
 - a **new server** running the current Hyperwatch (5.3.1), which consumes that stream and does all the enrichment: Cloudflare client address, reverse DNS, User-Agents, aggregations and identities.
 
 ```
-Apache ──syslog :1514──> Hyperwatch 3.9.3 ──ws :3009 /logs/raw──> Hyperwatch 5.3.1
-(legacy server)          (legacy server)                          (new server)
+Apache ──syslog :1514──> Hyperwatch 3.9.3 ──ws :3009──> Apache ──wss :8443 /logs/raw──> Hyperwatch 5.3.1
+(legacy server)          (legacy server)                  (TLS)                          (new server)
 ```
 
 ### How the Cloudflare client address flows
@@ -15,7 +15,7 @@ Apache ──syslog :1514──> Hyperwatch 3.9.3 ──ws :3009 /logs/raw──
 1. Cloudflare proxies the request to Apache, which sees a Cloudflare edge address as the client (`%h`), and the visitor's in the `CF-Connecting-IP` header.
 2. Apache logs `CF-Connecting-IP`, `CF-IPCountry` and `CF-Ray` along with the usual fields.
 3. Hyperwatch 3.9.3 parses the log. The headers end up in `request.headers` (`cf-connecting-ip`, `cf-ipcountry`, `cf-ray`).
-4. The raw JSON log is streamed over `/logs/raw`.
+4. The raw JSON log is streamed over `/logs/raw`, through TLS.
 5. On Hyperwatch 5.3.1, the `cloudflare` module replaces the edge address with the visitor's (`address.value`), and sets the country (`address.country-code`) and the data center (`cloudflare.data-center`).
 6. `hostname` then does the reverse DNS lookup of the visitor's address.
 7. `address`, `signature` and `identity` aggregate and identify traffic from that data.
@@ -86,15 +86,51 @@ pm2 startup
 
 Only `logs` is active: it serves the web and WebSocket streams on port 3009. No enrichment module runs here.
 
-#### Firewall
+#### TLS and authentication
 
-Allow port 3009 from the new server only. Hyperwatch 3.9.3 has no authentication, and the stream holds visitors' addresses, URLs and headers:
+The stream holds visitors' addresses, URLs and headers, and Hyperwatch 3.9.3 has neither TLS nor authentication. Don't expose port 3009: Apache serves `/logs/raw` over `wss://` on port 8443, behind Basic Auth, and proxies it to Hyperwatch on `127.0.0.1:3009`.
+
+Use a hostname that resolves directly to the legacy server (`hyperwatch.example.org` below, "DNS only" in Cloudflare, not proxied), with a certificate for it, e.g. from Let's Encrypt.
 
 ```bash
-ufw allow from <new-server> to any port 3009 proto tcp
+a2enmod ssl proxy proxy_wstunnel auth_basic
+htpasswd -c /etc/apache2/hyperwatch.htpasswd hyperwatch
 ```
 
-The syslog port (1514) only needs to be reachable from `127.0.0.1`: don't open it.
+```apache
+# /etc/apache2/sites-available/hyperwatch.conf
+Listen 8443
+<VirtualHost *:8443>
+  ServerName hyperwatch.example.org
+  SSLEngine on
+  SSLCertificateFile /etc/letsencrypt/live/hyperwatch.example.org/fullchain.pem
+  SSLCertificateKeyFile /etc/letsencrypt/live/hyperwatch.example.org/privkey.pem
+
+  <Location /logs/raw>
+    AuthType Basic
+    AuthName "Hyperwatch"
+    AuthUserFile /etc/apache2/hyperwatch.htpasswd
+    Require valid-user
+    ProxyPass ws://127.0.0.1:3009/logs/raw
+  </Location>
+</VirtualHost>
+```
+
+```bash
+a2ensite hyperwatch
+apachectl configtest && systemctl reload apache2
+```
+
+Alternatively, connect the servers through a private network or a VPN (e.g. WireGuard), and use `ws://` on its private address.
+
+#### Firewall
+
+Allow port 8443 from the new server only. Keep 3009 closed (Hyperwatch 3.9.3 listens on all interfaces), and the syslog port (1514), which only needs to be reachable from `127.0.0.1`:
+
+```bash
+ufw allow from <new-server> to any port 8443 proto tcp
+ufw status
+```
 
 #### Why `/logs/raw` and not `/logs/main`
 
@@ -108,7 +144,7 @@ Use the current Hyperwatch release, 5.3.1 at the time of writing (Node.js 24 or 
 npm install -g @hyperwatch/hyperwatch@5.3.1
 ```
 
-The only input is a WebSocket client connected to the legacy server's `/logs/raw`:
+The only input is a WebSocket client connected to the legacy server's `/logs/raw`, with the Basic Auth credentials:
 
 ```javascript
 // receiver.js
@@ -132,7 +168,9 @@ module.exports = function (hyperwatch) {
     input.websocket.create({
       name: 'Legacy Apache',
       type: 'client',
-      address: 'ws://<legacy-server>:3009/logs/raw',
+      address: 'wss://hyperwatch.example.org:8443/logs/raw',
+      username: 'hyperwatch',
+      password: process.env.HYPERWATCH_LEGACY_PASSWORD,
       reconnectOnClose: true,
     })
   );
@@ -140,7 +178,7 @@ module.exports = function (hyperwatch) {
 ```
 
 ```bash
-hyperwatch receiver.js
+HYPERWATCH_LEGACY_PASSWORD=... hyperwatch receiver.js
 ```
 
 Modules run in the order of their priority, not of the configuration: `cloudflare` (500) runs before `hostname` (502), and both before `address`, `signature` and `identity` (600 to 620). See [Global Configuration](../configuration.md#modules).
@@ -149,12 +187,12 @@ The interface is on port 3000 (`PORT` to change it): `/status`, `/logs/main`, `/
 
 ### Verification and troubleshooting
 
-On the legacy server, check Hyperwatch is running and listens on 3009 and 1514, and the firewall rule:
+On the legacy server, check Hyperwatch is running and listens on 3009 and 1514, Apache on 8443, and the firewall rule:
 
 ```bash
 pm2 status
 pm2 logs apache_hyperwatch_combined_pm2
-ss -lntup | grep -E '3009|1514'
+ss -lntup | grep -E '3009|1514|8443'
 ufw status
 ```
 
@@ -172,11 +210,15 @@ logger --tcp -n 127.0.0.1 -P 1514 --rfc3164 '172.68.1.2 - - [05/Oct/2026:12:00:0
 
 On the new server, this log shows `203.0.113.7` as its address on `/logs/main`, with `FR` and the `CDG` data center.
 
-On the new server, check the stream is reachable, then the input on `/status`: `Listening to ws://<legacy-server>:3009/logs/raw`.
+On the new server, check the WebSocket handshake goes through TLS, authentication and the proxy (`HTTP/1.1 101 Switching Protocols`), then the input on `/status`: `Listening to wss://hyperwatch.example.org:8443/logs/raw`.
 
 ```bash
-curl -s http://<legacy-server>:3009/logs/raw
+curl -si --max-time 5 -u hyperwatch https://hyperwatch.example.org:8443/logs/raw \
+  -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+  -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' | head -1
 ```
+
+`401` means wrong credentials, `502` or `503` that Hyperwatch isn't running on the legacy server.
 
 Check `hostname` looks up visitors' addresses, not Cloudflare's:
 
