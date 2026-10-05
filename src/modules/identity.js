@@ -7,6 +7,8 @@ const html = require('../app/html');
 // Run `node scripts/fetch-anthropic-ips.js` to update the Claude list
 // Run `node scripts/fetch-github-ips.js` to update the GitHub lists
 // Run `node scripts/fetch-meta-ips.js` to update the Meta list
+// The Amazon Quick list is copied by hand (see amazonQuickCidrs below)
+const amazonQuickIps = require('../data/amazon-quick-ips.json');
 const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
 const amazonUserIps = require('../data/amazon-user-ips.json');
 const amazonBotIps = require('../data/amazonbot-ips.json');
@@ -36,6 +38,13 @@ const githubCamoCidrs = [...githubIps, '9.234.0.0/17'].map(
 
 // Meta's network (AS32934), as its crawler documentation says to check it.
 const metaCidrs = metaIps.map((cidr) => new IPCIDR(cidr));
+
+// Amazon Quick's Web Crawler, which customers point at their sites to build
+// knowledge bases. It sends `amazon-Quick-on-behalf-of-<id>` (one id per
+// customer) from one /27 per region. The ranges are only published as a table
+// in https://docs.aws.amazon.com/quick/latest/userguide/regions.html (not in
+// AWS's ip-ranges.json): copied from there in October 2026.
+const amazonQuickCidrs = amazonQuickIps.map((cidr) => new IPCIDR(cidr));
 
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
@@ -284,6 +293,10 @@ function augment(log) {
       return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
         amazonSearchBotIps.some((cidr) => new IPCIDR(cidr).contains(address))
         ? log.set('identity', 'Amazon SearchBot')
+        : log;
+    case 'amazon-Quick-on-behalf-of':
+      return amazonQuickCidrs.some((cidr) => cidr.contains(address))
+        ? log.set('identity', 'Amazon Quick')
         : log;
     case 'Amzn-User':
       return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
