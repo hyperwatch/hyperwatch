@@ -5,6 +5,8 @@ const { fromJS } = require('immutable');
 const html = require('../../src/app/html');
 const ccbotIps = require('../../src/data/ccbot-ips.json');
 const claudeBotIps = require('../../src/data/claude-bot-ips.json');
+const perplexityUserIps = require('../../src/data/perplexity-user-ips.json');
+const perplexityBotIps = require('../../src/data/perplexitybot-ips.json');
 const { logMatches } = require('../../src/lib/util');
 const identity = require('../../src/modules/identity.js');
 
@@ -88,6 +90,59 @@ describe('identity', () => {
     it('should not identify another agent from a published range', () => {
       const result = identity.augment(
         log({ family: 'Chrome', address: published[0] })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
+  describe('Perplexity', () => {
+    // The first address of each published range, so a refresh
+    // (`node scripts/fetch-perplexity-ips.js`) never breaks the tests
+    const first = (ranges) => ranges.map((cidr) => cidr.split('/')[0]);
+
+    it('should identify PerplexityBot from every published range', () => {
+      assert.ok(perplexityBotIps.length > 0);
+      for (const address of first(perplexityBotIps)) {
+        const result = identity.augment(
+          log({ family: 'PerplexityBot', address })
+        );
+        assert.strictEqual(result.get('identity'), 'Perplexity');
+      }
+    });
+
+    it('should identify Perplexity-User from every published range', () => {
+      assert.ok(perplexityUserIps.length > 0);
+      for (const address of first(perplexityUserIps)) {
+        const result = identity.augment(
+          log({ family: 'Perplexity-User', address })
+        );
+        assert.strictEqual(result.get('identity'), 'Perplexity');
+      }
+    });
+
+    it('should not trust an EC2 hostname outside the published ranges', () => {
+      // Any EC2 instance in us-east-1 gets this PTR suffix
+      const result = identity.augment(
+        log({
+          family: 'PerplexityBot',
+          address: '3.80.0.1',
+          hostname: 'ec2-3-80-0-1.compute-1.amazonaws.com',
+        })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should not identify a PerplexityBot UA from elsewhere', () => {
+      // Seen on another site: Google Cloud, in neither list
+      const result = identity.augment(
+        log({ family: 'PerplexityBot', address: '35.202.236.104' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should check each agent against its own list', () => {
+      const result = identity.augment(
+        log({ family: 'Perplexity-User', address: first(perplexityBotIps)[0] })
       );
       assert.strictEqual(result.get('identity'), undefined);
     });
