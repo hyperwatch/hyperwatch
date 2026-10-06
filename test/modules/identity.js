@@ -59,6 +59,37 @@ describe('identity', () => {
     );
   });
 
+  describe('Common Crawl', () => {
+    it('should identify CCBot from a published range', () => {
+      for (const address of [
+        '2600:1f28:365:80b0:ab00:d07f:2f3c:34f3',
+        '18.97.9.170',
+      ]) {
+        const result = identity.augment(log({ family: 'CCBot', address }));
+        assert.strictEqual(result.get('identity'), 'Common Crawl');
+      }
+    });
+
+    it('should not trust an EC2 hostname outside the published ranges', () => {
+      // Any EC2 instance in us-east-1 gets this PTR suffix
+      const result = identity.augment(
+        log({
+          family: 'CCBot',
+          address: '3.80.0.1',
+          hostname: 'ec2-3-80-0-1.compute-1.amazonaws.com',
+        })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should not identify another agent from a published range', () => {
+      const result = identity.augment(
+        log({ family: 'Chrome', address: '18.97.9.170' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
   describe('Meta', () => {
     const metaFamilies = ['meta-externalagent', 'meta-webindexer', 'Hyperlink'];
 

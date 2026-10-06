@@ -7,11 +7,13 @@ const html = require('../app/html');
 // Run `node scripts/fetch-anthropic-ips.js` to update the Claude list
 // Run `node scripts/fetch-github-ips.js` to update the GitHub lists
 // Run `node scripts/fetch-meta-ips.js` to update the Meta list
+// Run `node scripts/fetch-commoncrawl-ips.js` to update the Common Crawl list
 // The Amazon Quick list is copied by hand (see amazonQuickCidrs below)
 const amazonQuickIps = require('../data/amazon-quick-ips.json');
 const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
 const amazonUserIps = require('../data/amazon-user-ips.json');
 const amazonBotIps = require('../data/amazonbot-ips.json');
+const ccbotIps = require('../data/ccbot-ips.json');
 const chatgptUserIps = require('../data/chatgpt-user-ips.json');
 const claudeBotIps = require('../data/claude-bot-ips.json');
 const githubIps = require('../data/github-ips.json');
@@ -38,6 +40,11 @@ const githubCamoCidrs = [...githubIps, '9.234.0.0/17'].map(
 
 // Meta's network (AS32934), as its crawler documentation says to check it.
 const metaCidrs = metaIps.map((cidr) => new IPCIDR(cidr));
+
+// Common Crawl's CCBot, from the ranges it publishes
+// (https://index.commoncrawl.org/ccbot.json). It crawls from AWS, so a
+// *.compute-1.amazonaws.com hostname (any EC2 instance) proves nothing.
+const ccbotCidrs = ccbotIps.map((cidr) => new IPCIDR(cidr));
 
 // Amazon Quick's Web Crawler, which customers point at their sites to build
 // knowledge bases. It sends `amazon-Quick-on-behalf-of-<id>` (one id per
@@ -427,7 +434,7 @@ function augment(log) {
         ? log.set('identity', 'Cliqz')
         : log;
     case 'CCBot':
-      return hostname && hostname.endsWith('.compute-1.amazonaws.com')
+      return address && ccbotCidrs.some((cidr) => cidr.contains(address))
         ? log.set('identity', 'Common Crawl')
         : log;
     case 'TransferWise-Webhook':
