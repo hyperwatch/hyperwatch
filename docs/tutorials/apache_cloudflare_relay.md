@@ -10,6 +10,8 @@ Apache ──syslog :1514──> Hyperwatch 3.9.3 ──ws :3009 /logs/raw──
 (legacy server)          (legacy server)                          (new server)
 ```
 
+The stream between the servers is plain `ws://`, without authentication. Read [Security](#security) before running this over the public Internet.
+
 ### How the Cloudflare client address flows
 
 1. Cloudflare proxies the request to Apache, which sees a Cloudflare edge address as the client (`%h`), and the visitor's in the `CF-Connecting-IP` header.
@@ -95,6 +97,8 @@ ufw allow from <new-server> to any port 3009 proto tcp
 ```
 
 The syslog port (1514) only needs to be reachable from `127.0.0.1`: don't open it.
+
+The source address limits who can connect, not who can read the traffic: see [Security](#security).
 
 #### Why `/logs/raw` and not `/logs/main`
 
