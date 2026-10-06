@@ -8,6 +8,7 @@ const html = require('../app/html');
 // Run `node scripts/fetch-github-ips.js` to update the GitHub lists
 // Run `node scripts/fetch-meta-ips.js` to update the Meta list
 // Run `node scripts/fetch-commoncrawl-ips.js` to update the Common Crawl list
+// Run `node scripts/fetch-perplexity-ips.js` to update the Perplexity lists
 // The Amazon Quick list is copied by hand (see amazonQuickCidrs below)
 const amazonQuickIps = require('../data/amazon-quick-ips.json');
 const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
@@ -20,6 +21,8 @@ const githubIps = require('../data/github-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
 const metaIps = require('../data/meta-ips.json');
 const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
+const perplexityUserIps = require('../data/perplexity-user-ips.json');
+const perplexityBotIps = require('../data/perplexitybot-ips.json');
 const { Aggregator } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
 const { identityKey, safeHtml } = require('../lib/util');
@@ -45,6 +48,13 @@ const metaCidrs = metaIps.map((cidr) => new IPCIDR(cidr));
 // (https://index.commoncrawl.org/ccbot.json). It crawls from AWS, so a
 // *.compute-1.amazonaws.com hostname (any EC2 instance) proves nothing.
 const ccbotCidrs = ccbotIps.map((cidr) => new IPCIDR(cidr));
+
+// Perplexity's ranges, one list per agent
+// (https://www.perplexity.com/perplexitybot.json, /perplexity-user.json).
+// Its crawlers run on AWS, so a *.compute-1.amazonaws.com hostname (any EC2
+// instance) proves nothing.
+const perplexityBotCidrs = perplexityBotIps.map((cidr) => new IPCIDR(cidr));
+const perplexityUserCidrs = perplexityUserIps.map((cidr) => new IPCIDR(cidr));
 
 // Amazon Quick's Web Crawler, which customers point at their sites to build
 // knowledge bases. It sends `amazon-Quick-on-behalf-of-<id>` (one id per
@@ -443,7 +453,13 @@ function augment(log) {
         ? log.set('identity', 'Wise')
         : log;
     case 'PerplexityBot':
-      return hostname && hostname.endsWith('.compute-1.amazonaws.com')
+      return address &&
+        perplexityBotCidrs.some((cidr) => cidr.contains(address))
+        ? log.set('identity', 'Perplexity')
+        : log;
+    case 'Perplexity-User':
+      return address &&
+        perplexityUserCidrs.some((cidr) => cidr.contains(address))
         ? log.set('identity', 'Perplexity')
         : log;
 
