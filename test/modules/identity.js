@@ -3,6 +3,7 @@ const assert = require('assert');
 const { fromJS } = require('immutable');
 
 const html = require('../../src/app/html');
+const ccbotIps = require('../../src/data/ccbot-ips.json');
 const claudeBotIps = require('../../src/data/claude-bot-ips.json');
 const { logMatches } = require('../../src/lib/util');
 const identity = require('../../src/modules/identity.js');
@@ -60,11 +61,13 @@ describe('identity', () => {
   });
 
   describe('Common Crawl', () => {
-    it('should identify CCBot from a published range', () => {
-      for (const address of [
-        '2600:1f28:365:80b0:ab00:d07f:2f3c:34f3',
-        '18.97.9.170',
-      ]) {
+    // The first address of each range, so a refresh of ccbot-ips.json
+    // (`node scripts/fetch-commoncrawl-ips.js`) never breaks the tests
+    const published = ccbotIps.map((cidr) => cidr.split('/')[0]);
+
+    it('should identify CCBot from every published range', () => {
+      assert.ok(published.length > 0);
+      for (const address of published) {
         const result = identity.augment(log({ family: 'CCBot', address }));
         assert.strictEqual(result.get('identity'), 'Common Crawl');
       }
@@ -84,7 +87,7 @@ describe('identity', () => {
 
     it('should not identify another agent from a published range', () => {
       const result = identity.augment(
-        log({ family: 'Chrome', address: '18.97.9.170' })
+        log({ family: 'Chrome', address: published[0] })
       );
       assert.strictEqual(result.get('identity'), undefined);
     });
