@@ -3,6 +3,7 @@ const assert = require('assert');
 const { fromJS } = require('immutable');
 
 const html = require('../../src/app/html');
+const ccbotIps = require('../../src/data/ccbot-ips.json');
 const claudeBotIps = require('../../src/data/claude-bot-ips.json');
 const { logMatches } = require('../../src/lib/util');
 const identity = require('../../src/modules/identity.js');
@@ -57,6 +58,39 @@ describe('identity', () => {
         }
       }
     );
+  });
+
+  describe('Common Crawl', () => {
+    // The first address of each range, so a refresh of ccbot-ips.json
+    // (`node scripts/fetch-commoncrawl-ips.js`) never breaks the tests
+    const published = ccbotIps.map((cidr) => cidr.split('/')[0]);
+
+    it('should identify CCBot from every published range', () => {
+      assert.ok(published.length > 0);
+      for (const address of published) {
+        const result = identity.augment(log({ family: 'CCBot', address }));
+        assert.strictEqual(result.get('identity'), 'Common Crawl');
+      }
+    });
+
+    it('should not trust an EC2 hostname outside the published ranges', () => {
+      // Any EC2 instance in us-east-1 gets this PTR suffix
+      const result = identity.augment(
+        log({
+          family: 'CCBot',
+          address: '3.80.0.1',
+          hostname: 'ec2-3-80-0-1.compute-1.amazonaws.com',
+        })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should not identify another agent from a published range', () => {
+      const result = identity.augment(
+        log({ family: 'Chrome', address: published[0] })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
   });
 
   describe('Meta', () => {
