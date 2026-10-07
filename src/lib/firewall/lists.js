@@ -3,9 +3,13 @@
  * owning one Cloudflare custom rule. See docs/firewall.md.
  */
 const fs = require('fs');
-const net = require('net');
 
-const IPCIDR = require('ip-cidr').default;
+const {
+  compileRanges,
+  isValidAddress,
+  isValidCidr,
+  networkAddress,
+} = require('../cidr');
 
 const TYPES = ['ip', 'user_agent'];
 const ACTIONS = ['block', 'challenge', 'monitor'];
@@ -42,25 +46,23 @@ function canonicalIp(value) {
     throw new Error(`invalid IP "${value}"`);
   }
   if (!value.includes('/')) {
-    if (!IPCIDR.isValidAddress(value)) {
+    if (!isValidAddress(value)) {
       throw new Error(`invalid IP "${value}"`);
     }
     // Like the client addresses it's matched against: ::ffff:192.0.2.1 is
     // 192.0.2.1
     return clientAddress(value);
   }
-  if (!IPCIDR.isValidCIDR(value)) {
+  if (!isValidCidr(value)) {
     throw new Error(`invalid CIDR "${value}"`);
   }
   const [address, digits] = value.split('/');
   // 10.0.0.0/08 is 10.0.0.0/8
   const prefix = Number(digits);
-  // Canonical first: ip-cidr misreads the dotted form of mapped addresses
-  // (::ffff:192.0.2.0/120 as the single address 192.0.2.0)
+  // Both in canonical form, so the network address compares with the
+  // address as written (::ffff:192.0.2.0/120 stays IPv6 here)
   const canonical = canonicalAddress(address);
-  const network = canonicalAddress(
-    new IPCIDR(`${canonical}/${prefix}`).start()
-  );
+  const network = canonicalAddress(networkAddress(`${canonical}/${prefix}`));
   if (canonical !== network) {
     throw new Error(
       `CIDR "${value}" has host bits set, did you mean "${network}/${prefix}"?`
@@ -199,32 +201,24 @@ function save(path, data) {
 
 function compileList(list) {
   if (list.type === 'ip') {
-    const addresses = new Set();
-    const cidrs = [];
-    for (const { value } of list.entries) {
-      if (value.includes('/')) {
-        const cidr = new IPCIDR(value);
-        // ip-cidr finds IPv6 addresses in 0.0.0.0/0, and IPv4 in ::/0
-        cidrs.push({ cidr, v4: net.isIPv4(cidr.start()) });
-      } else {
-        addresses.add(value);
-      }
-    }
+    const values = list.entries.map((entry) => entry.value);
+    const addresses = new Set(values.filter((value) => !value.includes('/')));
+    // An address only matches ranges of its own family: no IPv6 address in
+    // 0.0.0.0/0, no IPv4 one in ::/0
+    const inRanges = compileRanges(
+      values.filter((value) => value.includes('/'))
+    );
     return (log) => {
       const address =
         log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
-      if (!address || !IPCIDR.isValidAddress(address)) {
+      if (!address || !isValidAddress(address)) {
         return null;
       }
       const canonical = clientAddress(address);
       if (addresses.has(canonical)) {
         return canonical;
       }
-      const v4 = net.isIPv4(canonical);
-      const match = cidrs.find(
-        ({ cidr, v4: family }) => family === v4 && cidr.contains(canonical)
-      );
-      return match ? match.cidr.toString() : null;
+      return inRanges(canonical);
     };
   }
 

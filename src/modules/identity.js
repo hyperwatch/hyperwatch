@@ -1,5 +1,3 @@
-const IPCIDR = require('ip-cidr').default;
-
 const api = require('../app/api');
 const html = require('../app/html');
 // Bot IP lists for identity verification
@@ -24,44 +22,60 @@ const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
 const perplexityUserIps = require('../data/perplexity-user-ips.json');
 const perplexityBotIps = require('../data/perplexitybot-ips.json');
 const { Aggregator } = require('../lib/aggregator');
+const { compileRanges } = require('../lib/cidr');
 const pipeline = require('../lib/pipeline');
 const { identityKey, safeHtml } = require('../lib/util');
 
 // Anthropic publishes one list of ranges covering all Claude crawlers.
 // Reverse DNS is not usable here: Claude crawlers run on shared cloud
 // infrastructure, so their PTR records are not Anthropic-controlled.
-const claudeBotCidrs = claudeBotIps.map((cidr) => new IPCIDR(cidr));
+const claudeBotCidrs = compileRanges(claudeBotIps);
 
 // github-camo (the proxy behind README images) is identified from the ranges
 // GitHub runs its own services from, and from 9.234.0.0/17, where it fetches
 // from in production (October 2026). https://api.github.com/meta lists that
 // range under `actions`: Actions runners there run any GitHub user's
 // workflows, which can send the same user agent.
-const githubCamoCidrs = [...githubIps, '9.234.0.0/17'].map(
-  (cidr) => new IPCIDR(cidr)
-);
+const githubCamoCidrs = compileRanges([...githubIps, '9.234.0.0/17']);
 
 // Meta's network (AS32934), as its crawler documentation says to check it.
-const metaCidrs = metaIps.map((cidr) => new IPCIDR(cidr));
+const metaCidrs = compileRanges(metaIps);
 
 // Common Crawl's CCBot, from the ranges it publishes
 // (https://index.commoncrawl.org/ccbot.json). It crawls from AWS, so a
 // *.compute-1.amazonaws.com hostname (any EC2 instance) proves nothing.
-const ccbotCidrs = ccbotIps.map((cidr) => new IPCIDR(cidr));
+const ccbotCidrs = compileRanges(ccbotIps);
 
 // Perplexity's ranges, one list per agent
 // (https://www.perplexity.com/perplexitybot.json, /perplexity-user.json).
 // Its crawlers run on AWS, so a *.compute-1.amazonaws.com hostname (any EC2
 // instance) proves nothing.
-const perplexityBotCidrs = perplexityBotIps.map((cidr) => new IPCIDR(cidr));
-const perplexityUserCidrs = perplexityUserIps.map((cidr) => new IPCIDR(cidr));
+const perplexityBotCidrs = compileRanges(perplexityBotIps);
+const perplexityUserCidrs = compileRanges(perplexityUserIps);
 
 // Amazon Quick's Web Crawler, which customers point at their sites to build
 // knowledge bases. It sends `amazon-Quick-on-behalf-of-<id>` (one id per
 // customer) from one /27 per region. The ranges are only published as a table
 // in https://docs.aws.amazon.com/quick/latest/userguide/regions.html (not in
 // AWS's ip-ranges.json): copied from there in October 2026.
-const amazonQuickCidrs = amazonQuickIps.map((cidr) => new IPCIDR(cidr));
+const amazonQuickCidrs = compileRanges(amazonQuickIps);
+
+// Lists that were parsed again on every request
+const amazonBotCidrs = compileRanges(amazonBotIps);
+const amazonSearchBotCidrs = compileRanges(amazonSearchBotIps);
+const amazonUserCidrs = compileRanges(amazonUserIps);
+const openaiSearchbotCidrs = compileRanges(openaiSearchbotIps);
+const gptbotCidrs = compileRanges(gptbotIps);
+const chatgptUserCidrs = compileRanges(chatgptUserIps);
+
+// Single ranges written inline below, each compiled once
+const inlineRanges = new Map();
+function inCidr(cidr, address) {
+  if (!inlineRanges.has(cidr)) {
+    inlineRanges.set(cidr, compileRanges([cidr]));
+  }
+  return inlineRanges.get(cidr)(address) !== null;
+}
 
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
@@ -127,7 +141,7 @@ function augment(log) {
       // (85.208.98.0/24, announced by AS209366)
       if (
         (verifiedHostname && verifiedHostname.endsWith('.semrush.com')) ||
-        (address && new IPCIDR('85.208.98.0/24').contains(address))
+        (address && inCidr('85.208.98.0/24', address))
       ) {
         return log.set('identity', 'Semrush');
       }
@@ -303,21 +317,21 @@ function augment(log) {
         : log;
     case 'Amazonbot':
       return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
-        amazonBotIps.some((cidr) => new IPCIDR(cidr).contains(address))
+        amazonBotCidrs(address)
         ? log.set('identity', 'Amazonbot')
         : log;
     case 'Amzn-SearchBot':
       return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
-        amazonSearchBotIps.some((cidr) => new IPCIDR(cidr).contains(address))
+        amazonSearchBotCidrs(address)
         ? log.set('identity', 'Amazon SearchBot')
         : log;
     case 'amazon-Quick-on-behalf-of':
-      return amazonQuickCidrs.some((cidr) => cidr.contains(address))
+      return amazonQuickCidrs(address)
         ? log.set('identity', 'Amazon Quick')
         : log;
     case 'Amzn-User':
       return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
-        amazonUserIps.some((cidr) => new IPCIDR(cidr).contains(address))
+        amazonUserCidrs(address)
         ? log.set('identity', 'Amazon User')
         : log;
     case 'SERankingBacklinksBot':
@@ -344,77 +358,69 @@ function augment(log) {
     // Per hostname + CIDR
     case 'Twitterbot':
       return (hostname && hostname.endsWith('.twttr.com')) ||
-        (address && new IPCIDR('199.16.156.0/22').contains(address))
+        (address && inCidr('199.16.156.0/22', address))
         ? log.set('identity', 'Twitter')
         : log;
     case 'SeznamBot':
       return (hostname && hostname.endsWith('.seznam.cz')) ||
-        (address && new IPCIDR('2a02:598::/32').contains(address))
+        (address && inCidr('2a02:598::/32', address))
         ? log.set('identity', 'Seznam')
         : log;
     case 'FacebookBot':
       return (hostname && hostname.endsWith('.fbsv.net')) ||
-        (address && metaCidrs.some((cidr) => cidr.contains(address)))
+        (address && metaCidrs(address))
         ? log.set('identity', 'Facebook')
         : log;
 
     // Per CIDR
     case 'github-camo':
       // https://api.github.com/meta
-      return address && githubCamoCidrs.some((cidr) => cidr.contains(address))
+      return address && githubCamoCidrs(address)
         ? log.set('identity', 'GitHub Camo')
         : log;
     case 'DotBot':
-      return address && new IPCIDR('216.244.64.0/19').contains(address)
+      return address && inCidr('216.244.64.0/19', address)
         ? log.set('identity', 'Moz')
         : log;
     case 'AliyunSecBot':
-      return address && new IPCIDR('8.217.0.0/16').contains(address)
+      return address && inCidr('8.217.0.0/16', address)
         ? log.set('identity', family)
         : log;
     case '360Spider':
-      return address && new IPCIDR('42.236.10.0/24').contains(address)
+      return address && inCidr('42.236.10.0/24', address)
         ? log.set('identity', family)
         : log;
     case 'Daum':
-      return address && new IPCIDR('203.133.160.0/19').contains(address)
+      return address && inCidr('203.133.160.0/19', address)
         ? log.set('identity', family)
         : log;
     case 'LinkupBot':
       // https://www.linkup.so/linkupbot-ips.txt
-      return address && new IPCIDR('35.198.113.100/32').contains(address)
+      return address && inCidr('35.198.113.100/32', address)
         ? log.set('identity', 'Linkup')
         : log;
     case 'OAI-SearchBot':
-      return openaiSearchbotIps.some((cidr) =>
-        new IPCIDR(cidr).contains(address)
-      )
+      return openaiSearchbotCidrs(address)
         ? log.set('identity', 'OpenAI SearchBot')
         : log;
     case 'GPTBot':
-      return gptbotIps.some((cidr) => new IPCIDR(cidr).contains(address))
-        ? log.set('identity', 'OpenAI GPTBot')
-        : log;
+      return gptbotCidrs(address) ? log.set('identity', 'OpenAI GPTBot') : log;
     case 'ChatGPT-User':
       // https://openai.com/chatgpt-user.json
-      return chatgptUserIps.some((cidr) => new IPCIDR(cidr).contains(address))
-        ? log.set('identity', 'ChatGPT')
-        : log;
+      return chatgptUserCidrs(address) ? log.set('identity', 'ChatGPT') : log;
     case 'ClaudeBot':
     case 'Claude-User':
     case 'Claude-SearchBot':
     case 'Claude-Web':
     case 'anthropic-ai':
       // https://claude.com/crawling/bots.json
-      return address && claudeBotCidrs.some((cidr) => cidr.contains(address))
+      return address && claudeBotCidrs(address)
         ? log.set('identity', 'Claude')
         : log;
     case 'meta-externalagent':
     case 'meta-webindexer':
     case 'Hyperlink':
-      return address && metaCidrs.some((cidr) => cidr.contains(address))
-        ? log.set('identity', 'Meta')
-        : log;
+      return address && metaCidrs(address) ? log.set('identity', 'Meta') : log;
 
     // EC2
     case 'Raven':
@@ -444,7 +450,7 @@ function augment(log) {
         ? log.set('identity', 'Cliqz')
         : log;
     case 'CCBot':
-      return address && ccbotCidrs.some((cidr) => cidr.contains(address))
+      return address && ccbotCidrs(address)
         ? log.set('identity', 'Common Crawl')
         : log;
     case 'TransferWise-Webhook':
@@ -453,13 +459,11 @@ function augment(log) {
         ? log.set('identity', 'Wise')
         : log;
     case 'PerplexityBot':
-      return address &&
-        perplexityBotCidrs.some((cidr) => cidr.contains(address))
+      return address && perplexityBotCidrs(address)
         ? log.set('identity', 'Perplexity')
         : log;
     case 'Perplexity-User':
-      return address &&
-        perplexityUserCidrs.some((cidr) => cidr.contains(address))
+      return address && perplexityUserCidrs(address)
         ? log.set('identity', 'Perplexity')
         : log;
 
