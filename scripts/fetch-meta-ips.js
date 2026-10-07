@@ -2,7 +2,7 @@ const fs = require('fs');
 const net = require('net');
 const path = require('path');
 
-const IPCIDR = require('ip-cidr').default;
+const { inRange, parseCidr } = require('../src/lib/cidr');
 
 const dataDir = path.join(__dirname, '..', 'src', 'data');
 
@@ -44,7 +44,7 @@ function extractCidrs(response) {
 function removeNested(cidrs) {
   const ranges = cidrs.map((cidr) => {
     const [address, bits] = cidr.split('/');
-    return { address, bits: Number(bits), range: new IPCIDR(cidr) };
+    return { address, bits: Number(bits), range: parseCidr(cidr) };
   });
   return cidrs.filter((cidr, i) => {
     const { address, bits } = ranges[i];
@@ -54,7 +54,7 @@ function removeNested(cidrs) {
         other.bits <= bits &&
         // Same prefix length: the same range written twice, keep the first
         (other.bits < bits || j < i) &&
-        other.range.contains(address)
+        inRange(other.range, address)
     );
   });
 }
