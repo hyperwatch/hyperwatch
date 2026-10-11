@@ -12,7 +12,7 @@ Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases)
 
 ### Dependencies & tooling
 
-- `ip-cidr` replaced by `ip-address` 10, through a new `src/lib/cidr.js`. This removes the vulnerable `ip-address` 9 and `sprintf-js` 1.1.3 that `ip-cidr` pulled in ([#638](https://github.com/hyperwatch/hyperwatch/pull/638)). Range lists are now compiled once instead of on every request. An address never matches a range of the other family, and IPv4-mapped IPv6 addresses (`::ffff:192.0.2.1`) are matched as IPv4. ([#639](https://github.com/hyperwatch/hyperwatch/pull/639))
+- `ip-cidr` replaced by `ip-address` 10, through a new `src/lib/cidr.js`. This removes the vulnerable `ip-address` 9 and `sprintf-js` 1.1.3 that `ip-cidr` pulled in ([#638](https://github.com/hyperwatch/hyperwatch/issues/638)). Range lists are now compiled once instead of on every request. An address never matches a range of the other family, and IPv4-mapped IPv6 addresses (`::ffff:192.0.2.1`) are matched as IPv4. ([#639](https://github.com/hyperwatch/hyperwatch/pull/639))
 - `@hyperwatch/useragent` updated to 4.0.1: Edge for iOS with `Version/` after the agent, and iOS apps with a `[Name]/version` suffix, are now parsed correctly. ([#640](https://github.com/hyperwatch/hyperwatch/pull/640))
 - Dependency updates: `@aws-sdk/client-s3`, eslint, eslint-plugin-n, globals, mocha, source-map-js.
 

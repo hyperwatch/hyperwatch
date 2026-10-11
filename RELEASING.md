@@ -2,7 +2,7 @@
 
 How to release a new version of `@hyperwatch/hyperwatch`.
 
-Releases are cut from `origin/main` only: anything not merged into `main` doesn't ship. Each release is one commit `version X.Y.Z` that only bumps the version, an annotated tag `vX.Y.Z` on it, a publish to npm, and a GitHub release. There is no CHANGELOG file: the GitHub release notes are the changelog.
+Releases are cut from `origin/main` only: anything not merged into `main` doesn't ship. Each release is one commit `version X.Y.Z` that bumps the version and adds the release notes to [CHANGELOG.md](CHANGELOG.md), an annotated tag `vX.Y.Z` on it, a publish to npm, and a GitHub release with the same notes.
 
 You need push access to `main`, publish rights on the npm package (with 2FA), and the [GitHub CLI](https://cli.github.com/).
 
@@ -51,17 +51,21 @@ Write the notes in Markdown, in these sections (skip the empty ones):
 - **Identities**
 - **Dependencies & tooling**, with the dependabot bumps summarized in one line
 
-Link PR numbers as `#NNN`; GitHub turns them into links.
+Link PR numbers in full, as `([#NNN](https://github.com/hyperwatch/hyperwatch/pull/NNN))`: GitHub doesn't turn a bare `#NNN` into a link in a Markdown file.
 
 Choose the version with [semver](https://semver.org/). Raising the required Node.js version, or changing the Express major version behind `hyperwatch.app.api`, is a major bump.
 
-## 5. Bump the version
+## 5. Update the changelog and bump the version
+
+Add the notes at the top of `CHANGELOG.md`, under a `## X.Y.Z (YYYY-MM-DD)` heading, with one `###` heading per section. Then:
 
 ```bash
-npm version X.Y.Z -m "version %s"
+npm version X.Y.Z --no-git-tag-version
+git commit -am "version X.Y.Z"
+git tag -a vX.Y.Z -m "version X.Y.Z"
 ```
 
-This updates `package.json` and `package-lock.json`, commits them as `version X.Y.Z`, and creates the tag `vX.Y.Z`.
+This updates `package.json` and `package-lock.json`, commits them with `CHANGELOG.md` as `version X.Y.Z`, and creates the tag `vX.Y.Z`. `npm version` refuses to commit and tag when the working tree has other changes, hence `--no-git-tag-version` and the manual commit and tag, which match what it would create.
 
 ## 6. Push to main
 
@@ -83,7 +87,7 @@ Check the result with `npm view @hyperwatch/hyperwatch dist-tags`: `latest` shou
 
 ## 8. Create the GitHub release
 
-Save the notes from step 4 to a file outside the worktree (an untracked file there would block the cleanup in step 9), then:
+Save the release's section of `CHANGELOG.md`, without its `## X.Y.Z` heading, to a file outside the worktree (an untracked file there would block the cleanup in step 9), then:
 
 ```bash
 gh release create vX.Y.Z --repo hyperwatch/hyperwatch --title "X.Y.Z" --notes-file ../hyperwatch-vX.Y.Z-notes.md --latest --verify-tag
