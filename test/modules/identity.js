@@ -5,6 +5,8 @@ const { fromJS } = require('immutable');
 const html = require('../../src/app/html');
 const ccbotIps = require('../../src/data/ccbot-ips.json');
 const claudeBotIps = require('../../src/data/claude-bot-ips.json');
+const keenableUserIps = require('../../src/data/keenable-user-ips.json');
+const keenableBotIps = require('../../src/data/keenablebot-ips.json');
 const perplexityUserIps = require('../../src/data/perplexity-user-ips.json');
 const perplexityBotIps = require('../../src/data/perplexitybot-ips.json');
 const { logMatches } = require('../../src/lib/util');
@@ -143,6 +145,50 @@ describe('identity', () => {
     it('should check each agent against its own list', () => {
       const result = identity.augment(
         log({ family: 'Perplexity-User', address: first(perplexityBotIps)[0] })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
+  describe('Keenable', () => {
+    // The first address of each published range, so a refresh
+    // (`node scripts/fetch-keenable-ips.js`) never breaks the tests
+    const first = (ranges) => ranges.map((cidr) => cidr.split('/')[0]);
+
+    it('should identify KeenableBot from every published range', () => {
+      assert.ok(keenableBotIps.length > 0);
+      for (const address of first(keenableBotIps)) {
+        const result = identity.augment(
+          log({ family: 'KeenableBot', address })
+        );
+        assert.strictEqual(result.get('identity'), 'Keenable');
+      }
+    });
+
+    it('should identify Keenable-User from every published range', () => {
+      assert.ok(keenableUserIps.length > 0);
+      for (const address of first(keenableUserIps)) {
+        const result = identity.augment(
+          log({ family: 'Keenable-User', address })
+        );
+        assert.strictEqual(result.get('identity'), 'Keenable');
+      }
+    });
+
+    it('should not trust a Google Cloud hostname outside the published ranges', () => {
+      const result = identity.augment(
+        log({
+          family: 'KeenableBot',
+          address: '35.202.236.104',
+          hostname: '104.236.202.35.bc.googleusercontent.com',
+        })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should check each agent against its own list', () => {
+      const result = identity.augment(
+        log({ family: 'Keenable-User', address: first(keenableBotIps)[0] })
       );
       assert.strictEqual(result.get('identity'), undefined);
     });

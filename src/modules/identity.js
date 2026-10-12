@@ -7,6 +7,7 @@ const html = require('../app/html');
 // Run `node scripts/fetch-meta-ips.js` to update the Meta list
 // Run `node scripts/fetch-commoncrawl-ips.js` to update the Common Crawl list
 // Run `node scripts/fetch-perplexity-ips.js` to update the Perplexity lists
+// Run `node scripts/fetch-keenable-ips.js` to update the Keenable lists
 // The Amazon Quick list is copied by hand (see amazonQuickCidrs below)
 const amazonQuickIps = require('../data/amazon-quick-ips.json');
 const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
@@ -17,6 +18,8 @@ const chatgptUserIps = require('../data/chatgpt-user-ips.json');
 const claudeBotIps = require('../data/claude-bot-ips.json');
 const githubIps = require('../data/github-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
+const keenableUserIps = require('../data/keenable-user-ips.json');
+const keenableBotIps = require('../data/keenablebot-ips.json');
 const metaIps = require('../data/meta-ips.json');
 const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
 const perplexityUserIps = require('../data/perplexity-user-ips.json');
@@ -52,6 +55,13 @@ const ccbotCidrs = compileRanges(ccbotIps);
 // instance) proves nothing.
 const perplexityBotCidrs = compileRanges(perplexityBotIps);
 const perplexityUserCidrs = compileRanges(perplexityUserIps);
+
+// Keenable's addresses, one list per agent
+// (https://app.keenable.ai/bot/keenablebot.json, /keenable-user.json).
+// Its crawlers run on Google Cloud, so a *.googleusercontent.com hostname
+// (any Compute Engine instance) proves nothing.
+const keenableBotCidrs = compileRanges(keenableBotIps);
+const keenableUserCidrs = compileRanges(keenableUserIps);
 
 // Amazon Quick's Web Crawler, which customers point at their sites to build
 // knowledge bases. It sends `amazon-Quick-on-behalf-of-<id>` (one id per
@@ -468,6 +478,14 @@ function augment(log) {
         : log;
 
     // GCE
+    case 'KeenableBot':
+      return address && keenableBotCidrs(address)
+        ? log.set('identity', 'Keenable')
+        : log;
+    case 'Keenable-User':
+      return address && keenableUserCidrs(address)
+        ? log.set('identity', 'Keenable')
+        : log;
     case 'Aranet-SearchBot':
       return hostname && hostname.endsWith('.googleusercontent.com')
         ? log.set('identity', 'Aranet')
