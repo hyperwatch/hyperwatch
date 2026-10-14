@@ -92,17 +92,27 @@ function isUnder(pathname, path) {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
+// The navigation's sections, in order: the registered ones of `order`, and
+// the others placed before or after their anchor, among registered sections
+// only. Sections placed after the same anchor keep their registration order.
+// A section whose anchor isn't registered goes last.
 function navSections() {
-  const names = [...order];
+  const names = order.filter((name) => sections.has(name));
+  const lastAfter = new Map();
   for (const [name, { before, after }] of positions) {
-    const index = names.indexOf(before || after);
+    const index = before
+      ? names.indexOf(before)
+      : names.indexOf(lastAfter.get(after) || after);
     if (index === -1) {
       names.push(name);
     } else {
       names.splice(before ? index : index + 1, 0, name);
+      if (!before) {
+        lastAfter.set(after, name);
+      }
     }
   }
-  return names.filter((name) => sections.has(name));
+  return names;
 }
 
 function nav(req) {
