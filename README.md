@@ -52,7 +52,7 @@ To tag requests from listed IPs and User-Agents, and sync those lists with Cloud
 npm start config/custom
 ```
 
-The Hyperwatch API and WebSocket will be served from port `3000` by default. Open `http://localhost:3000/` to check the status of your inputs. The top navigation links to the addresses, identities and logs pages of the active modules, and to `/pipeline`, which shows how the pipeline is set up: inputs, nodes, and what runs on each.
+The Hyperwatch API and WebSocket will be served from port `3000` by default. Open `http://localhost:3000/` to check the status of your inputs. The top navigation links to the addresses, identities and logs pages of the active modules, and to `/pipeline`, which shows how the pipeline is set up: inputs, nodes, and what runs on each. An application's own aggregators join it with `app.api.registerAggregator(name, aggregator, { nav: true })`, before logs, or `{ nav: { after: 'logs' } }` (`before` or `after` any section).
 
 You can change that using an environment variable:
 

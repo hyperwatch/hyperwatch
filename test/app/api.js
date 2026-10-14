@@ -77,6 +77,9 @@ describe('API navigation', () => {
 
   before(async () => {
     api.registerAggregator('identities', aggregator, { nav: true });
+    api.registerAggregator('operations', aggregator, { nav: true });
+    api.registerAggregator('queries', aggregator, { nav: { after: 'logs' } });
+    html.registerSection('logs', 'logs/main');
     status.start();
 
     const app = express();
@@ -97,6 +100,14 @@ describe('API navigation', () => {
     const body = await response.text();
     assert.match(body, /<nav><a href="\.\/" class="active">hyperwatch<\/a>/);
     assert.match(body, /<a href="identities">identities<\/a>/);
+  });
+
+  it('links other aggregators before logs, or where they ask', async () => {
+    const body = await (await fetch(`${baseUrl}/`)).text();
+    assert.match(
+      body,
+      /<a href="identities">identities<\/a><a href="operations">operations<\/a><a href="logs\/main">logs<\/a><a href="queries">queries<\/a><a href="pipeline">pipeline<\/a><\/nav>/
+    );
   });
 
   it('says when an aggregator has no entries yet', async () => {
