@@ -2,6 +2,20 @@
 
 Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases). Versions before 5.0.0 have no entry: see the git history.
 
+## 5.3.3 (2026-10-14)
+
+### Identities
+
+- `KeenableBot` and `Keenable-User` are identified as `Keenable` from the address lists Keenable publishes for each agent (`src/data/keenablebot-ips.json`, `keenable-user-ips.json`, refreshed by `scripts/fetch-keenable-ips.js`). Keenable crawls from Google Cloud, so its hostname proves nothing. ([#642](https://github.com/hyperwatch/hyperwatch/pull/642))
+
+### Navigation
+
+- An application's own aggregators can be linked in the top navigation: `registerAggregator(name, aggregator, { nav: true })` places the link before logs, and `nav: { before: <section> }` or `nav: { after: <section> }` places it next to another section. Sections after the same anchor keep their registration order, and a section whose anchor isn't registered goes last. A section is marked active under its name or under the page its link opens. ([#646](https://github.com/hyperwatch/hyperwatch/pull/646))
+
+### Dependencies & tooling
+
+- Dependency updates: `@aws-sdk/client-s3`, express 5.3.0, prettier.
+
 ## 5.3.2 (2026-10-09)
 
 ### Identities
