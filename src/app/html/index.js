@@ -16,17 +16,27 @@ const followScript = read('scripts/follow.js');
 
 // Layout
 
-// Sections shown in the top navigation, in this order, once registered
+// Sections shown in the top navigation, in this order, once registered.
+// Others (e.g. an application's own aggregators) go before or after one of
+// them (see registerSection), by default before logs.
 const order = ['addresses', 'identities', 'logs', 'pipeline'];
 // Section name → the page its navigation link opens
 const sections = new Map();
+// Section name → its place in the navigation, for sections not in `order`
+const positions = new Map();
 // Aggregator sections, whose links keep the selected period
 const periodSections = new Set();
 // Aggregator pages with an identity filter (see aggregatorView)
 const identityFilterSections = new Set();
 
-function registerSection(name, href = name) {
+// position: { before: name } or { after: name }, for a section that isn't
+// in `order`
+function registerSection(name, href = name, position = { before: 'logs' }) {
   sections.set(name, href);
+  // status is the home link, not a section of its own
+  if (name !== 'status' && !order.includes(name)) {
+    positions.set(name, position);
+  }
 }
 
 function hasSection(name) {
@@ -82,6 +92,47 @@ function isUnder(pathname, path) {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
+// The navigation's sections, in order: the registered ones of `order`, and
+// the others placed before or after their anchor, among registered sections
+// only, once that anchor is placed (it can be placed itself, and registered
+// later). Sections placed after the same anchor keep their registration order.
+// A section whose anchor isn't registered, or never gets placed, goes last.
+function navSections() {
+  const names = order.filter((name) => sections.has(name));
+  const lastAfter = new Map();
+  let pending = [...positions];
+  let placed = true;
+  while (pending.length && placed) {
+    placed = false;
+    const waiting = [];
+    for (const [name, position] of pending) {
+      const { before, after } = position;
+      const anchor = before || after;
+      const index = before
+        ? names.indexOf(before)
+        : names.indexOf(lastAfter.get(after) || after);
+      if (index === -1) {
+        // Wait for a registered anchor; one that isn't registered goes last
+        if (sections.has(anchor)) {
+          waiting.push([name, position]);
+        } else {
+          names.push(name);
+          placed = true;
+        }
+        continue;
+      }
+      names.splice(before ? index : index + 1, 0, name);
+      if (!before) {
+        lastAfter.set(after, name);
+      }
+      placed = true;
+    }
+    pending = waiting;
+  }
+  // Anchors that never get placed (sections anchored to each other)
+  return names.concat(pending.map(([name]) => name));
+}
+
 function nav(req) {
   const home = req.path === '/' || isUnder(req.path, '/status');
   // The home page is the status page, when the status module is active
@@ -90,8 +141,13 @@ function nav(req) {
       ? link('./', 'hyperwatch', home ? 'active' : null)
       : '<span>hyperwatch</span>',
   ];
-  for (const name of order.filter((name) => sections.has(name))) {
-    const active = isUnder(req.path, `/${name}`);
+  for (const name of navSections()) {
+    // Active under its name, or under the page its link opens (an href that
+    // doesn't start with the name, e.g. admin/reports)
+    const href = sections.get(name);
+    const active =
+      isUnder(req.path, `/${name}`) ||
+      isUnder(req.path, `/${href.split(/[?#]/)[0]}`);
     // Aggregator pages keep the period and identity filter
     const query = new URLSearchParams();
     if (periodSections.has(name) && periodOf(req) === '24h') {
@@ -103,7 +159,7 @@ function nav(req) {
     const search = query.toString();
     links.push(
       link(
-        `${sections.get(name)}${search ? `?${search}` : ''}`,
+        `${href}${search ? `?${search}` : ''}`,
         name,
         active ? 'active' : null
       )
@@ -300,7 +356,8 @@ function shortenLastSeen(rows) {
 
 /**
  * The HTML view of an aggregator: render(req, { rows, sorters, sort }).
- * - nav: link the page in the top navigation
+ * - nav: link the page in the top navigation: true (before logs), or
+ *   { before: name } / { after: name } of another section
  * - identityFilter: switch between all, identified and unidentified entries
  *   (?filter=), for aggregators whose entries have an identity
  * - columns: the columns of the table, in order. A column without a period
@@ -313,7 +370,7 @@ function aggregatorView(
   { nav = false, columns, identityFilter = false } = {}
 ) {
   if (nav) {
-    registerSection(name);
+    registerSection(name, name, nav === true ? undefined : nav);
     periodSections.add(name);
   }
   if (identityFilter) {
