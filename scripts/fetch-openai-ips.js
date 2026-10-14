@@ -13,6 +13,7 @@ async function fetchAndStore({ name, url }) {
   const res = await fetch(url);
   if (!res.ok) {
     console.error(`Failed to fetch ${name}: ${res.status} ${res.statusText}`);
+    process.exitCode = 1;
     return;
   }
   const data = await res.json();
@@ -31,4 +32,7 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

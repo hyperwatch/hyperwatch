@@ -7,6 +7,11 @@ async function main() {
   const response = await fetch(
     'https://ip-ranges.amazonaws.com/ip-ranges.json'
   );
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch AWS ip-ranges: ${response.status} ${response.statusText}`
+    );
+  }
   const ipRanges = await response.json();
 
   const ipv4 = ipRanges.prefixes
@@ -26,4 +31,7 @@ async function main() {
   );
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
