@@ -548,6 +548,15 @@ describe('API identity filter', () => {
     );
   });
 
+  it('marks a section active under the page its link opens', () => {
+    html.registerSection('admin-reports', 'admin/reports');
+    const nav = html.nav({ path: '/admin/reports', query: {} });
+    assert.match(
+      nav,
+      /<a href="admin\/reports" class="active">admin-reports<\/a>/
+    );
+  });
+
   it('has no filters on other aggregators', async () => {
     const body = await (await fetch(`${baseUrl}/no-filter-test`)).text();
     assert.doesNotMatch(body, /Unidentified/);

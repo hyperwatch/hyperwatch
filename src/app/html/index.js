@@ -142,7 +142,12 @@ function nav(req) {
       : '<span>hyperwatch</span>',
   ];
   for (const name of navSections()) {
-    const active = isUnder(req.path, `/${name}`);
+    // Active under its name, or under the page its link opens (an href that
+    // doesn't start with the name, e.g. admin/reports)
+    const href = sections.get(name);
+    const active =
+      isUnder(req.path, `/${name}`) ||
+      isUnder(req.path, `/${href.split(/[?#]/)[0]}`);
     // Aggregator pages keep the period and identity filter
     const query = new URLSearchParams();
     if (periodSections.has(name) && periodOf(req) === '24h') {
@@ -154,7 +159,7 @@ function nav(req) {
     const search = query.toString();
     links.push(
       link(
-        `${sections.get(name)}${search ? `?${search}` : ''}`,
+        `${href}${search ? `?${search}` : ''}`,
         name,
         active ? 'active' : null
       )
