@@ -6,6 +6,18 @@ Releases are cut from `origin/main` only: anything not merged into `main` doesn'
 
 You need push access to `main`, publish rights on the npm package (with 2FA), and the [GitHub CLI](https://cli.github.com/).
 
+## Before you start: refresh the published ranges
+
+Several identities are checked against address lists their operators publish (`src/data/*-ips.json`). Refresh them all before each release, so it ships with current ranges. From a branch off `origin/main`:
+
+```bash
+for script in scripts/fetch-*.js; do node "$script"; done
+npx prettier --write src/data
+git status --short src/data
+```
+
+If any list changed, run `npm test`, then open a PR "Refresh the published IP ranges" with a table of the ranges added and removed per list, and the lists left unchanged (as in [#636](https://github.com/hyperwatch/hyperwatch/pull/636)). Merge it before step 1, and mention it under **Identities** in the release notes. If nothing changed, go on.
+
 ## 1. Prepare a clean worktree
 
 Release from a separate worktree, so your usual checkout and whatever branch it's on stay untouched:
