@@ -78,6 +78,10 @@ describe('API navigation', () => {
   before(async () => {
     api.registerAggregator('identities', aggregator, { nav: true });
     api.registerAggregator('operations', aggregator, { nav: true });
+    // Anchored to a section registered after it
+    api.registerAggregator('alerts', aggregator, {
+      nav: { before: 'queries' },
+    });
     api.registerAggregator('queries', aggregator, { nav: { after: 'logs' } });
     api.registerAggregator('mutations', aggregator, { nav: { after: 'logs' } });
     // addresses is in the built-in order but not registered here
@@ -109,11 +113,12 @@ describe('API navigation', () => {
 
   it('links other aggregators before logs, or where they ask', async () => {
     const body = await (await fetch(`${baseUrl}/`)).text();
-    // queries and mutations, both after logs, in registration order; reports,
-    // before an unregistered section, last
+    // queries and mutations, both after logs, in registration order; alerts
+    // before queries, registered later; reports, before an unregistered
+    // section, last
     assert.match(
       body,
-      /<a href="identities">identities<\/a><a href="operations">operations<\/a><a href="logs\/main">logs<\/a><a href="queries">queries<\/a><a href="mutations">mutations<\/a><a href="pipeline">pipeline<\/a><a href="reports">reports<\/a><\/nav>/
+      /<a href="identities">identities<\/a><a href="operations">operations<\/a><a href="logs\/main">logs<\/a><a href="alerts">alerts<\/a><a href="queries">queries<\/a><a href="mutations">mutations<\/a><a href="pipeline">pipeline<\/a><a href="reports">reports<\/a><\/nav>/
     );
   });
 

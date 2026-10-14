@@ -94,25 +94,43 @@ function isUnder(pathname, path) {
 
 // The navigation's sections, in order: the registered ones of `order`, and
 // the others placed before or after their anchor, among registered sections
-// only. Sections placed after the same anchor keep their registration order.
-// A section whose anchor isn't registered goes last.
+// only, once that anchor is placed (it can be placed itself, and registered
+// later). Sections placed after the same anchor keep their registration order.
+// A section whose anchor isn't registered, or never gets placed, goes last.
 function navSections() {
   const names = order.filter((name) => sections.has(name));
   const lastAfter = new Map();
-  for (const [name, { before, after }] of positions) {
-    const index = before
-      ? names.indexOf(before)
-      : names.indexOf(lastAfter.get(after) || after);
-    if (index === -1) {
-      names.push(name);
-    } else {
+  let pending = [...positions];
+  let placed = true;
+  while (pending.length && placed) {
+    placed = false;
+    const waiting = [];
+    for (const [name, position] of pending) {
+      const { before, after } = position;
+      const anchor = before || after;
+      const index = before
+        ? names.indexOf(before)
+        : names.indexOf(lastAfter.get(after) || after);
+      if (index === -1) {
+        // Wait for a registered anchor; one that isn't registered goes last
+        if (sections.has(anchor)) {
+          waiting.push([name, position]);
+        } else {
+          names.push(name);
+          placed = true;
+        }
+        continue;
+      }
       names.splice(before ? index : index + 1, 0, name);
       if (!before) {
         lastAfter.set(after, name);
       }
+      placed = true;
     }
+    pending = waiting;
   }
-  return names;
+  // Anchors that never get placed (sections anchored to each other)
+  return names.concat(pending.map(([name]) => name));
 }
 
 function nav(req) {
