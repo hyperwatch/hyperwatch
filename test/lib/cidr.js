@@ -134,6 +134,35 @@ describe('cidr', () => {
       assert.strictEqual(match(''), null);
     });
 
+    it('matches single hosts written in any form', () => {
+      const hosts = compileRanges([
+        '198.51.100.7/32',
+        '2001:db8:0:0::1/128',
+        '2001:db8::2',
+      ]);
+      assert.strictEqual(hosts('198.51.100.7'), '198.51.100.7/32');
+      assert.strictEqual(hosts('::ffff:198.51.100.7'), '198.51.100.7/32');
+      assert.strictEqual(hosts('2001:db8::1'), '2001:db8:0:0::1/128');
+      assert.strictEqual(hosts('2001:0db8::2'), '2001:db8::2');
+      assert.strictEqual(hosts('198.51.100.8'), null);
+    });
+
+    it('keeps the order of the list between hosts and ranges', () => {
+      const ordered = compileRanges([
+        '198.51.100.7',
+        '198.51.100.0/24',
+        '198.51.100.9/32',
+      ]);
+      assert.strictEqual(ordered('198.51.100.7'), '198.51.100.7');
+      assert.strictEqual(ordered('198.51.100.9'), '198.51.100.0/24');
+    });
+
+    it('never matches an IPv4-mapped IPv6 host', () => {
+      const mapped = compileRanges(['::ffff:198.51.100.7/128']);
+      assert.strictEqual(mapped('198.51.100.7'), null);
+      assert.strictEqual(mapped('::ffff:198.51.100.7'), null);
+    });
+
     it('rejects an invalid range at compile time', () => {
       assert.throws(() => compileRanges(['198.51.100.0/33']), /invalid CIDR/);
     });
