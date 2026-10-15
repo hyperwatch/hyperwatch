@@ -31,6 +31,14 @@ Some lists have no updater and are copied by hand. Compare them with their sourc
 
 If any list changed, run `npm test`, then open a PR "Refresh the published IP ranges" with a table of the ranges added and removed per list, and the lists left unchanged (as in [#636](https://github.com/hyperwatch/hyperwatch/pull/636)). Merge it before step 1, and mention it under **Identities** in the release notes. If nothing changed, go on.
 
+Then remove the refresh worktree and its branch, so the next release can create them again:
+
+```bash
+cd -
+git worktree remove ../hyperwatch-refresh
+git branch -D refresh-ranges
+```
+
 ## 1. Prepare a clean worktree
 
 Release from a separate worktree, so your usual checkout and whatever branch it's on stay untouched:
