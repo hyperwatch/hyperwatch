@@ -1,9 +1,8 @@
 const { Map } = require('immutable');
 const proxyaddr = require('proxy-addr');
 
-// Run `node scripts/fetch-cloudflare-ips.js` to update
+// Run `node scripts/fetch-ips.js cloudflare-ips cloudfront-ips` to update
 const cloudflareIps = require('../data/cloudflare-ips.json');
-// Run `node scripts/fetch-cloudfront-ips.js` to update
 const cloudfrontIps = require('../data/cloudfront-ips.json');
 
 const ipRanges = {

@@ -1,16 +1,7 @@
 const api = require('../app/api');
 const html = require('../app/html');
-// Bot IP lists for identity verification
-// Run `node scripts/fetch-openai-ips.js` to update OpenAI lists
-// Run `node scripts/fetch-anthropic-ips.js` to update the Claude list
-// Run `node scripts/fetch-github-ips.js` to update the GitHub lists
-// Run `node scripts/fetch-meta-ips.js` to update the Meta list
-// Run `node scripts/fetch-commoncrawl-ips.js` to update the Common Crawl list
-// Run `node scripts/fetch-perplexity-ips.js` to update the Perplexity lists
-// Run `node scripts/fetch-keenable-ips.js` to update the Keenable lists
-// Run `node scripts/fetch-google-ips.js` to update the Googlebot list
-// Run `node scripts/fetch-crawler-ips.js` to update the other crawler and
-// monitoring lists (see the list of sources there)
+// Bot IP lists for identity verification. Run `node scripts/fetch-ips.js` to
+// update them (sources in scripts/lib/published-ips.js).
 // The Amazon Quick list is copied by hand (see amazonQuickCidrs below)
 const ahrefsIps = require('../data/ahrefs-ips.json');
 const amazonQuickIps = require('../data/amazon-quick-ips.json');
@@ -95,8 +86,7 @@ const amazonQuickCidrs = compileRanges(amazonQuickIps);
 
 // Published lists checked next to the older hostname rules: an address in the
 // list is enough, and so is the hostname, so no robot identified before loses
-// its identity. Fetched by scripts/fetch-crawler-ips.js and
-// scripts/fetch-google-ips.js.
+// its identity.
 const applebotCidrs = compileRanges(applebotIps);
 const googlebotCidrs = compileRanges(googlebotIps);
 const bingbotCidrs = compileRanges(bingbotIps);

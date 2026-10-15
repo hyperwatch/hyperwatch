@@ -51,7 +51,7 @@ describe('identity', () => {
       }
     });
 
-    // Skipped until `node scripts/fetch-anthropic-ips.js` has been run
+    // Skipped until `node scripts/fetch-ips.js` has been run
     (claudeBotIps.length > 0 ? it : it.skip)(
       'should identify every Claude family from a published range',
       () => {
@@ -66,7 +66,7 @@ describe('identity', () => {
 
   describe('Common Crawl', () => {
     // The first address of each range, so a refresh of ccbot-ips.json
-    // (`node scripts/fetch-commoncrawl-ips.js`) never breaks the tests
+    // (`node scripts/fetch-ips.js`) never breaks the tests
     const published = ccbotIps.map((cidr) => cidr.split('/')[0]);
 
     it('should identify CCBot from every published range', () => {
@@ -99,7 +99,7 @@ describe('identity', () => {
 
   describe('Perplexity', () => {
     // The first address of each published range, so a refresh
-    // (`node scripts/fetch-perplexity-ips.js`) never breaks the tests
+    // (`node scripts/fetch-ips.js`) never breaks the tests
     const first = (ranges) => ranges.map((cidr) => cidr.split('/')[0]);
 
     it('should identify PerplexityBot from every published range', () => {
@@ -152,7 +152,7 @@ describe('identity', () => {
 
   describe('Keenable', () => {
     // The first address of each published range, so a refresh
-    // (`node scripts/fetch-keenable-ips.js`) never breaks the tests
+    // (`node scripts/fetch-ips.js`) never breaks the tests
     const first = (ranges) => ranges.map((cidr) => cidr.split('/')[0]);
 
     it('should identify KeenableBot from every published range', () => {
