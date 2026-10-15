@@ -253,6 +253,7 @@ function augment(log) {
         (address && ahrefsCidrs(address))
         ? log.set('identity', 'Ahrefs')
         : log;
+    case 'Pinterest':
     case 'Pinterestbot':
       return hostname && hostname.endsWith('.pinterest.com')
         ? log.set('identity', 'Pinterest')
@@ -276,6 +277,9 @@ function augment(log) {
     case 'Coc Coc Bot':
     case 'Coc Coc Bot Web':
     case 'Coc Coc Bot Image':
+    case 'coccocbot-fast':
+    case 'coccocbot-ads':
+    case 'coccocbot-shopping':
       return hostname && hostname.endsWith('.coccoc.com')
         ? log.set('identity', 'Coc Coc')
         : log;
@@ -294,8 +298,9 @@ function augment(log) {
       }
       break;
     case 'Yahoo':
+    case 'Yahoo! Slurp':
       return hostname && hostname.endsWith('.crawl.yahoo.net')
-        ? log.set('identity', family)
+        ? log.set('identity', 'Yahoo')
         : log;
     case 'Sirportly t.co expander':
       return hostname && hostname.endsWith('.labs.k.io')
@@ -316,6 +321,7 @@ function augment(log) {
     case 'Mail.RU Bot':
     case 'Mail.RU Bot Img':
     case 'Mail.RU Bot Fast':
+    case 'Mail.RU Bot Robots':
       return hostname && hostname.endsWith('.go.mail.ru')
         ? log.set('identity', 'Mail.RU')
         : log;
@@ -365,6 +371,7 @@ function augment(log) {
         ? log.set('identity', 'Bluechip Backlinks')
         : log;
     case 'arquivo-web-crawler':
+    case 'Arquivo-web-crawler':
       return hostname && hostname.endsWith('.arquivo.pt')
         ? log.set('identity', 'Arquivo')
         : log;
@@ -377,11 +384,13 @@ function augment(log) {
       return hostname && hostname.endsWith('.neevabot.com')
         ? log.set('identity', 'Neevabot')
         : log;
+    case 'RootCrawl':
     case 'RootCrawl-Crawler':
       return hostname && hostname.endsWith('.rootcrawl.org')
         ? log.set('identity', 'RootCrawl')
         : log;
     case 'bl.uk ldfc bot':
+    case 'bl.uk lddc bot':
       return hostname && hostname.endsWith('.bl.uk')
         ? log.set('identity', 'British Library')
         : log;
@@ -391,6 +400,8 @@ function augment(log) {
         : log;
     case 'Qwantify':
     case 'Qwantify-dev':
+    case 'help.qwant.com': // how the parser reads Qwantbot
+    case 'Qwantbot-news':
       return (hostname && hostname.endsWith('.qwant.com')) ||
         (address && qwantbotCidrs(address))
         ? log.set('identity', 'Qwant')
