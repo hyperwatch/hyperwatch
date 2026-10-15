@@ -9,7 +9,13 @@ const dataDir = path.join(__dirname, '..', 'src', 'data');
 // google-user-triggered-fetchers-ips: the fetchers acting on a user's
 // request, shared by every user. Google Apps Script (UrlFetchApp) fetches from
 // them, e.g. 34.116.28.0/27.
+//
+// googlebot-ips: Googlebot (common-crawlers.json).
 const sources = [
+  {
+    name: 'googlebot-ips',
+    url: 'https://developers.google.com/static/crawling/ipranges/common-crawlers.json',
+  },
   {
     name: 'google-user-triggered-fetchers-ips',
     url: 'https://developers.google.com/static/crawling/ipranges/user-triggered-fetchers.json',

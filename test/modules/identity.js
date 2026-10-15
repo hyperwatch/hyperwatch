@@ -479,6 +479,48 @@ describe('identity', () => {
       assert.strictEqual(result.get('identity'), undefined);
     });
   });
+
+  // Published lists, checked next to the older hostname rules
+  describe('published lists', () => {
+    const cases = [
+      ['AhrefsBot', 'ahrefs-ips', 'Ahrefs'],
+      ['AhrefsSiteAudit', 'ahrefs-ips', 'Ahrefs'],
+      ['Applebot', 'applebot-ips', 'Applebot'],
+      ['Barkrowler', 'barkrowler-ips', 'Babbar'],
+      ['BingBot', 'bingbot-ips', 'Bing'],
+      ['Discordbot', 'discord-ips', 'Discord'],
+      ['DuckDuckBot', 'duckduckbot-ips', 'DuckDuckGo'],
+      ['DuckAssistBot', 'duckassistbot-ips', 'DuckDuckGo'],
+      ['Googlebot', 'googlebot-ips', 'Googlebot'],
+      ['AIWebIndex', 'lyrenth-ips', 'Lyrenth'],
+      ['MojeekBot', 'mojeekbot-ips', 'Mojeek'],
+      ['Yeti', 'naverbot-ips', 'Naver'],
+      ['PingdomBot', 'pingdom-ips', 'Pingdom'],
+      ['Qwantify', 'qwantbot-ips', 'Qwant'],
+      ['SeekportBot', 'seekportbot-ips', 'Seekport'],
+      ['SentryUptimeBot', 'sentry-uptime-ips', 'Sentry'],
+      ['SERankingBacklinksBot', 'seranking-ips', 'SE Ranking'],
+      ['SeznamBot', 'seznambot-ips', 'Seznam'],
+      ['ShapBot', 'shapbot-ips', 'Parallel'],
+      ['SofyaBot', 'sofyabot-ips', 'Sofya'],
+      ['UptimeRobot', 'uptimerobot-ips', 'Uptime Robot'],
+    ];
+
+    for (const [family, list, expected] of cases) {
+      const cidrs = require(`../../src/data/${list}.json`);
+
+      it(`should identify ${family} from ${list} without a hostname`, () => {
+        const address = cidrs[0].split('/')[0];
+        const result = identity.augment(log({ family, address }));
+        assert.strictEqual(result.get('identity'), expected);
+      });
+
+      it(`should not identify ${family} outside ${list} without a hostname`, () => {
+        const result = identity.augment(log({ family, address: '192.0.2.1' }));
+        assert.strictEqual(result.get('identity'), undefined);
+      });
+    }
+  });
 });
 
 describe('identity aggregator', () => {

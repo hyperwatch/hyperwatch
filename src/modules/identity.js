@@ -8,22 +8,45 @@ const html = require('../app/html');
 // Run `node scripts/fetch-commoncrawl-ips.js` to update the Common Crawl list
 // Run `node scripts/fetch-perplexity-ips.js` to update the Perplexity lists
 // Run `node scripts/fetch-keenable-ips.js` to update the Keenable lists
+// Run `node scripts/fetch-google-ips.js` to update the Googlebot list
+// Run `node scripts/fetch-crawler-ips.js` to update the other crawler and
+// monitoring lists (see the list of sources there)
 // The Amazon Quick list is copied by hand (see amazonQuickCidrs below)
+const ahrefsIps = require('../data/ahrefs-ips.json');
 const amazonQuickIps = require('../data/amazon-quick-ips.json');
 const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
 const amazonUserIps = require('../data/amazon-user-ips.json');
 const amazonBotIps = require('../data/amazonbot-ips.json');
+const applebotIps = require('../data/applebot-ips.json');
+const barkrowlerIps = require('../data/barkrowler-ips.json');
+const bingbotIps = require('../data/bingbot-ips.json');
 const ccbotIps = require('../data/ccbot-ips.json');
 const chatgptUserIps = require('../data/chatgpt-user-ips.json');
 const claudeBotIps = require('../data/claude-bot-ips.json');
+const discordIps = require('../data/discord-ips.json');
+const duckassistbotIps = require('../data/duckassistbot-ips.json');
+const duckduckbotIps = require('../data/duckduckbot-ips.json');
 const githubIps = require('../data/github-ips.json');
+const googlebotIps = require('../data/googlebot-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
 const keenableUserIps = require('../data/keenable-user-ips.json');
 const keenableBotIps = require('../data/keenablebot-ips.json');
+const lyrenthIps = require('../data/lyrenth-ips.json');
 const metaIps = require('../data/meta-ips.json');
+const mojeekbotIps = require('../data/mojeekbot-ips.json');
+const naverbotIps = require('../data/naverbot-ips.json');
 const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
 const perplexityUserIps = require('../data/perplexity-user-ips.json');
 const perplexityBotIps = require('../data/perplexitybot-ips.json');
+const pingdomIps = require('../data/pingdom-ips.json');
+const qwantbotIps = require('../data/qwantbot-ips.json');
+const seekportbotIps = require('../data/seekportbot-ips.json');
+const sentryUptimeIps = require('../data/sentry-uptime-ips.json');
+const serankingIps = require('../data/seranking-ips.json');
+const seznambotIps = require('../data/seznambot-ips.json');
+const shapbotIps = require('../data/shapbot-ips.json');
+const sofyabotIps = require('../data/sofyabot-ips.json');
+const uptimerobotIps = require('../data/uptimerobot-ips.json');
 const { Aggregator } = require('../lib/aggregator');
 const { compileRanges } = require('../lib/cidr');
 const pipeline = require('../lib/pipeline');
@@ -70,6 +93,30 @@ const keenableUserCidrs = compileRanges(keenableUserIps);
 // AWS's ip-ranges.json): copied from there in October 2026.
 const amazonQuickCidrs = compileRanges(amazonQuickIps);
 
+// Published lists checked next to the older hostname rules: an address in the
+// list is enough, and so is the hostname, so no robot identified before loses
+// its identity. Fetched by scripts/fetch-crawler-ips.js and
+// scripts/fetch-google-ips.js.
+const applebotCidrs = compileRanges(applebotIps);
+const googlebotCidrs = compileRanges(googlebotIps);
+const bingbotCidrs = compileRanges(bingbotIps);
+const pingdomCidrs = compileRanges(pingdomIps);
+const mojeekbotCidrs = compileRanges(mojeekbotIps);
+const ahrefsCidrs = compileRanges(ahrefsIps);
+const naverbotCidrs = compileRanges(naverbotIps);
+const uptimerobotCidrs = compileRanges(uptimerobotIps);
+const barkrowlerCidrs = compileRanges(barkrowlerIps);
+const qwantbotCidrs = compileRanges(qwantbotIps);
+const seekportbotCidrs = compileRanges(seekportbotIps);
+const serankingCidrs = compileRanges(serankingIps);
+const sofyabotCidrs = compileRanges(sofyabotIps);
+const lyrenthCidrs = compileRanges(lyrenthIps);
+const discordCidrs = compileRanges(discordIps);
+const shapbotCidrs = compileRanges(shapbotIps);
+const sentryUptimeCidrs = compileRanges(sentryUptimeIps);
+const seznambotCidrs = compileRanges(seznambotIps);
+const duckduckgoCidrs = compileRanges([...duckduckbotIps, ...duckassistbotIps]);
+
 // Lists that were parsed again on every request
 const amazonBotCidrs = compileRanges(amazonBotIps);
 const amazonSearchBotCidrs = compileRanges(amazonSearchBotIps);
@@ -103,11 +150,13 @@ function augment(log) {
   switch (family) {
     // Per hostname
     case 'Applebot':
-      return hostname && hostname.endsWith('.apple.com')
+      return (hostname && hostname.endsWith('.apple.com')) ||
+        (address && applebotCidrs(address))
         ? log.set('identity', family)
         : log;
     case 'Googlebot':
-      return hostname && hostname.endsWith('.googlebot.com')
+      return (hostname && hostname.endsWith('.googlebot.com')) ||
+        (address && googlebotCidrs(address))
         ? log.set('identity', family)
         : log;
     case 'Google':
@@ -126,7 +175,8 @@ function augment(log) {
         : log;
     case 'BingBot':
     case 'BingPreview':
-      return hostname && hostname.endsWith('.search.msn.com')
+      return (hostname && hostname.endsWith('.search.msn.com')) ||
+        (address && bingbotCidrs(address))
         ? log.set('identity', 'Bing')
         : log;
     case 'YandexBot':
@@ -157,7 +207,8 @@ function augment(log) {
       }
       break;
     case 'PingdomBot':
-      return hostname && hostname.endsWith('.pingdom.com')
+      return (hostname && hostname.endsWith('.pingdom.com')) ||
+        (address && pingdomCidrs(address))
         ? log.set('identity', 'Pingdom')
         : log;
     case 'archive.org bot':
@@ -171,7 +222,8 @@ function augment(log) {
         ? log.set('identity', 'Sogou')
         : log;
     case 'MojeekBot':
-      return hostname && hostname.endsWith('.mojeek.com')
+      return (hostname && hostname.endsWith('.mojeek.com')) ||
+        (address && mojeekbotCidrs(address))
         ? log.set('identity', 'Mojeek')
         : log;
     case 'AwarioBot':
@@ -184,7 +236,9 @@ function augment(log) {
         ? log.set('identity', family)
         : log;
     case 'AhrefsBot':
-      return hostname && hostname.endsWith('.ahrefs.com')
+    case 'AhrefsSiteAudit':
+      return (hostname && hostname.endsWith('.ahrefs.com')) ||
+        (address && ahrefsCidrs(address))
         ? log.set('identity', 'Ahrefs')
         : log;
     case 'Pinterestbot':
@@ -192,7 +246,8 @@ function augment(log) {
         ? log.set('identity', 'Pinterest')
         : log;
     case 'Yeti':
-      return hostname && hostname.endsWith('.naver.com')
+      return (hostname && hostname.endsWith('.naver.com')) ||
+        (address && naverbotCidrs(address))
         ? log.set('identity', 'Naver')
         : log;
 
@@ -202,7 +257,8 @@ function augment(log) {
         ? log.set('identity', 'Stripe')
         : log;
     case 'UptimeRobot':
-      return hostname && hostname.endsWith('.uptimerobot.com')
+      return (hostname && hostname.endsWith('.uptimerobot.com')) ||
+        (address && uptimerobotCidrs(address))
         ? log.set('identity', 'Uptime Robot')
         : log;
     case 'Coc Coc Bot':
@@ -212,9 +268,12 @@ function augment(log) {
         ? log.set('identity', 'Coc Coc')
         : log;
     case 'DuckDuckGo':
+    case 'DuckDuckBot':
     case 'DuckDuckBot-Https':
+    case 'DuckAssistBot':
     case 'DuckDuckGo-Favicons-Bot':
-      return hostname && hostname.endsWith('.duckduckgo.com')
+      return (hostname && hostname.endsWith('.duckduckgo.com')) ||
+        (address && duckduckgoCidrs(address))
         ? log.set('identity', 'DuckDuckGo')
         : log;
     case 'MJ12bot':
@@ -271,7 +330,8 @@ function augment(log) {
         : log;
     case 'Barkrowler':
       // https://babbar.tech/
-      return hostname && hostname.endsWith('.babbar.eu')
+      return (hostname && hostname.endsWith('.babbar.eu')) ||
+        (address && barkrowlerCidrs(address))
         ? log.set('identity', 'Babbar')
         : log;
     case 'Reflectionbot':
@@ -297,7 +357,8 @@ function augment(log) {
         ? log.set('identity', 'Arquivo')
         : log;
     case 'SeekportBot':
-      return hostname && hostname.endsWith('.007ac9.net')
+      return (hostname && hostname.endsWith('.007ac9.net')) ||
+        (address && seekportbotCidrs(address))
         ? log.set('identity', 'Seekport')
         : log;
     case 'Neevabot':
@@ -318,7 +379,8 @@ function augment(log) {
         : log;
     case 'Qwantify':
     case 'Qwantify-dev':
-      return hostname && hostname.endsWith('.qwant.com')
+      return (hostname && hostname.endsWith('.qwant.com')) ||
+        (address && qwantbotCidrs(address))
         ? log.set('identity', 'Qwant')
         : log;
     case 'InfoTigerBot':
@@ -345,11 +407,13 @@ function augment(log) {
         ? log.set('identity', 'Amazon User')
         : log;
     case 'SERankingBacklinksBot':
-      return hostname && hostname.endsWith('.blex.seranking.com')
+      return (hostname && hostname.endsWith('.blex.seranking.com')) ||
+        (address && serankingCidrs(address))
         ? log.set('identity', 'SE Ranking')
         : log;
     case 'SofyaBot':
-      return hostname && hostname.endsWith('.sofya.co')
+      return (hostname && hostname.endsWith('.sofya.co')) ||
+        (address && sofyabotCidrs(address))
         ? log.set('identity', 'Sofya')
         : log;
     case 'YouBot':
@@ -361,7 +425,8 @@ function augment(log) {
     case 'AIWebIndex-Agent':
       // Lyrenth AI-readable web index, forward-confirmed rDNS under lyrenth.com
       // https://lyrenth.com/bot
-      return hostname && hostname.endsWith('.lyrenth.com')
+      return (hostname && hostname.endsWith('.lyrenth.com')) ||
+        (address && lyrenthCidrs(address))
         ? log.set('identity', 'Lyrenth')
         : log;
 
@@ -373,7 +438,8 @@ function augment(log) {
         : log;
     case 'SeznamBot':
       return (hostname && hostname.endsWith('.seznam.cz')) ||
-        (address && inCidr('2a02:598::/32', address))
+        (address && inCidr('2a02:598::/32', address)) ||
+        (address && seznambotCidrs(address))
         ? log.set('identity', 'Seznam')
         : log;
     case 'FacebookBot':
@@ -491,7 +557,8 @@ function augment(log) {
         ? log.set('identity', 'Aranet')
         : log;
     case 'Discordbot':
-      return hostname && hostname.endsWith('.googleusercontent.com')
+      return (hostname && hostname.endsWith('.googleusercontent.com')) ||
+        (address && discordCidrs(address))
         ? log.set('identity', 'Discord')
         : log;
     case 'VelenPublicWebCrawler':
@@ -509,7 +576,8 @@ function augment(log) {
     case 'ShapBot':
       // Parallel Web Systems crawler, runs on GCE
       // https://docs.parallel.ai/resources/crawler
-      return hostname && hostname.endsWith('.googleusercontent.com')
+      return (hostname && hostname.endsWith('.googleusercontent.com')) ||
+        (address && shapbotCidrs(address))
         ? log.set('identity', 'Parallel')
         : log;
 
@@ -519,7 +587,8 @@ function augment(log) {
         ? log.set('identity', 'Ubermetrics')
         : log;
     case 'Seekport Crawler':
-      return hostname && hostname.endsWith('.clients.your-server.de')
+      return (hostname && hostname.endsWith('.clients.your-server.de')) ||
+        (address && seekportbotCidrs(address))
         ? log.set('identity', 'Seekport')
         : log;
     case 'MegaIndex.ru':
@@ -531,7 +600,8 @@ function augment(log) {
         ? log.set('identity', 'Headline')
         : log;
     case 'SentryUptimeBot':
-      return hostname && hostname.endsWith('.googleusercontent.com')
+      return (hostname && hostname.endsWith('.googleusercontent.com')) ||
+        (address && sentryUptimeCidrs(address))
         ? log.set('identity', 'Sentry')
         : log;
     case 'FlipboardProxy':
