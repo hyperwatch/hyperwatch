@@ -15,6 +15,9 @@ async function fetchLines(url) {
 async function main() {
   const ipv4 = await fetchLines('https://www.cloudflare.com/ips-v4/');
   const ipv6 = await fetchLines('https://www.cloudflare.com/ips-v6/');
+  if (ipv4.length === 0 || ipv6.length === 0) {
+    throw new Error('Empty IPv4 or IPv6 list, keeping current file');
+  }
   const cidrs = [...ipv4, ...ipv6];
 
   const filePath = path.join(dataDir, 'cloudflare-ips.json');

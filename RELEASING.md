@@ -8,9 +8,13 @@ You need push access to `main`, publish rights on the npm package (with 2FA), an
 
 ## Before you start: refresh the published ranges
 
-Several identities are checked against address lists their operators publish (`src/data/*-ips.json`). Refresh them all before each release, so it ships with current ranges. From a branch off `origin/main`:
+Several identities are checked against address lists their operators publish (`src/data/*-ips.json`). Refresh them all before each release, so it ships with current ranges. Do it in a separate worktree, with dependencies installed (some updaters need them):
 
 ```bash
+git fetch origin
+git worktree add -b refresh-ranges ../hyperwatch-refresh origin/main
+cd ../hyperwatch-refresh
+npm ci
 failed=
 for script in scripts/fetch-*.js; do node "$script" || failed="$failed $script"; done
 echo "failed:${failed:- none}"
@@ -18,7 +22,7 @@ npx prettier --write src/data
 git status --short src/data
 ```
 
-Every updater exits with a non-zero status when a source can't be fetched or parsed, and keeps the current file. If one failed, stop: retry later, or find out why, rather than release with a list that wasn't refreshed.
+Every updater exits with a non-zero status when a source can't be fetched or parsed, or returns an empty list, and keeps the current file. If one failed, stop: retry later, or find out why, rather than release with a list that wasn't refreshed.
 
 Some lists have no updater and are copied by hand. Compare them with their source too:
 

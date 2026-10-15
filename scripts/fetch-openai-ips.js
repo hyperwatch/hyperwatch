@@ -21,6 +21,11 @@ async function fetchAndStore({ name, url }) {
     const cidr = p.ipv4Prefix || p.ip_prefix;
     return cidr.includes('/') ? cidr : `${cidr}/32`;
   });
+  if (cidrs.length === 0) {
+    console.error(`Failed to fetch ${name}: empty list, keeping current file`);
+    process.exitCode = 1;
+    return;
+  }
   const filePath = path.join(dataDir, `${name}.json`);
   fs.writeFileSync(filePath, `${JSON.stringify(cidrs, null, 2)}\n`);
   console.log(`${name}: ${cidrs.length} CIDRs`);
