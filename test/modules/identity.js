@@ -1,5 +1,6 @@
 const assert = require('assert');
 
+const useragent = require('@hyperwatch/useragent');
 const { fromJS } = require('immutable');
 
 const html = require('../../src/app/html');
@@ -583,6 +584,91 @@ describe('identity', () => {
       const result = identity.augment(log({ family: '360Spider', address }));
       assert.strictEqual(result.get('identity'), undefined);
     });
+  });
+
+  // The user agents operators document, through the parser, so a rule
+  // naming a family the parser doesn't return shows up here
+  describe('documented user agents', () => {
+    const cases = [
+      [
+        'DuckDuckBot/1.1; (+http://duckduckgo.com/duckduckbot.html)',
+        'crawl.duckduckgo.com',
+        'DuckDuckGo',
+      ],
+      [
+        'Mozilla/5.0 (compatible; Yahoo! Slurp; http://help.yahoo.com/help/us/ysearch/slurp)',
+        'b.crawl.yahoo.net',
+        'Yahoo',
+      ],
+      [
+        'Mozilla/5.0 (compatible; RootCrawl/1.0; +https://rootcrawl.org/bot)',
+        'crawl.rootcrawl.org',
+        'RootCrawl',
+      ],
+      [
+        'Arquivo-web-crawler (compatible; heritrix/3.4.0-20200304 +https://arquivo.pt/faq-crawling)',
+        'crawler.arquivo.pt',
+        'Arquivo',
+      ],
+      [
+        'bl.uk_lddc_bot/3.4.0-20220727 (+https://www.bl.uk/legal-deposit-web-archiving)',
+        'crawler.bl.uk',
+        'British Library',
+      ],
+      [
+        'Pinterest/0.2 (+https://www.pinterest.com/bot.html)',
+        'crawl.pinterest.com',
+        'Pinterest',
+      ],
+      [
+        'Mozilla/5.0 (compatible; Linux x86_64; Mail.RU_Bot/Robots/2.0; +http://go.mail.ru/help/robots)',
+        'fetcher.go.mail.ru',
+        'Mail.RU',
+      ],
+      [
+        'Mozilla/5.0 (compatible; coccocbot-fast/1.0; +http://help.coccoc.com/searchengine)',
+        'bot.coccoc.com',
+        'Coc Coc',
+      ],
+      [
+        'Mozilla/5.0 (compatible; coccocbot-ads/1.0; +http://help.coccoc.com/searchengine)',
+        'bot.coccoc.com',
+        'Coc Coc',
+      ],
+      [
+        'Mozilla/5.0 (compatible; coccocbot-shopping/1.0; +http://help.coccoc.com/searchengine)',
+        'bot.coccoc.com',
+        'Coc Coc',
+      ],
+      [
+        'Mozilla/5.0 (compatible; Qwantbot/1.0; +https://help.qwant.com/bot/)',
+        'qwantbot.qwant.com',
+        'Qwant',
+      ],
+      [
+        'Mozilla/5.0 (compatible; Qwantbot-news/2.0; +https://help.qwant.com/bot/)',
+        'qwantbot.qwant.com',
+        'Qwant',
+      ],
+    ];
+
+    for (const [ua, hostname, expected] of cases) {
+      const family = useragent.parse(ua).family;
+
+      it(`should identify ${family} as ${expected}`, () => {
+        const result = identity.augment(
+          log({ family, address: '203.0.113.7', hostname })
+        );
+        assert.strictEqual(result.get('identity'), expected);
+      });
+
+      it(`should not identify ${family} from another hostname`, () => {
+        const result = identity.augment(
+          log({ family, address: '203.0.113.7', hostname: 'host.example.net' })
+        );
+        assert.strictEqual(result.get('identity'), undefined);
+      });
+    }
   });
 });
 
