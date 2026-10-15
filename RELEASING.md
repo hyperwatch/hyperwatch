@@ -6,6 +6,39 @@ Releases are cut from `origin/main` only: anything not merged into `main` doesn'
 
 You need push access to `main`, publish rights on the npm package (with 2FA), and the [GitHub CLI](https://cli.github.com/).
 
+## Before you start: refresh the published ranges
+
+Several identities are checked against address lists their operators publish (`src/data/*-ips.json`). Refresh them all before each release, so it ships with current ranges. Do it in a separate worktree, with dependencies installed (some updaters need them):
+
+```bash
+git fetch origin
+git worktree add -b refresh-ranges ../hyperwatch-refresh origin/main
+cd ../hyperwatch-refresh
+npm ci
+failed=
+for script in scripts/fetch-*.js; do node "$script" || failed="$failed $script"; done
+echo "failed:${failed:- none}"
+npx prettier --write src/data
+git status --short src/data
+```
+
+Every updater exits with a non-zero status when a source can't be fetched or parsed, or returns an empty list, and keeps the current file. If one failed, stop: retry later, or find out why, rather than release with a list that wasn't refreshed.
+
+Some lists have no updater and are copied by hand. Compare them with their source too:
+
+- `amazonbot-ips.json`, `amazon-searchbot-ips.json`, `amazon-user-ips.json`: the JSON embedded in Amazon's pages for [Amazonbot](https://developer.amazon.com/amazonbot/ip-addresses/), [Amzn-SearchBot](https://developer.amazon.com/amazonbot/searchbot-ip-addresses/) and [Amzn-User](https://developer.amazon.com/amazonbot/live-ip-addresses/).
+- `amazon-quick-ips.json`: the table of [Amazon Quick's regions](https://docs.aws.amazon.com/quick/latest/userguide/regions.html).
+
+If any list changed, run `npm test`, then open a PR "Refresh the published IP ranges" with a table of the ranges added and removed per list, and the lists left unchanged (as in [#636](https://github.com/hyperwatch/hyperwatch/pull/636)). Merge it before step 1, and mention it under **Identities** in the release notes. If nothing changed, go on.
+
+Then remove the refresh worktree and its branch, so the next release can create them again:
+
+```bash
+cd -
+git worktree remove ../hyperwatch-refresh
+git branch -D refresh-ranges
+```
+
 ## 1. Prepare a clean worktree
 
 Release from a separate worktree, so your usual checkout and whatever branch it's on stay untouched:

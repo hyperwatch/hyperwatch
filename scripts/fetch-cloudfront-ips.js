@@ -7,6 +7,11 @@ async function main() {
   const response = await fetch(
     'https://ip-ranges.amazonaws.com/ip-ranges.json'
   );
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch AWS ip-ranges: ${response.status} ${response.statusText}`
+    );
+  }
   const ipRanges = await response.json();
 
   const ipv4 = ipRanges.prefixes
@@ -17,6 +22,9 @@ async function main() {
     .filter((p) => p.service === 'CLOUDFRONT')
     .map((p) => p.ipv6_prefix);
 
+  if (ipv4.length === 0 || ipv6.length === 0) {
+    throw new Error('Empty IPv4 or IPv6 list, keeping current file');
+  }
   const cidrs = [...ipv4, ...ipv6];
 
   const filePath = path.join(dataDir, 'cloudfront-ips.json');
@@ -26,4 +34,7 @@ async function main() {
   );
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
