@@ -3,8 +3,10 @@ const assert = require('assert');
 const { fromJS } = require('immutable');
 
 const html = require('../../src/app/html');
+const spider360Ips = require('../../src/data/360spider-ips.json');
 const ccbotIps = require('../../src/data/ccbot-ips.json');
 const claudeBotIps = require('../../src/data/claude-bot-ips.json');
+const daumBotIps = require('../../src/data/daumbot-ips.json');
 const keenableUserIps = require('../../src/data/keenable-user-ips.json');
 const keenableBotIps = require('../../src/data/keenablebot-ips.json');
 const perplexityUserIps = require('../../src/data/perplexity-user-ips.json');
@@ -51,7 +53,7 @@ describe('identity', () => {
       }
     });
 
-    // Skipped until `node scripts/fetch-anthropic-ips.js` has been run
+    // Skipped until `node scripts/fetch-ips.js` has been run
     (claudeBotIps.length > 0 ? it : it.skip)(
       'should identify every Claude family from a published range',
       () => {
@@ -66,7 +68,7 @@ describe('identity', () => {
 
   describe('Common Crawl', () => {
     // The first address of each range, so a refresh of ccbot-ips.json
-    // (`node scripts/fetch-commoncrawl-ips.js`) never breaks the tests
+    // (`node scripts/fetch-ips.js`) never breaks the tests
     const published = ccbotIps.map((cidr) => cidr.split('/')[0]);
 
     it('should identify CCBot from every published range', () => {
@@ -99,7 +101,7 @@ describe('identity', () => {
 
   describe('Perplexity', () => {
     // The first address of each published range, so a refresh
-    // (`node scripts/fetch-perplexity-ips.js`) never breaks the tests
+    // (`node scripts/fetch-ips.js`) never breaks the tests
     const first = (ranges) => ranges.map((cidr) => cidr.split('/')[0]);
 
     it('should identify PerplexityBot from every published range', () => {
@@ -152,7 +154,7 @@ describe('identity', () => {
 
   describe('Keenable', () => {
     // The first address of each published range, so a refresh
-    // (`node scripts/fetch-keenable-ips.js`) never breaks the tests
+    // (`node scripts/fetch-ips.js`) never breaks the tests
     const first = (ranges) => ranges.map((cidr) => cidr.split('/')[0]);
 
     it('should identify KeenableBot from every published range', () => {
@@ -476,6 +478,109 @@ describe('identity', () => {
       const result = identity.augment(
         log({ family: 'LinkupBot', address: '35.198.113.101' })
       );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
+  // Published lists, checked next to the older hostname rules
+  describe('published lists', () => {
+    const cases = [
+      ['AhrefsBot', 'ahrefs-ips', 'Ahrefs'],
+      ['AhrefsSiteAudit', 'ahrefs-ips', 'Ahrefs'],
+      ['Applebot', 'applebot-ips', 'Applebot'],
+      ['Barkrowler', 'barkrowler-ips', 'Babbar'],
+      ['BingBot', 'bingbot-ips', 'Bing'],
+      ['Discordbot', 'discord-ips', 'Discord'],
+      ['DuckDuckBot', 'duckduckbot-ips', 'DuckDuckGo'],
+      ['DuckAssistBot', 'duckassistbot-ips', 'DuckDuckGo'],
+      ['Googlebot', 'googlebot-ips', 'Googlebot'],
+      ['AIWebIndex', 'lyrenth-ips', 'Lyrenth'],
+      ['MojeekBot', 'mojeekbot-ips', 'Mojeek'],
+      ['Yeti', 'naverbot-ips', 'Naver'],
+      ['PingdomBot', 'pingdom-ips', 'Pingdom'],
+      ['Qwantify', 'qwantbot-ips', 'Qwant'],
+      ['SeekportBot', 'seekportbot-ips', 'Seekport'],
+      ['SentryUptimeBot', 'sentry-uptime-ips', 'Sentry'],
+      ['SERankingBacklinksBot', 'seranking-ips', 'SE Ranking'],
+      ['SeznamBot', 'seznambot-ips', 'Seznam'],
+      ['ShapBot', 'shapbot-ips', 'Parallel'],
+      ['SofyaBot', 'sofyabot-ips', 'Sofya'],
+      ['UptimeRobot', 'uptimerobot-ips', 'Uptime Robot'],
+    ];
+
+    for (const [family, list, expected] of cases) {
+      const cidrs = require(`../../src/data/${list}.json`);
+
+      it(`should identify ${family} from ${list} without a hostname`, () => {
+        const address = cidrs[0].split('/')[0];
+        const result = identity.augment(log({ family, address }));
+        assert.strictEqual(result.get('identity'), expected);
+      });
+
+      it(`should not identify ${family} outside ${list} without a hostname`, () => {
+        const result = identity.augment(log({ family, address: '192.0.2.1' }));
+        assert.strictEqual(result.get('identity'), undefined);
+      });
+    }
+  });
+
+  describe('Twitter', () => {
+    it('should identify every published range without a hostname', () => {
+      for (const address of [
+        '199.16.156.10',
+        '199.59.150.180',
+        '192.133.77.20',
+      ]) {
+        const result = identity.augment(log({ family: 'Twitterbot', address }));
+        assert.strictEqual(result.get('identity'), 'Twitter');
+      }
+    });
+
+    it('should not identify an address outside the published ranges', () => {
+      const result = identity.augment(
+        log({ family: 'Twitterbot', address: '199.59.152.1' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
+  describe('Daum', () => {
+    it('should identify an address in the published list', () => {
+      const address = daumBotIps[0].split('/')[0];
+      const result = identity.augment(log({ family: 'Daum', address }));
+      assert.strictEqual(result.get('identity'), 'Daum');
+    });
+
+    it('should not identify the range it used before', () => {
+      const result = identity.augment(
+        log({ family: 'Daum', address: '203.133.160.1' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
+  describe('360Spider', () => {
+    it('should identify addresses from every published network', () => {
+      for (const address of [
+        '42.236.10.0',
+        '42.236.99.0',
+        '180.153.236.0',
+        '180.163.220.0',
+      ]
+        .map((network) =>
+          spider360Ips.find((cidr) => cidr.startsWith(network.slice(0, -1)))
+        )
+        .map((cidr) => cidr.split('/')[0])) {
+        const result = identity.augment(log({ family: '360Spider', address }));
+        assert.strictEqual(result.get('identity'), '360Spider');
+      }
+    });
+
+    it('should not identify an unlisted address', () => {
+      const address = [...Array(256).keys()]
+        .map((n) => `42.236.10.${n}`)
+        .find((a) => !spider360Ips.includes(`${a}/32`));
+      const result = identity.augment(log({ family: '360Spider', address }));
       assert.strictEqual(result.get('identity'), undefined);
     });
   });

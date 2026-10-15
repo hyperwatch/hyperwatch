@@ -53,13 +53,23 @@ function inRange(range, address) {
   );
 }
 
+// The key of a parsed address or single-host range: its family and address
+const hostKey = (address) =>
+  `${address instanceof Address6 ? 6 : 4}:${address.correctForm()}`;
+
 /**
  * Compile a list of ranges (address/prefix, or a bare address for a single
  * host) once. The matcher returns the first range containing the address,
  * as written in the list, or null.
+ *
+ * Single hosts (/32, /128) are looked up in a map, so a long list of them
+ * costs one lookup instead of a test per entry. Only wider ranges written
+ * before the host's entry are tested before it, to keep the list's order.
  */
 function compileRanges(values) {
-  const ranges = values.map((value) => {
+  const hosts = new Map();
+  const ranges = [];
+  values.forEach((value, index) => {
     const cidr = value.includes('/')
       ? value
       : `${value}/${value.includes(':') ? 128 : 32}`;
@@ -67,15 +77,35 @@ function compileRanges(values) {
     if (!range) {
       throw new Error(`invalid CIDR "${value}"`);
     }
-    return { value, range };
+    const bits = range instanceof Address6 ? 128 : 32;
+    // An IPv4-mapped IPv6 host never matches an address, which is read as
+    // IPv4: leave it with the ranges, which handle that
+    if (
+      range.subnetMask === bits &&
+      !(range instanceof Address6 && range.isMapped4())
+    ) {
+      const key = hostKey(range.startAddress());
+      if (!hosts.has(key)) {
+        hosts.set(key, { value, index });
+      }
+    } else {
+      ranges.push({ value, index, range });
+    }
   });
   return (address) => {
     const parsed = parseAddress(address);
     if (!parsed) {
       return null;
     }
-    const match = ranges.find(({ range }) => inRange(range, parsed));
-    return match ? match.value : null;
+    const host = hosts.get(hostKey(parsed));
+    const before = host ? host.index : Infinity;
+    const match = ranges.find(
+      ({ index, range }) => index < before && inRange(range, parsed)
+    );
+    if (match) {
+      return match.value;
+    }
+    return host ? host.value : null;
   };
 }
 
