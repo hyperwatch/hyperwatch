@@ -400,7 +400,8 @@ function augment(log) {
         : log;
     case 'Qwantify':
     case 'Qwantify-dev':
-    case 'help.qwant.com': // how the parser reads Qwantbot
+    case 'Qwantbot':
+    case 'help.qwant.com': // Qwantbot with a build number after its version
     case 'Qwantbot-news':
       return (hostname && hostname.endsWith('.qwant.com')) ||
         (address && qwantbotCidrs(address))

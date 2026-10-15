@@ -3,7 +3,6 @@ const assert = require('assert');
 const useragent = require('@hyperwatch/useragent');
 const { fromJS } = require('immutable');
 
-
 const html = require('../../src/app/html');
 const spider360Ips = require('../../src/data/360spider-ips.json');
 const ccbotIps = require('../../src/data/ccbot-ips.json');
@@ -640,6 +639,11 @@ describe('identity', () => {
         'Mozilla/5.0 (compatible; coccocbot-shopping/1.0; +http://help.coccoc.com/searchengine)',
         'bot.coccoc.com',
         'Coc Coc',
+      ],
+      [
+        'Mozilla/5.0 (compatible; Qwantbot/1.0; +https://help.qwant.com/bot/)',
+        'qwantbot.qwant.com',
+        'Qwant',
       ],
       [
         'Mozilla/5.0 (compatible; Qwantbot/1.0_12345; +https://help.qwant.com/bot/)',
