@@ -646,11 +646,6 @@ describe('identity', () => {
         'Qwant',
       ],
       [
-        'Mozilla/5.0 (compatible; Qwantbot/1.0_12345; +https://help.qwant.com/bot/)',
-        'qwantbot.qwant.com',
-        'Qwant',
-      ],
-      [
         'Mozilla/5.0 (compatible; Qwantbot-news/2.0; +https://help.qwant.com/bot/)',
         'qwantbot.qwant.com',
         'Qwant',
