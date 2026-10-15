@@ -3,8 +3,10 @@ const assert = require('assert');
 const { fromJS } = require('immutable');
 
 const html = require('../../src/app/html');
+const spider360Ips = require('../../src/data/360spider-ips.json');
 const ccbotIps = require('../../src/data/ccbot-ips.json');
 const claudeBotIps = require('../../src/data/claude-bot-ips.json');
+const daumBotIps = require('../../src/data/daumbot-ips.json');
 const keenableUserIps = require('../../src/data/keenable-user-ips.json');
 const keenableBotIps = require('../../src/data/keenablebot-ips.json');
 const perplexityUserIps = require('../../src/data/perplexity-user-ips.json');
@@ -520,6 +522,67 @@ describe('identity', () => {
         assert.strictEqual(result.get('identity'), undefined);
       });
     }
+  });
+
+  describe('Twitter', () => {
+    it('should identify every published range without a hostname', () => {
+      for (const address of [
+        '199.16.156.10',
+        '199.59.150.180',
+        '192.133.77.20',
+      ]) {
+        const result = identity.augment(log({ family: 'Twitterbot', address }));
+        assert.strictEqual(result.get('identity'), 'Twitter');
+      }
+    });
+
+    it('should not identify an address outside the published ranges', () => {
+      const result = identity.augment(
+        log({ family: 'Twitterbot', address: '199.59.152.1' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
+  describe('Daum', () => {
+    it('should identify an address in the published list', () => {
+      const address = daumBotIps[0].split('/')[0];
+      const result = identity.augment(log({ family: 'Daum', address }));
+      assert.strictEqual(result.get('identity'), 'Daum');
+    });
+
+    it('should not identify the range it used before', () => {
+      const result = identity.augment(
+        log({ family: 'Daum', address: '203.133.160.1' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
+  describe('360Spider', () => {
+    it('should identify addresses from every published network', () => {
+      for (const address of [
+        '42.236.10.0',
+        '42.236.99.0',
+        '180.153.236.0',
+        '180.163.220.0',
+      ]
+        .map((network) =>
+          spider360Ips.find((cidr) => cidr.startsWith(network.slice(0, -1)))
+        )
+        .map((cidr) => cidr.split('/')[0])) {
+        const result = identity.augment(log({ family: '360Spider', address }));
+        assert.strictEqual(result.get('identity'), '360Spider');
+      }
+    });
+
+    it('should not identify an unlisted address', () => {
+      const address = [...Array(256).keys()]
+        .map((n) => `42.236.10.${n}`)
+        .find((a) => !spider360Ips.includes(`${a}/32`));
+      const result = identity.augment(log({ family: '360Spider', address }));
+      assert.strictEqual(result.get('identity'), undefined);
+    });
   });
 });
 

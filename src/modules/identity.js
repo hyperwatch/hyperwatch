@@ -1,8 +1,10 @@
 const api = require('../app/api');
 const html = require('../app/html');
 // Bot IP lists for identity verification. Run `node scripts/fetch-ips.js` to
-// update them (sources in scripts/lib/published-ips.js).
-// The Amazon Quick list is copied by hand (see amazonQuickCidrs below)
+// update them (sources in scripts/lib/published-ips.js). The Amazon Quick,
+// Daum and 360Spider lists are copied by hand (see amazonQuickCidrs,
+// daumBotCidrs and spider360Cidrs below).
+const spider360Ips = require('../data/360spider-ips.json');
 const ahrefsIps = require('../data/ahrefs-ips.json');
 const amazonQuickIps = require('../data/amazon-quick-ips.json');
 const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
@@ -14,6 +16,7 @@ const bingbotIps = require('../data/bingbot-ips.json');
 const ccbotIps = require('../data/ccbot-ips.json');
 const chatgptUserIps = require('../data/chatgpt-user-ips.json');
 const claudeBotIps = require('../data/claude-bot-ips.json');
+const daumBotIps = require('../data/daumbot-ips.json');
 const discordIps = require('../data/discord-ips.json');
 const duckassistbotIps = require('../data/duckassistbot-ips.json');
 const duckduckbotIps = require('../data/duckduckbot-ips.json');
@@ -106,6 +109,25 @@ const shapbotCidrs = compileRanges(shapbotIps);
 const sentryUptimeCidrs = compileRanges(sentryUptimeIps);
 const seznambotCidrs = compileRanges(seznambotIps);
 const duckduckgoCidrs = compileRanges([...duckduckbotIps, ...duckassistbotIps]);
+
+// Daum's crawler and Daum Preview, from
+// https://webmaster.daum.net/crawler/daumbot.json. The server doesn't send its
+// intermediate certificate, so Node can't fetch it: copied with curl in
+// October 2026.
+const daumBotCidrs = compileRanges(daumBotIps);
+
+// 360 Search's crawler. 360 says reverse DNS doesn't work for it and
+// publishes its addresses as a PDF
+// (https://www.so.com/help/spider_ip.html): copied in October 2026.
+const spider360Cidrs = compileRanges(spider360Ips);
+
+// X's outbound ranges (AS13414), from its Cards troubleshooting guide, whose
+// URL now redirects: read from the archived copy of December 2025.
+const twitterCidrs = compileRanges([
+  '199.16.156.0/22',
+  '199.59.148.0/22',
+  '192.133.76.0/22',
+]);
 
 // Lists that were parsed again on every request
 const amazonBotCidrs = compileRanges(amazonBotIps);
@@ -423,7 +445,7 @@ function augment(log) {
     // Per hostname + CIDR
     case 'Twitterbot':
       return (hostname && hostname.endsWith('.twttr.com')) ||
-        (address && inCidr('199.16.156.0/22', address))
+        (address && twitterCidrs(address))
         ? log.set('identity', 'Twitter')
         : log;
     case 'SeznamBot':
@@ -453,11 +475,11 @@ function augment(log) {
         ? log.set('identity', family)
         : log;
     case '360Spider':
-      return address && inCidr('42.236.10.0/24', address)
+      return address && spider360Cidrs(address)
         ? log.set('identity', family)
         : log;
     case 'Daum':
-      return address && inCidr('203.133.160.0/19', address)
+      return address && daumBotCidrs(address)
         ? log.set('identity', family)
         : log;
     case 'LinkupBot':

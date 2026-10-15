@@ -19,10 +19,12 @@ const dataDir = path.join(__dirname, '..', '..', 'src', 'data');
 
 // Lists copied by hand: no source to fetch them from
 const handCopied = [
+  '360spider-ips',
   'amazon-quick-ips',
   'amazon-searchbot-ips',
   'amazon-user-ips',
   'amazonbot-ips',
+  'daumbot-ips',
 ];
 
 // A fetch answering from a map of URL to text, or failing
