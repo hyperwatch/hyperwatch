@@ -1,0 +1,256 @@
+[
+  {
+    "name": "ahrefs-ips",
+    "urls": ["https://api.ahrefs.com/v3/public/crawler-ip-ranges"],
+    "format": "prefixes"
+  },
+  {
+    "name": "applebot-ips",
+    "urls": ["https://search.developer.apple.com/applebot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "arquivo-ips",
+    "about": "Arquivo.pt's web archive crawler",
+    "urls": ["https://arquivo.pt/crawlerips.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "barkrowler-ips",
+    "urls": ["https://www.babbar.tech/barkrowler-ip-ranges.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "bingbot-ips",
+    "urls": ["https://www.bing.com/toolbox/bingbot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "ccbot-ips",
+    "about": "CCBot (Common Crawl)",
+    "urls": ["https://index.commoncrawl.org/ccbot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "chatgpt-user-ips",
+    "urls": ["https://openai.com/chatgpt-user.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "claude-bot-ips",
+    "about": "Anthropic: one list for all Claude crawlers (ClaudeBot, Claude-User, Claude-SearchBot)",
+    "urls": ["https://claude.com/crawling/bots.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "discord-ips",
+    "urls": ["https://cdn.discordapp.com/ipranges/discord.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "duckassistbot-ips",
+    "urls": ["https://duckduckgo.com/duckassistbot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "duckduckbot-ips",
+    "urls": ["https://duckduckgo.com/duckduckbot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "github-ips",
+    "about": "The ranges GitHub runs its own services from (web, API, webhooks, git, Pages, Packages, importers, Copilot), where github-camo, the image proxy behind README badges, comes from. The `actions` ranges are left out: Actions runners there run any GitHub user's workflows. https://docs.github.com/en/rest/meta/meta",
+    "urls": ["https://api.github.com/meta"],
+    "headers": {
+      "accept": "application/vnd.github+json"
+    },
+    "format": "keys",
+    "keys": [
+      "hooks",
+      "web",
+      "api",
+      "git",
+      "pages",
+      "packages",
+      "importer",
+      "github_enterprise_importer",
+      "copilot"
+    ]
+  },
+  {
+    "name": "googlebot-ips",
+    "about": "Google publishes the ranges of its crawlers and fetchers at https://developers.google.com/crawling/docs/crawlers-fetchers/overview-google-crawlers.",
+    "urls": [
+      "https://developers.google.com/static/crawling/ipranges/common-crawlers.json"
+    ],
+    "format": "prefixes"
+  },
+  {
+    "name": "google-user-triggered-fetchers-ips",
+    "about": "The fetchers acting on a user's request, shared by every user. Google Apps Script (UrlFetchApp) fetches from them, e.g. 34.116.28.0/27.",
+    "urls": [
+      "https://developers.google.com/static/crawling/ipranges/user-triggered-fetchers.json"
+    ],
+    "format": "prefixes"
+  },
+  {
+    "name": "gptbot-ips",
+    "urls": ["https://openai.com/gptbot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "halobot-ips",
+    "about": "HaloScan publishes HaloBot's addresses in a table on its crawler page",
+    "urls": ["https://www.haloscan.com/en/crawler-haloscan"],
+    "format": "tableRow",
+    "label": "Official IP addresses"
+  },
+  {
+    "name": "hubspot-ips",
+    "about": "HubSpot's crawling and user-generated traffic (`WEB_SCRAPING`), from its network origins API (https://developers.hubspot.com/docs/api/network-origins)",
+    "urls": ["https://api.hubapi.com/meta/network-origins/2026-09/ip-ranges"],
+    "format": "results",
+    "service": "WEB_SCRAPING"
+  },
+  {
+    "name": "ibou-ips",
+    "about": "ibou-search (https://www.ibou.com/crawlers.html)",
+    "urls": ["https://www.ibou.com/ibousearch-ip-ranges.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "iboubot-ips",
+    "about": "IbouBot (https://www.ibou.com/iboubot.html)",
+    "urls": ["https://www.ibou.com/iboubot-ip-ranges.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "keenable-user-ips",
+    "about": "Keenable, one list per agent (https://keenable.ai/bot)",
+    "urls": ["https://app.keenable.ai/bot/keenable-user.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "keenablebot-ips",
+    "about": "Keenable, one list per agent (https://keenable.ai/bot)",
+    "urls": ["https://app.keenable.ai/bot/keenablebot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "lyrenth-ips",
+    "urls": ["https://lyrenth.com/bot/ip-ranges.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "meta-ips",
+    "about": "Meta publishes no list: its crawler documentation (https://developers.facebook.com/docs/sharing/webmasters/web-crawlers) points to the routes of its network, AS32934, in the RADb registry.",
+    "urls": ["whois://whois.radb.net/-i origin AS32934"],
+    "format": "routes"
+  },
+  {
+    "name": "mojeekbot-ips",
+    "urls": ["https://www.mojeek.com/mojeekbot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "naverbot-ips",
+    "urls": ["https://searchadvisor.naver.com/doc/naverbot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "openai-searchbot-ips",
+    "urls": ["https://openai.com/searchbot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "perplexity-user-ips",
+    "about": "Perplexity-User, fetches made for a user's question",
+    "urls": ["https://www.perplexity.com/perplexity-user.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "perplexitybot-ips",
+    "about": "PerplexityBot, Perplexity's crawler",
+    "urls": ["https://www.perplexity.com/perplexitybot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "pingdom-ips",
+    "urls": [
+      "https://my.pingdom.com/probes/ipv4",
+      "https://my.pingdom.com/probes/ipv6"
+    ],
+    "format": "lines"
+  },
+  {
+    "name": "qwantbot-ips",
+    "urls": ["https://help.qwant.com/qwantbot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "reflectionbot-ips",
+    "urls": ["https://reflection.ai/bot/ips.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "rootcrawl-ips",
+    "urls": ["https://rootcrawl.org/.well-known/rootcrawl-crawler-ips.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "seekportbot-ips",
+    "urls": ["https://bot.seekport.com/seekportbot_ips.txt"],
+    "format": "lines"
+  },
+  {
+    "name": "sentry-uptime-ips",
+    "urls": ["https://sentry.io/api/0/uptime-ips/"],
+    "format": "lines"
+  },
+  {
+    "name": "seranking-ips",
+    "urls": [
+      "https://api.seranking.com/backlinks-bot-ips",
+      "https://api.seranking.com/backlinks-bot-ips?v=6"
+    ],
+    "format": "data"
+  },
+  {
+    "name": "seznambot-ips",
+    "urls": ["https://search.seznam.cz/ipranges/seznambot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "shapbot-ips",
+    "urls": ["https://docs.parallel.ai/resources/shapbot.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "sofyabot-ips",
+    "urls": ["https://sofya.co/bot/ips.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "uptimerobot-ips",
+    "urls": ["https://api.uptimerobot.com/meta/ips"],
+    "format": "prefixes"
+  },
+  {
+    "name": "cloudflare-ips",
+    "about": "A proxy whose client address header is trusted, for the proxy plugin",
+    "urls": [
+      "https://www.cloudflare.com/ips-v4/",
+      "https://www.cloudflare.com/ips-v6/"
+    ],
+    "format": "lines",
+    "bothFamilies": true
+  },
+  {
+    "name": "cloudfront-ips",
+    "about": "A proxy whose client address header is trusted, for the proxy plugin",
+    "urls": ["https://ip-ranges.amazonaws.com/ip-ranges.json"],
+    "format": "awsService",
+    "service": "CLOUDFRONT",
+    "bothFamilies": true
+  }
+]
