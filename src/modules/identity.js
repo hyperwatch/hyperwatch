@@ -11,6 +11,7 @@ const amazonSearchBotIps = require('../data/amazon-searchbot-ips.json');
 const amazonUserIps = require('../data/amazon-user-ips.json');
 const amazonBotIps = require('../data/amazonbot-ips.json');
 const applebotIps = require('../data/applebot-ips.json');
+const arquivoIps = require('../data/arquivo-ips.json');
 const barkrowlerIps = require('../data/barkrowler-ips.json');
 const bingbotIps = require('../data/bingbot-ips.json');
 const ccbotIps = require('../data/ccbot-ips.json');
@@ -23,6 +24,10 @@ const duckduckbotIps = require('../data/duckduckbot-ips.json');
 const githubIps = require('../data/github-ips.json');
 const googlebotIps = require('../data/googlebot-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
+const halobotIps = require('../data/halobot-ips.json');
+const hubspotIps = require('../data/hubspot-ips.json');
+const ibouIps = require('../data/ibou-ips.json');
+const ibouBotIps = require('../data/iboubot-ips.json');
 const keenableUserIps = require('../data/keenable-user-ips.json');
 const keenableBotIps = require('../data/keenablebot-ips.json');
 const lyrenthIps = require('../data/lyrenth-ips.json');
@@ -34,6 +39,8 @@ const perplexityUserIps = require('../data/perplexity-user-ips.json');
 const perplexityBotIps = require('../data/perplexitybot-ips.json');
 const pingdomIps = require('../data/pingdom-ips.json');
 const qwantbotIps = require('../data/qwantbot-ips.json');
+const reflectionbotIps = require('../data/reflectionbot-ips.json');
+const rootcrawlIps = require('../data/rootcrawl-ips.json');
 const seekportbotIps = require('../data/seekportbot-ips.json');
 const sentryUptimeIps = require('../data/sentry-uptime-ips.json');
 const serankingIps = require('../data/seranking-ips.json');
@@ -91,6 +98,9 @@ const amazonQuickCidrs = compileRanges(amazonQuickIps);
 // list is enough, and so is the hostname, so no robot identified before loses
 // its identity.
 const applebotCidrs = compileRanges(applebotIps);
+const arquivoCidrs = compileRanges(arquivoIps);
+const reflectionbotCidrs = compileRanges(reflectionbotIps);
+const rootcrawlCidrs = compileRanges(rootcrawlIps);
 const googlebotCidrs = compileRanges(googlebotIps);
 const bingbotCidrs = compileRanges(bingbotIps);
 const pingdomCidrs = compileRanges(pingdomIps);
@@ -128,6 +138,12 @@ const twitterCidrs = compileRanges([
   '199.59.148.0/22',
   '192.133.76.0/22',
 ]);
+
+// Robots identified from their published list only
+const halobotCidrs = compileRanges(halobotIps);
+const hubspotCidrs = compileRanges(hubspotIps);
+const ibouCidrs = compileRanges(ibouIps);
+const ibouBotCidrs = compileRanges(ibouBotIps);
 
 // Lists that were parsed again on every request
 const amazonBotCidrs = compileRanges(amazonBotIps);
@@ -167,9 +183,11 @@ function augment(log) {
         ? log.set('identity', family)
         : log;
     case 'Googlebot':
+    case 'Googlebot-Image':
+    case 'Googlebot-Video':
       return (hostname && hostname.endsWith('.googlebot.com')) ||
         (address && googlebotCidrs(address))
-        ? log.set('identity', family)
+        ? log.set('identity', 'Googlebot')
         : log;
     case 'Google':
     case 'GoogleDocs':
@@ -255,7 +273,10 @@ function augment(log) {
         : log;
     case 'Pinterest':
     case 'Pinterestbot':
-      return hostname && hostname.endsWith('.pinterest.com')
+      // https://help.pinterest.com/en/business/article/pinterest-crawler: US
+      // crawling comes from 54.236.1.0/24
+      return (hostname && hostname.endsWith('.pinterest.com')) ||
+        (address && inCidr('54.236.1.0/24', address))
         ? log.set('identity', 'Pinterest')
         : log;
     case 'Yeti':
@@ -354,7 +375,9 @@ function augment(log) {
         : log;
     case 'Reflectionbot':
       // https://reflection.ai/bot
-      return verifiedHostname && verifiedHostname.endsWith('.reflection.ai')
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.reflection.ai')) ||
+        (address && reflectionbotCidrs(address))
         ? log.set('identity', 'Reflection')
         : log;
     case 'SEOkicks':
@@ -372,7 +395,8 @@ function augment(log) {
         : log;
     case 'arquivo-web-crawler':
     case 'Arquivo-web-crawler':
-      return hostname && hostname.endsWith('.arquivo.pt')
+      return (hostname && hostname.endsWith('.arquivo.pt')) ||
+        (address && arquivoCidrs(address))
         ? log.set('identity', 'Arquivo')
         : log;
     case 'SeekportBot':
@@ -386,7 +410,8 @@ function augment(log) {
         : log;
     case 'RootCrawl':
     case 'RootCrawl-Crawler':
-      return hostname && hostname.endsWith('.rootcrawl.org')
+      return (hostname && hostname.endsWith('.rootcrawl.org')) ||
+        (address && rootcrawlCidrs(address))
         ? log.set('identity', 'RootCrawl')
         : log;
     case 'bl.uk ldfc bot':
@@ -440,8 +465,9 @@ function augment(log) {
         ? log.set('identity', 'Sofya')
         : log;
     case 'YouBot':
-      // https://docs.you.com/youbot
-      return hostname && hostname.endsWith('.search.you.com')
+      // https://docs.you.com/youbot: YouBot crawls from 68.67.112.0/24
+      return (hostname && hostname.endsWith('.search.you.com')) ||
+        (address && inCidr('68.67.112.0/24', address))
         ? log.set('identity', 'You.com')
         : log;
     case 'AIWebIndex':
@@ -492,6 +518,33 @@ function augment(log) {
     case 'Daum':
       return address && daumBotCidrs(address)
         ? log.set('identity', family)
+        : log;
+    case 'IdarusBot':
+      // https://search.magical.rocks/bot: its only address
+      return address && inCidr('141.94.42.166/32', address)
+        ? log.set('identity', 'Idarus')
+        : log;
+    case 'HaloBot':
+      return address && halobotCidrs(address)
+        ? log.set('identity', 'HaloScan')
+        : log;
+    case 'HubSpot Crawler':
+      return address && hubspotCidrs(address)
+        ? log.set('identity', 'HubSpot')
+        : log;
+    case 'ibou-search':
+      // https://www.ibou.com/crawlers.html: its list, or a forward-confirmed
+      // hostname under ibou.io
+      return (verifiedHostname && verifiedHostname.endsWith('.ibou.io')) ||
+        (address && ibouCidrs(address))
+        ? log.set('identity', 'ibou')
+        : log;
+    case 'IbouBot':
+      // https://www.ibou.com/iboubot.html: its list, or a forward-confirmed
+      // hostname under ibou.io
+      return (verifiedHostname && verifiedHostname.endsWith('.ibou.io')) ||
+        (address && ibouBotCidrs(address))
+        ? log.set('identity', 'ibou')
         : log;
     case 'LinkupBot':
       // https://www.linkup.so/linkupbot-ips.txt

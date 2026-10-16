@@ -507,6 +507,15 @@ describe('identity', () => {
       ['ShapBot', 'shapbot-ips', 'Parallel'],
       ['SofyaBot', 'sofyabot-ips', 'Sofya'],
       ['UptimeRobot', 'uptimerobot-ips', 'Uptime Robot'],
+      ['Googlebot-Image', 'googlebot-ips', 'Googlebot'],
+      ['Googlebot-Video', 'googlebot-ips', 'Googlebot'],
+      ['Arquivo-web-crawler', 'arquivo-ips', 'Arquivo'],
+      ['Reflectionbot', 'reflectionbot-ips', 'Reflection'],
+      ['RootCrawl', 'rootcrawl-ips', 'RootCrawl'],
+      ['HaloBot', 'halobot-ips', 'HaloScan'],
+      ['HubSpot Crawler', 'hubspot-ips', 'HubSpot'],
+      ['ibou-search', 'ibou-ips', 'ibou'],
+      ['IbouBot', 'iboubot-ips', 'ibou'],
     ];
 
     for (const [family, list, expected] of cases) {
@@ -520,6 +529,55 @@ describe('identity', () => {
 
       it(`should not identify ${family} outside ${list} without a hostname`, () => {
         const result = identity.augment(log({ family, address: '192.0.2.1' }));
+        assert.strictEqual(result.get('identity'), undefined);
+      });
+    }
+  });
+
+  // Ranges operators document on their pages, without a list file
+  describe('documented ranges', () => {
+    const cases = [
+      ['Pinterestbot', '54.236.1.10', '54.236.2.10', 'Pinterest'],
+      ['YouBot', '68.67.112.106', '68.67.113.106', 'You.com'],
+      ['IdarusBot', '141.94.42.166', '141.94.42.167', 'Idarus'],
+    ];
+
+    for (const [family, inside, outside, expected] of cases) {
+      it(`should identify ${family} from its documented range`, () => {
+        const result = identity.augment(log({ family, address: inside }));
+        assert.strictEqual(result.get('identity'), expected);
+      });
+
+      it(`should not identify ${family} outside its documented range`, () => {
+        const result = identity.augment(log({ family, address: outside }));
+        assert.strictEqual(result.get('identity'), undefined);
+      });
+    }
+  });
+
+  describe('ibou', () => {
+    for (const family of ['ibou-search', 'IbouBot']) {
+      it(`should identify ${family} from a forward-confirmed ibou.io hostname`, () => {
+        const result = identity.augment(
+          log({
+            family,
+            address: '203.0.113.7',
+            hostname: 'c40037.ibou.io',
+            verified: true,
+          })
+        );
+        assert.strictEqual(result.get('identity'), 'ibou');
+      });
+
+      it(`should not identify ${family} from an unconfirmed ibou.io hostname`, () => {
+        const result = identity.augment(
+          log({
+            family,
+            address: '203.0.113.7',
+            hostname: 'c40037.ibou.io',
+            verified: false,
+          })
+        );
         assert.strictEqual(result.get('identity'), undefined);
       });
     }

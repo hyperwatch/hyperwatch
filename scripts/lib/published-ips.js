@@ -20,22 +20,19 @@ function toCidr(value) {
 }
 
 // JSON with a `prefixes` array of strings or objects (`ipv4Prefix`,
-// `ipv6Prefix`, `ip_prefix` or `ipv6_prefix`): the Googlebot format, which
-// most operators follow. A bare array is read the same way.
+// `ipv6Prefix`, `ip_prefix` or `ipv6_prefix`, several in one object
+// sometimes): the Googlebot format, which most operators follow. A bare array
+// is read the same way.
 function parsePrefixes(text) {
   const data = JSON.parse(text);
   const prefixes = Array.isArray(data) ? data : data.prefixes;
   if (!Array.isArray(prefixes)) {
     throw new Error('unexpected payload: no prefixes array');
   }
+  const keys = ['ipv4Prefix', 'ipv6Prefix', 'ip_prefix', 'ipv6_prefix'];
   return prefixes
-    .map((prefix) =>
-      typeof prefix === 'string'
-        ? prefix
-        : prefix.ipv4Prefix ||
-          prefix.ipv6Prefix ||
-          prefix.ip_prefix ||
-          prefix.ipv6_prefix
+    .flatMap((prefix) =>
+      typeof prefix === 'string' ? [prefix] : keys.map((key) => prefix[key])
     )
     .filter(Boolean);
 }
@@ -47,6 +44,32 @@ function parseData(text) {
     throw new Error('unexpected payload: no data array');
   }
   return data;
+}
+
+// JSON with a `results` array of objects with `cidr` and `service`: the
+// ranges of one service (HubSpot's network origins API)
+function parseResults(service) {
+  return (text) => {
+    const { results } = JSON.parse(text);
+    if (!Array.isArray(results)) {
+      throw new Error('unexpected payload: no results array');
+    }
+    return results
+      .filter((result) => result.service === service)
+      .map((result) => result.cidr);
+  };
+}
+
+// The IPv4 addresses in the first HTML table row whose first cell is `label`
+function parseTableRow(label) {
+  return (text) => {
+    const start = text.indexOf(`>${label}<`);
+    if (start < 0) {
+      throw new Error(`unexpected page: no "${label}" row`);
+    }
+    const row = text.slice(start, text.indexOf('</tr>', start));
+    return row.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g) || [];
+  };
 }
 
 // Plain text, one address or range per line
@@ -127,6 +150,12 @@ const sources = [
   {
     name: 'applebot-ips',
     urls: ['https://search.developer.apple.com/applebot.json'],
+    parse: parsePrefixes,
+  },
+  // Arquivo.pt's web archive crawler
+  {
+    name: 'arquivo-ips',
+    urls: ['https://arquivo.pt/crawlerips.json'],
     parse: parsePrefixes,
   },
   {
@@ -217,6 +246,31 @@ const sources = [
     urls: ['https://openai.com/gptbot.json'],
     parse: parsePrefixes,
   },
+  // HaloScan publishes HaloBot's addresses in a table on its crawler page
+  {
+    name: 'halobot-ips',
+    urls: ['https://www.haloscan.com/en/crawler-haloscan'],
+    parse: parseTableRow('Official IP addresses'),
+  },
+  // HubSpot's crawling and user-generated traffic (`WEB_SCRAPING`), from its
+  // network origins API (https://developers.hubspot.com/docs/api/network-origins)
+  {
+    name: 'hubspot-ips',
+    urls: ['https://api.hubapi.com/meta/network-origins/2026-09/ip-ranges'],
+    parse: parseResults('WEB_SCRAPING'),
+  },
+  // ibou, one list per crawler (https://www.ibou.com/crawlers.html,
+  // https://www.ibou.com/iboubot.html)
+  {
+    name: 'ibou-ips',
+    urls: ['https://www.ibou.com/ibousearch-ip-ranges.json'],
+    parse: parsePrefixes,
+  },
+  {
+    name: 'iboubot-ips',
+    urls: ['https://www.ibou.com/iboubot-ip-ranges.json'],
+    parse: parsePrefixes,
+  },
   // Keenable, one list per agent (https://keenable.ai/bot)
   {
     name: 'keenable-user-ips',
@@ -282,6 +336,16 @@ const sources = [
     parse: parsePrefixes,
   },
   {
+    name: 'reflectionbot-ips',
+    urls: ['https://reflection.ai/bot/ips.json'],
+    parse: parsePrefixes,
+  },
+  {
+    name: 'rootcrawl-ips',
+    urls: ['https://rootcrawl.org/.well-known/rootcrawl-crawler-ips.json'],
+    parse: parsePrefixes,
+  },
+  {
     name: 'seekportbot-ips',
     urls: ['https://bot.seekport.com/seekportbot_ips.txt'],
     parse: parseLines,
@@ -293,7 +357,10 @@ const sources = [
   },
   {
     name: 'seranking-ips',
-    urls: ['https://api.seranking.com/backlinks-bot-ips'],
+    urls: [
+      'https://api.seranking.com/backlinks-bot-ips',
+      'https://api.seranking.com/backlinks-bot-ips?v=6',
+    ],
     parse: parseData,
   },
   {
@@ -413,7 +480,9 @@ module.exports = {
   parseKeys,
   parseLines,
   parsePrefixes,
+  parseResults,
   parseRoutes,
+  parseTableRow,
   refresh,
   removeNested,
   sources,

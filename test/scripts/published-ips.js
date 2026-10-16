@@ -9,7 +9,9 @@ const {
   parseKeys,
   parseLines,
   parsePrefixes,
+  parseResults,
   parseRoutes,
+  parseTableRow,
   refresh,
   removeNested,
   sources,
@@ -59,6 +61,46 @@ describe('published IP lists', () => {
       assert.deepStrictEqual(parsePrefixes('["192.0.2.1"]'), ['192.0.2.1']);
       assert.throws(() => parsePrefixes('{"ranges": []}'), /no prefixes/);
       assert.throws(() => parsePrefixes('<html>'), SyntaxError);
+    });
+
+    it('reads every prefix of an entry', () => {
+      const text = JSON.stringify({
+        prefixes: [{ ipv4Prefix: '192.0.2.0/24', ipv6Prefix: '2001:db8::/44' }],
+      });
+      assert.deepStrictEqual(parsePrefixes(text), [
+        '192.0.2.0/24',
+        '2001:db8::/44',
+      ]);
+    });
+
+    it("reads one service's ranges from a results array", () => {
+      const text = JSON.stringify({
+        results: [
+          { cidr: '192.0.2.0/24', service: 'WEB_SCRAPING' },
+          { cidr: '198.51.100.0/24', service: 'EMAIL' },
+        ],
+      });
+      assert.deepStrictEqual(parseResults('WEB_SCRAPING')(text), [
+        '192.0.2.0/24',
+      ]);
+      assert.throws(() => parseResults('WEB_SCRAPING')('{}'), /no results/);
+    });
+
+    it('reads the addresses of one table row', () => {
+      const html = [
+        '<table><tr><td>Crawler name</td><td>examplebot 1.2.3</td></tr>',
+        '<tr><td>Official IP addresses</td><td>',
+        '<span>192.0.2.1</span><span>192.0.2.2 </span></td></tr>',
+        '<tr><td>Other</td><td>198.51.100.1</td></tr></table>',
+      ].join('');
+      assert.deepStrictEqual(parseTableRow('Official IP addresses')(html), [
+        '192.0.2.1',
+        '192.0.2.2',
+      ]);
+      assert.throws(
+        () => parseTableRow('Official IP addresses')('<table></table>'),
+        /no "Official IP addresses" row/
+      );
     });
 
     it('reads a data array', () => {
