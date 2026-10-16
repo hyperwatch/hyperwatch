@@ -27,6 +27,7 @@ const gptbotIps = require('../data/gptbot-ips.json');
 const halobotIps = require('../data/halobot-ips.json');
 const hubspotIps = require('../data/hubspot-ips.json');
 const ibouIps = require('../data/ibou-ips.json');
+const ibouBotIps = require('../data/iboubot-ips.json');
 const keenableUserIps = require('../data/keenable-user-ips.json');
 const keenableBotIps = require('../data/keenablebot-ips.json');
 const lyrenthIps = require('../data/lyrenth-ips.json');
@@ -142,6 +143,7 @@ const twitterCidrs = compileRanges([
 const halobotCidrs = compileRanges(halobotIps);
 const hubspotCidrs = compileRanges(hubspotIps);
 const ibouCidrs = compileRanges(ibouIps);
+const ibouBotCidrs = compileRanges(ibouBotIps);
 
 // Lists that were parsed again on every request
 const amazonBotCidrs = compileRanges(amazonBotIps);
@@ -531,10 +533,17 @@ function augment(log) {
         ? log.set('identity', 'HubSpot')
         : log;
     case 'ibou-search':
-      // https://ibou.com/crawlers.html: its list, or a forward-confirmed
+      // https://www.ibou.com/crawlers.html: its list, or a forward-confirmed
       // hostname under ibou.io
       return (verifiedHostname && verifiedHostname.endsWith('.ibou.io')) ||
         (address && ibouCidrs(address))
+        ? log.set('identity', 'ibou')
+        : log;
+    case 'IbouBot':
+      // https://www.ibou.com/iboubot.html: its list, or a forward-confirmed
+      // hostname under ibou.io
+      return (verifiedHostname && verifiedHostname.endsWith('.ibou.io')) ||
+        (address && ibouBotCidrs(address))
         ? log.set('identity', 'ibou')
         : log;
     case 'LinkupBot':

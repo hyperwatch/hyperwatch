@@ -259,9 +259,16 @@ const sources = [
     urls: ['https://api.hubapi.com/meta/network-origins/2026-09/ip-ranges'],
     parse: parseResults('WEB_SCRAPING'),
   },
+  // ibou, one list per crawler (https://www.ibou.com/crawlers.html,
+  // https://www.ibou.com/iboubot.html)
   {
     name: 'ibou-ips',
     urls: ['https://www.ibou.com/ibousearch-ip-ranges.json'],
+    parse: parsePrefixes,
+  },
+  {
+    name: 'iboubot-ips',
+    urls: ['https://www.ibou.com/iboubot-ip-ranges.json'],
     parse: parsePrefixes,
   },
   // Keenable, one list per agent (https://keenable.ai/bot)

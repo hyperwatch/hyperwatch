@@ -515,6 +515,7 @@ describe('identity', () => {
       ['HaloBot', 'halobot-ips', 'HaloScan'],
       ['HubSpot Crawler', 'hubspot-ips', 'HubSpot'],
       ['ibou-search', 'ibou-ips', 'ibou'],
+      ['IbouBot', 'iboubot-ips', 'ibou'],
     ];
 
     for (const [family, list, expected] of cases) {
@@ -555,29 +556,31 @@ describe('identity', () => {
   });
 
   describe('ibou', () => {
-    it('should identify a forward-confirmed ibou.io hostname', () => {
-      const result = identity.augment(
-        log({
-          family: 'ibou-search',
-          address: '203.0.113.7',
-          hostname: 'c40037.ibou.io',
-          verified: true,
-        })
-      );
-      assert.strictEqual(result.get('identity'), 'ibou');
-    });
+    for (const family of ['ibou-search', 'IbouBot']) {
+      it(`should identify ${family} from a forward-confirmed ibou.io hostname`, () => {
+        const result = identity.augment(
+          log({
+            family,
+            address: '203.0.113.7',
+            hostname: 'c40037.ibou.io',
+            verified: true,
+          })
+        );
+        assert.strictEqual(result.get('identity'), 'ibou');
+      });
 
-    it('should not identify an unconfirmed ibou.io hostname', () => {
-      const result = identity.augment(
-        log({
-          family: 'ibou-search',
-          address: '203.0.113.7',
-          hostname: 'c40037.ibou.io',
-          verified: false,
-        })
-      );
-      assert.strictEqual(result.get('identity'), undefined);
-    });
+      it(`should not identify ${family} from an unconfirmed ibou.io hostname`, () => {
+        const result = identity.augment(
+          log({
+            family,
+            address: '203.0.113.7',
+            hostname: 'c40037.ibou.io',
+            verified: false,
+          })
+        );
+        assert.strictEqual(result.get('identity'), undefined);
+      });
+    }
   });
 
   describe('Twitter', () => {
