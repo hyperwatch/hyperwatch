@@ -1,7 +1,7 @@
 const api = require('../app/api');
 const html = require('../app/html');
 // Bot IP lists for identity verification. Run `node scripts/fetch-ips.js` to
-// update them (sources in scripts/lib/published-ips.js). The Amazon Quick,
+// update them (sources in scripts/published-ips.json). The Amazon Quick,
 // Daum and 360Spider lists are copied by hand (see amazonQuickCidrs,
 // daumBotCidrs and spider360Cidrs below).
 const spider360Ips = require('../data/360spider-ips.json');
