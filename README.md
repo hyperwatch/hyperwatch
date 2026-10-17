@@ -63,6 +63,7 @@ PORT=80 npm start config/custom
 ## Tutorials
 
 - [Monitor web traffic with syslog input from Apache](./docs/tutorials/apache_input.md)
+- [Relay a legacy Apache server behind Cloudflare to a current Hyperwatch](./docs/tutorials/apache_cloudflare_relay.md)
 - [Monitor web traffic with Node/Express middleware integration](./docs/tutorials/express_input.md)
 
 ## License

@@ -73,13 +73,14 @@ As a client, its status shows the version of the Hyperwatch server it's connecte
 
 The input accepts the following options.
 
-| Attribute | Type   | Required?                 | Description                                                                              |
-| --------- | ------ | ------------------------- | ---------------------------------------------------------------------------------------- |
-| type      | string | no                        | Either 'client' or 'server' (default to 'client')                                        |
-| address   | string | yes (if type is 'client') | The WebSocket address to connect to (e.g. 'wss://localhost:3000')                        |
-| path      | string | yes (if type is 'server') | The path where to listen for logs                                                        |
-| parse     | Parser | no                        | A function to parse the messages (See [Formats](#other-formats) below)                   |
-| sample    | float  | no                        | A sample rate, a float between 0 and 1. Will only send data this percentage of the time. |
+| Attribute        | Type    | Required?                 | Description                                                                                                |
+| ---------------- | ------- | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| type             | string  | no                        | Either 'client' or 'server' (default to 'client')                                                          |
+| address          | string  | yes (if type is 'client') | The WebSocket address to connect to (e.g. 'wss://localhost:3000')                                          |
+| path             | string  | yes (if type is 'server') | The path where to listen for logs                                                                          |
+| parse            | Parser  | no                        | A function to parse the messages (See [Formats](#other-formats) below)                                     |
+| sample           | float   | no                        | A sample rate, a float between 0 and 1. Will only send data this percentage of the time.                   |
+| reconnectOnClose | boolean | no                        | As a client, reconnect when the connection closes, backing off from 10s up to 5 minutes (default to false) |
 
 ### Express
 
