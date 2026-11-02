@@ -28,6 +28,7 @@ const halobotIps = require('../data/halobot-ips.json');
 const hubspotIps = require('../data/hubspot-ips.json');
 const ibouIps = require('../data/ibou-ips.json');
 const ibouBotIps = require('../data/iboubot-ips.json');
+const kakaobotIps = require('../data/kakaobot-ips.json');
 const keenableUserIps = require('../data/keenable-user-ips.json');
 const keenableBotIps = require('../data/keenablebot-ips.json');
 const lyrenthIps = require('../data/lyrenth-ips.json');
@@ -40,6 +41,7 @@ const perplexityBotIps = require('../data/perplexitybot-ips.json');
 const pingdomIps = require('../data/pingdom-ips.json');
 const qwantbotIps = require('../data/qwantbot-ips.json');
 const reflectionbotIps = require('../data/reflectionbot-ips.json');
+const riverbotIps = require('../data/riverbot-ips.json');
 const rootcrawlIps = require('../data/rootcrawl-ips.json');
 const seekportbotIps = require('../data/seekportbot-ips.json');
 const sentryUptimeIps = require('../data/sentry-uptime-ips.json');
@@ -100,6 +102,8 @@ const amazonQuickCidrs = compileRanges(amazonQuickIps);
 const applebotCidrs = compileRanges(applebotIps);
 const arquivoCidrs = compileRanges(arquivoIps);
 const reflectionbotCidrs = compileRanges(reflectionbotIps);
+const riverbotCidrs = compileRanges(riverbotIps);
+const kakaobotCidrs = compileRanges(kakaobotIps);
 const rootcrawlCidrs = compileRanges(rootcrawlIps);
 const googlebotCidrs = compileRanges(googlebotIps);
 const bingbotCidrs = compileRanges(bingbotIps);
@@ -290,6 +294,14 @@ function augment(log) {
       return hostname && hostname.endsWith('.stripe.com')
         ? log.set('identity', 'Stripe')
         : log;
+    case 'PayPal':
+    case 'PayPal IPN':
+      // PayPal's notifications (`PayPal/1.0`, IPN), from hosts such as
+      // notify.paypal.com. PayPal publishes no list: a forward-confirmed
+      // hostname under paypal.com
+      return verifiedHostname && verifiedHostname.endsWith('.paypal.com')
+        ? log.set('identity', 'PayPal')
+        : log;
     case 'UptimeRobot':
       return (hostname && hostname.endsWith('.uptimerobot.com')) ||
         (address && uptimerobotCidrs(address))
@@ -379,6 +391,13 @@ function augment(log) {
         verifiedHostname.endsWith('.reflection.ai')) ||
         (address && reflectionbotCidrs(address))
         ? log.set('identity', 'Reflection')
+        : log;
+    case 'RiverBot':
+      // https://river.ai/bot: its list, or a forward-confirmed hostname under
+      // bot.river.ai
+      return (verifiedHostname && verifiedHostname.endsWith('.bot.river.ai')) ||
+        (address && riverbotCidrs(address))
+        ? log.set('identity', 'River')
         : log;
     case 'SEOkicks':
       // https://www.seokicks.de/robot.html
@@ -518,6 +537,11 @@ function augment(log) {
     case 'Daum':
       return address && daumBotCidrs(address)
         ? log.set('identity', family)
+        : log;
+    case 'KakaoBot':
+      // https://cs.kakao.com/helps_html/1073213012 (no reverse DNS)
+      return address && kakaobotCidrs(address)
+        ? log.set('identity', 'Kakao')
         : log;
     case 'IdarusBot':
       // https://search.magical.rocks/bot: its only address

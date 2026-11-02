@@ -516,6 +516,8 @@ describe('identity', () => {
       ['HubSpot Crawler', 'hubspot-ips', 'HubSpot'],
       ['ibou-search', 'ibou-ips', 'ibou'],
       ['IbouBot', 'iboubot-ips', 'ibou'],
+      ['RiverBot', 'riverbot-ips', 'River'],
+      ['KakaoBot', 'kakaobot-ips', 'Kakao'],
     ];
 
     for (const [family, list, expected] of cases) {
@@ -577,6 +579,32 @@ describe('identity', () => {
             hostname: 'c40037.ibou.io',
             verified: false,
           })
+        );
+        assert.strictEqual(result.get('identity'), undefined);
+      });
+    }
+  });
+
+  // Forward-confirmed hostnames: the identity, but not from an unconfirmed
+  // hostname
+  describe('verified hostnames', () => {
+    const cases = [
+      ['RiverBot', 'crawl-203-0-113-7.bot.river.ai', 'River'],
+      ['PayPal', 'notify.paypal.com', 'PayPal'],
+      ['PayPal IPN', 'notify.paypal.com', 'PayPal'],
+    ];
+
+    for (const [family, hostname, expected] of cases) {
+      it(`should identify ${family} from a forward-confirmed ${hostname}`, () => {
+        const result = identity.augment(
+          log({ family, address: '203.0.113.7', hostname, verified: true })
+        );
+        assert.strictEqual(result.get('identity'), expected);
+      });
+
+      it(`should not identify ${family} from an unconfirmed ${hostname}`, () => {
+        const result = identity.augment(
+          log({ family, address: '203.0.113.7', hostname, verified: false })
         );
         assert.strictEqual(result.get('identity'), undefined);
       });

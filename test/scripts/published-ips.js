@@ -9,6 +9,7 @@ const {
   parseData,
   parseKeys,
   parseLines,
+  parseListAfter,
   parsePrefixes,
   parseResults,
   parseRoutes,
@@ -101,6 +102,22 @@ describe('published IP lists', () => {
       assert.throws(
         () => parseTableRow('Official IP addresses')('<table></table>'),
         /no "Official IP addresses" row/
+      );
+    });
+
+    it('reads the addresses and ranges of the list after a sentence', () => {
+      const html = [
+        '<ul><li>198.51.100.1</li></ul>',
+        '<p>ExampleBot uses these addresses.</p>',
+        '<ul><li>192.0.2.0/27</li><li>192.0.2.40</li></ul>',
+        '<ul><li>203.0.113.1</li></ul>',
+      ].join('');
+      const parse = parseListAfter('ExampleBot uses these addresses');
+      assert.deepStrictEqual(parse(html), ['192.0.2.0/27', '192.0.2.40']);
+      assert.throws(() => parse('<ul></ul>'), /no "ExampleBot/);
+      assert.throws(
+        () => parse('<p>ExampleBot uses these addresses.</p>'),
+        /no list after/
       );
     });
 
