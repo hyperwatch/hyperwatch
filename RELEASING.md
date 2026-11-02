@@ -20,7 +20,7 @@ npx prettier --write src/data
 git status --short src/data
 ```
 
-`scripts/fetch-ips.js` fetches every list in `scripts/lib/published-ips.js`. A list that can't be fetched or parsed, is empty, or has an invalid entry keeps its current file; the script names it at the end and exits with a non-zero status. If one failed, stop: retry later (`node scripts/fetch-ips.js <name>` refreshes only that list), or find out why, rather than release with a list that wasn't refreshed.
+`scripts/fetch-ips.js` fetches every list in `src/data/ip-list-sources.json`. A list that can't be fetched or parsed, is empty, or has an invalid entry keeps its current file; the script names it at the end and exits with a non-zero status. If one failed, stop: retry later (`node scripts/fetch-ips.js <name>` refreshes only that list), or find out why, rather than release with a list that wasn't refreshed.
 
 Some lists have no updater and are copied by hand. Compare them with their source too:
 

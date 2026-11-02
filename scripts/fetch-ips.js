@@ -4,7 +4,7 @@
 //   node scripts/fetch-ips.js
 //   node scripts/fetch-ips.js meta-ips claude-bot-ips
 //
-// Sources are in scripts/lib/published-ips.js. A list that can't be fetched
+// Sources are in src/data/ip-list-sources.json. A list that can't be fetched
 // keeps its current file, and the script exits with status 1.
 const fs = require('fs');
 const path = require('path');

@@ -4,6 +4,7 @@ const path = require('path');
 
 const {
   build,
+  loadSources,
   parseAwsService,
   parseData,
   parseKeys,
@@ -282,6 +283,49 @@ describe('published IP lists', () => {
         'good-ips': ['192.0.2.1/32'],
         'after-ips': ['198.51.100.1/32'],
       });
+    });
+  });
+
+  describe('loadSources', () => {
+    it('gives each source the parser of its format, with its options', () => {
+      const [results, routes] = loadSources([
+        {
+          name: 'results-ips',
+          urls: ['https://example.com/'],
+          format: 'results',
+          service: 'CRAWL',
+        },
+        {
+          name: 'routes-ips',
+          urls: ['whois://example.com/x'],
+          format: 'routes',
+        },
+      ]);
+      assert.deepStrictEqual(
+        results.parse(
+          JSON.stringify({
+            results: [
+              { cidr: '192.0.2.0/24', service: 'CRAWL' },
+              { cidr: '198.51.100.0/24', service: 'OTHER' },
+            ],
+          })
+        ),
+        ['192.0.2.0/24']
+      );
+      assert.deepStrictEqual(
+        routes.parse('route: 192.0.2.0/24\nroute: 192.0.2.0/25\n'),
+        ['192.0.2.0/24']
+      );
+    });
+
+    it('rejects an unknown format', () => {
+      assert.throws(
+        () =>
+          loadSources([
+            { name: 'x-ips', urls: ['https://example.com/'], format: 'xml' },
+          ]),
+        /x-ips: unknown format "xml"/
+      );
     });
   });
 
