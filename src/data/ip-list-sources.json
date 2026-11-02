@@ -137,6 +137,13 @@
     "format": "prefixes"
   },
   {
+    "name": "kakaobot-ips",
+    "about": "Kakao lists KakaoBot's addresses on its help page, in Korean: \"KakaoBot uses the following IPs. The list may change without notice.\"",
+    "urls": ["https://cs.kakao.com/helps_html/1073213012"],
+    "format": "listAfter",
+    "marker": "KakaoBot은 다음의 IP를 사용합니다"
+  },
+  {
     "name": "lyrenth-ips",
     "urls": ["https://lyrenth.com/bot/ip-ranges.json"],
     "format": "prefixes"
@@ -190,6 +197,12 @@
   {
     "name": "reflectionbot-ips",
     "urls": ["https://reflection.ai/bot/ips.json"],
+    "format": "prefixes"
+  },
+  {
+    "name": "riverbot-ips",
+    "about": "https://river.ai/bot",
+    "urls": ["https://river.ai/riverbot.json"],
     "format": "prefixes"
   },
   {

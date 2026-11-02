@@ -73,6 +73,26 @@ function parseTableRow(label) {
   };
 }
 
+// The addresses and ranges in the first HTML list (<ul>) after `marker`
+function parseListAfter(marker) {
+  return (text) => {
+    const start = text.indexOf(marker);
+    if (start < 0) {
+      throw new Error(`unexpected page: no "${marker}"`);
+    }
+    const listStart = text.indexOf('<ul', start);
+    const listEnd = listStart < 0 ? -1 : text.indexOf('</ul>', listStart);
+    if (listEnd < 0) {
+      throw new Error(`unexpected page: no list after "${marker}"`);
+    }
+    return (
+      text
+        .slice(listStart, listEnd)
+        .match(/\b(?:\d{1,3}\.){3}\d{1,3}(?:\/\d{1,2})?\b/g) || []
+    );
+  };
+}
+
 // Plain text, one address or range per line
 function parseLines(text) {
   return text
@@ -148,6 +168,7 @@ const parsers = {
   data: () => parseData,
   keys: ({ keys }) => parseKeys(keys),
   lines: () => parseLines,
+  listAfter: ({ marker }) => parseListAfter(marker),
   prefixes: () => parsePrefixes,
   results: ({ service }) => parseResults(service),
   // Meta's routes in RADb
@@ -244,6 +265,7 @@ module.exports = {
   parseData,
   parseKeys,
   parseLines,
+  parseListAfter,
   parsePrefixes,
   parseResults,
   parseRoutes,
