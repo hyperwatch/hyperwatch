@@ -14,6 +14,9 @@ const wsServer = require('./ws-server');
 
 const app = express();
 
+// Live logs kept per HTTP stream while its history is read
+const MAX_QUEUED_LOGS = 10000;
+
 // Every response tells the client which Hyperwatch it talks to
 app.use((req, res, next) => {
   res.setHeader('X-Hyperwatch-Version', version);
@@ -122,7 +125,9 @@ app.streamToHttp = (
 
   app.get(endpoint, (req, res) => {
     const requestId = crypto.randomUUID();
-    requests[requestId] = [req, res];
+    // [req, res, queue]: while the history is read (a promise), live logs
+    // wait in the queue, so they follow it
+    requests[requestId] = [req, res, null];
     updateMonitoringStatus();
 
     const close = () => {
@@ -145,8 +150,32 @@ app.streamToHttp = (
     if (history) {
       const limit = parseInt(req.query.history, 10);
       const logs = history(limit >= 0 ? limit : 100, req.query);
-      for (const log of logs.reverse()) {
-        writeLog(req, res, log);
+      if (typeof logs.then === 'function') {
+        const queue = [];
+        requests[requestId][2] = queue;
+        logs
+          .catch((err) => {
+            console.error(`Error reading the history of ${endpoint}:`, err);
+            return [];
+          })
+          .then((read) => {
+            if (res.writableEnded || res.destroyed) {
+              return;
+            }
+            for (const log of [...read].reverse()) {
+              writeLog(req, res, log);
+            }
+            for (const log of queue) {
+              writeLog(req, res, log);
+            }
+            if (requests[requestId]) {
+              requests[requestId][2] = null;
+            }
+          });
+      } else {
+        for (const log of logs.reverse()) {
+          writeLog(req, res, log);
+        }
       }
     }
 
@@ -155,7 +184,13 @@ app.streamToHttp = (
   });
 
   stream.map((log) => {
-    Object.values(requests).forEach(([req, res]) => writeLog(req, res, log));
+    Object.values(requests).forEach(([req, res, queue]) => {
+      if (!queue) {
+        writeLog(req, res, log);
+      } else if (queue.length < MAX_QUEUED_LOGS && logMatches(log, req.query)) {
+        queue.push(log);
+      }
+    });
   }, `http:${endpoint}`);
 };
 

@@ -1,0 +1,650 @@
+/**
+ * Logs of a pipeline node written to disk, one NDJSON file per hour:
+ * <dir>/<YYYY-MM-DDTHH>.ndjson (UTC hour of arrival), oldest line first.
+ *
+ * The writer never blocks or throws in the pipeline: when the disk is slow
+ * or failing, logs are dropped and counted. The reader goes through the
+ * files backwards, newest log first, within bounds, and gives a cursor to
+ * resume from.
+ */
+const fs = require('fs');
+const path = require('path');
+
+const { fromJS } = require('immutable');
+
+const { logMatches } = require('./util');
+
+const NEWLINE = 0x0a;
+const FILE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}\.ndjson$/;
+
+// The longest line written, and read: a longer one is dropped by the writer
+// and skipped by the reader, so a read always gets past a line
+const MAX_LINE = 1024 * 1024;
+
+// Bytes a stream buffers before the writer drops logs: logs of a few KB
+// come in bursts, and the default (64 KB) dropped some on a busy site
+const HIGH_WATER_MARK = 4 * 1024 * 1024;
+
+const DEFAULT_BOUNDS = {
+  // Bytes read from disk per request
+  scan: 200 * 1024 * 1024,
+  // Milliseconds per request, checked between chunks
+  time: 10 * 1000,
+  // Bytes of matching logs per response
+  response: 10 * 1024 * 1024,
+  // Bytes read at once
+  chunk: 1024 * 1024,
+};
+
+const hourOf = (date) => date.toISOString().slice(0, 13);
+
+const fileFor = (hour) => `${hour}.ndjson`;
+
+// The size of a file (0 when missing), and whether it ends mid-line (a line
+// cut by a crash)
+function fileState(file) {
+  let fd;
+  try {
+    fd = fs.openSync(file, 'r');
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return { size: 0, midLine: false };
+    }
+    throw err;
+  }
+  try {
+    const { size } = fs.fstatSync(fd);
+    if (size === 0) {
+      return { size, midLine: false };
+    }
+    const byte = Buffer.alloc(1);
+    fs.readSync(fd, byte, 0, 1, size - 1);
+    return { size, midLine: byte[0] !== NEWLINE };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+class LogWriter {
+  constructor(
+    dir,
+    {
+      now = () => new Date(),
+      highWaterMark = HIGH_WATER_MARK,
+      transform = null,
+    } = {}
+  ) {
+    this.dir = dir;
+    this.now = now;
+    this.highWaterMark = highWaterMark;
+    // What to write of a log: a log, or null to skip it
+    this.transform = transform;
+    // The stream of the current hour, null when not open (failed, stopped,
+    // or waiting for older streams to close)
+    this.stream = null;
+    this.hour = null;
+    // write() returned false: drop until that stream drains
+    this.blocked = false;
+    // Hour whose file failed: drop until the next hour
+    this.failedHour = null;
+    // Streams ended and not closed yet: at most 2, never queued
+    this.closing = new Set();
+    // Per open stream: its file, the bytes written to it for sure, and the
+    // lines sent and not written yet (oldest first), see snapshot()
+    this.files = new Map();
+    this.stopped = false;
+    this.counts = { written: 0, dropped: 0, lost: 0, skipped: 0 };
+    this.lastError = null;
+    this.lastWriteAt = null;
+  }
+
+  push(log) {
+    if (this.stopped) {
+      this.counts.dropped++;
+      return;
+    }
+    const hour = hourOf(this.now());
+    if (hour !== this.hour) {
+      this.rotate(hour);
+    }
+    if (!this.stream && this.closing.size <= 1 && this.failedHour !== hour) {
+      this.open(hour);
+    }
+    if (!this.stream || this.blocked) {
+      this.counts.dropped++;
+      return;
+    }
+    if (this.transform) {
+      try {
+        log = this.transform(log);
+      } catch (err) {
+        this.lastError = `transform: ${err.message}`;
+        this.counts.dropped++;
+        return;
+      }
+      if (!log) {
+        this.counts.skipped++;
+        return;
+      }
+    }
+    const line = `${JSON.stringify(log.toJS())}\n`;
+    if (Buffer.byteLength(line) > MAX_LINE) {
+      this.counts.dropped++;
+      return;
+    }
+    const stream = this.stream;
+    const accepted = this.write(stream, line, (err) => {
+      if (err) {
+        this.counts.lost++;
+      } else {
+        this.counts.written++;
+        this.lastWriteAt = new Date().toISOString();
+      }
+    });
+    if (!accepted) {
+      this.blocked = true;
+      stream.once('drain', () => {
+        // A late drain from an older stream changes nothing
+        if (this.stream === stream) {
+          this.blocked = false;
+        }
+      });
+    }
+  }
+
+  // Writes a line, tracked until written. A stream calls back in order, so
+  // the oldest pending line is the one written.
+  write(stream, line, callback) {
+    const state = this.files.get(stream);
+    state.pending.push(line);
+    return stream.write(line, (err) => {
+      state.pending.shift();
+      if (!err) {
+        state.written += Buffer.byteLength(line);
+      }
+      callback(err);
+    });
+  }
+
+  /**
+   * What the files hold right now, logs not written yet included: per file
+   * name, the bytes written for sure and the lines still pending. Taken
+   * synchronously, so a reader starting from it and a live stream starting
+   * at the same time neither miss nor repeat a log.
+   */
+  snapshot() {
+    const files = new Map();
+    for (const state of this.files.values()) {
+      files.set(state.file, {
+        size: state.written,
+        pending: [...state.pending],
+      });
+    }
+    // No stream on the current hour yet (none written this hour, a failure,
+    // a restart): its file as it is now, so logs written while the reader
+    // starts stay out of it
+    const current = fileFor(hourOf(this.now()));
+    if (!files.has(current)) {
+      let size = 0;
+      try {
+        size = fs.statSync(path.join(this.dir, current)).size;
+      } catch (err) {
+        // Not created yet
+      }
+      files.set(current, { size, pending: [] });
+    }
+    return files;
+  }
+
+  rotate(hour) {
+    this.hour = hour;
+    this.failedHour = null;
+    if (this.stream) {
+      this.end(this.stream);
+      this.stream = null;
+    }
+  }
+
+  open(hour) {
+    const file = path.join(this.dir, fileFor(hour));
+    let state;
+    try {
+      fs.mkdirSync(this.dir, { recursive: true });
+      state = fileState(file);
+    } catch (err) {
+      this.fail(err);
+      return;
+    }
+    const stream = fs.createWriteStream(file, {
+      flags: 'a',
+      highWaterMark: this.highWaterMark,
+    });
+    stream.on('error', (err) => {
+      if (this.stream === stream) {
+        this.fail(err);
+      } else {
+        this.lastError = err.message;
+      }
+    });
+    this.files.set(stream, {
+      file: fileFor(hour),
+      written: state.size,
+      pending: [],
+    });
+    this.stream = stream;
+    this.blocked = false;
+    // Ends the line cut by a crash, so the next log starts its own line
+    if (state.midLine) {
+      this.write(stream, '\n', () => {});
+    }
+  }
+
+  fail(err) {
+    this.lastError = err.message;
+    this.failedHour = this.hour;
+    if (this.stream) {
+      const stream = this.stream;
+      this.stream = null;
+      this.end(stream);
+    }
+  }
+
+  // Ends a stream and forgets it once closed, failed or not
+  end(stream) {
+    this.closing.add(stream);
+    const settle = () => {
+      this.closing.delete(stream);
+      this.files.delete(stream);
+    };
+    stream.once('close', settle);
+    stream.once('error', settle);
+    if (stream.destroyed || stream.closed) {
+      settle();
+    } else if (!stream.writableEnded) {
+      stream.end();
+    }
+  }
+
+  // Ends every stream; those still open when the signal fires are destroyed.
+  // Logs pushed afterwards are dropped.
+  async flush(signal) {
+    this.stopped = true;
+    if (this.stream) {
+      this.end(this.stream);
+      this.stream = null;
+    }
+    const pending = [...this.closing].map(
+      (stream) =>
+        new Promise((resolve) => {
+          if (!this.closing.has(stream)) {
+            resolve();
+            return;
+          }
+          stream.once('close', resolve);
+          stream.once('error', resolve);
+        })
+    );
+    if (!pending.length) {
+      return;
+    }
+    if (!signal) {
+      await Promise.all(pending);
+      return;
+    }
+    await new Promise((resolve) => {
+      const onAbort = () => {
+        for (const stream of this.closing) {
+          stream.destroy();
+          this.files.delete(stream);
+        }
+        this.closing.clear();
+        resolve();
+      };
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+      signal.addEventListener('abort', onAbort, { once: true });
+      Promise.all(pending).then(() => {
+        signal.removeEventListener('abort', onAbort);
+        resolve();
+      });
+    });
+  }
+
+  async stats() {
+    const files = await listFiles(this.dir);
+    let bytes = 0;
+    for (const file of files) {
+      try {
+        bytes += (await fs.promises.stat(path.join(this.dir, file))).size;
+      } catch (err) {
+        // Deleted meanwhile
+      }
+    }
+    const hour = (file) => (file ? file.slice(0, 13) : null);
+    return {
+      files: files.length,
+      bytes,
+      newest: hour(files[0]),
+      oldest: hour(files[files.length - 1]),
+      ...this.counts,
+      lastError: this.lastError,
+      lastWriteAt: this.lastWriteAt,
+    };
+  }
+}
+
+// Log files of a directory, newest first
+async function listFiles(dir) {
+  try {
+    const names = await fs.promises.readdir(dir);
+    return names
+      .filter((name) => FILE_PATTERN.test(name))
+      .sort()
+      .reverse();
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      return [];
+    }
+    throw err;
+  }
+}
+
+class CursorError extends Error {}
+
+// "<file>:<offset>", the offset being where the next read ends: 0 or right
+// after a newline
+async function parseCursor(dir, files, cursor) {
+  const match = /^(.+):(\d+)$/.exec(String(cursor));
+  if (!match || !FILE_PATTERN.test(match[1]) || !files.includes(match[1])) {
+    throw new CursorError(`Invalid cursor: ${cursor}`);
+  }
+  const [, file, digits] = match;
+  const offset = Number(digits);
+  const handle = await fs.promises.open(path.join(dir, file), 'r');
+  try {
+    const { size } = await handle.stat();
+    if (!Number.isSafeInteger(offset) || offset > size) {
+      throw new CursorError(`Invalid cursor: ${cursor}`);
+    }
+    if (offset > 0) {
+      const byte = Buffer.alloc(1);
+      await handle.read(byte, 0, 1, offset - 1);
+      if (byte[0] !== NEWLINE) {
+        throw new CursorError(`Invalid cursor: ${cursor}`);
+      }
+    }
+  } finally {
+    await handle.close();
+  }
+  return { file, offset };
+}
+
+// The parsed log of a line, or null when it isn't one
+function parseLine(line) {
+  let data;
+  try {
+    data = JSON.parse(line.toString('utf8'));
+  } catch (err) {
+    return null;
+  }
+  if (
+    !data ||
+    typeof data !== 'object' ||
+    Array.isArray(data) ||
+    !data.request ||
+    typeof data.request !== 'object'
+  ) {
+    return null;
+  }
+  return data;
+}
+
+/**
+ * The logs of `dir` matching `filters` (see logMatches), newest first.
+ *
+ * Reads from `cursor` (from an earlier read) or from the end of the newest
+ * file. Stops at `limit` logs, at the end of the files, or when a bound is
+ * hit (`truncated`). `cursor` is where to resume, null after the oldest log.
+ *
+ * With a `snapshot` (LogWriter.snapshot()), reads what the files held when it
+ * was taken, logs not written yet included, and nothing newer: in one call,
+ * without a cursor.
+ */
+async function read(
+  dir,
+  { limit = 100, cursor, filters = {}, signal, bounds = {}, snapshot } = {}
+) {
+  const { scan, time, response, chunk } = { ...DEFAULT_BOUNDS, ...bounds };
+  const started = Date.now();
+  let files = await listFiles(dir);
+  const result = {
+    logs: [],
+    cursor: null,
+    truncated: false,
+    scannedBytes: 0,
+    skipped: 0,
+    oldest: files.length ? files[files.length - 1].slice(0, 13) : null,
+  };
+
+  let index = 0;
+  let end = null;
+  if (snapshot) {
+    // Files created since the snapshot are newer than it. Its files may not
+    // exist yet (a stream opens its file asynchronously)
+    const newest = [...snapshot.keys()].sort().pop();
+    if (newest) {
+      files = [...new Set([...files, ...snapshot.keys()])]
+        .filter((file) => file <= newest)
+        .sort()
+        .reverse();
+    }
+  } else if (cursor) {
+    const parsed = await parseCursor(dir, files, cursor);
+    index = files.indexOf(parsed.file);
+    end = parsed.offset;
+  }
+
+  let responseBytes = 0;
+  let progressed = false;
+  const overBudget = () =>
+    progressed && (result.scannedBytes >= scan || Date.now() - started >= time);
+
+  // Takes a line (without its newline) if it's a log matching the filters.
+  // 'full' when it doesn't fit in the response, 'done' at the limit
+  const take = (line) => {
+    if (line.length > MAX_LINE) {
+      result.skipped++;
+      return null;
+    }
+    if (!line.length) {
+      return null;
+    }
+    const data = parseLine(line);
+    if (!data) {
+      result.skipped++;
+      return null;
+    }
+    if (!logMatches(fromJS(data), filters)) {
+      return null;
+    }
+    if (result.logs.length && responseBytes + line.length > response) {
+      return 'full';
+    }
+    responseBytes += line.length;
+    result.logs.push(data);
+    return result.logs.length >= limit ? 'done' : null;
+  };
+
+  for (; index < files.length; index++) {
+    const file = files[index];
+    const state = snapshot && snapshot.get(file);
+
+    // Lines not written yet when the snapshot was taken: the newest of the
+    // file
+    if (state) {
+      for (const line of [...state.pending].reverse()) {
+        const taken = take(Buffer.from(line.replace(/\n$/, '')));
+        progressed = true;
+        if (taken === 'full') {
+          result.truncated = true;
+          return result;
+        }
+        if (taken === 'done') {
+          return result;
+        }
+      }
+    }
+
+    let handle;
+    try {
+      handle = await fs.promises.open(path.join(dir, file), 'r');
+    } catch (err) {
+      // Not created yet: only its pending lines
+      if (err.code === 'ENOENT' && state) {
+        continue;
+      }
+      throw err;
+    }
+    try {
+      // From a cursor: where it points. From a snapshot: what was written.
+      // Otherwise the end of the file. Without a cursor, the bytes after the
+      // last newline are left out (a write in progress, or a line cut by a
+      // crash)
+      let upto = end;
+      if (upto === null) {
+        const { size } = await handle.stat();
+        upto = state ? Math.min(state.size, size) : size;
+      }
+      let trimmed = end !== null;
+      end = null;
+      // Bytes [pos, upto) read and not consumed yet. Once trimmed, upto is a
+      // line boundary, so pending ends with a newline or is empty.
+      let pos = upto;
+      let pending = Buffer.alloc(0);
+      // The line at the start of pending is longer than MAX_LINE: drop bytes
+      // until its start
+      let skipping = false;
+
+      while (pos > 0 || pending.length) {
+        // The client left: nothing to resume
+        if (signal && signal.aborted) {
+          return { ...result, cursor: null };
+        }
+        if (overBudget()) {
+          result.truncated = true;
+          if (!snapshot) {
+            // Before the end of this file is trimmed, upto may be mid-line:
+            // resume from the start of the previous file, done (there is
+            // one: only progress allows stopping on the budget, and nothing
+            // of this file was consumed yet)
+            result.cursor = trimmed
+              ? `${file}:${upto}`
+              : `${files[index - 1]}:0`;
+          }
+          return result;
+        }
+
+        if (pos > 0) {
+          const size = Math.min(chunk, pos);
+          const buffer = Buffer.alloc(size);
+          await handle.read(buffer, 0, size, pos - size);
+          pos -= size;
+          result.scannedBytes += size;
+
+          if (!trimmed) {
+            const last = buffer.lastIndexOf(NEWLINE);
+            if (last === -1) {
+              upto = pos;
+              if (pos === 0) {
+                break;
+              }
+              continue;
+            }
+            upto = pos + last + 1;
+            pending = buffer.subarray(0, last + 1);
+            trimmed = true;
+          } else if (skipping) {
+            const last = buffer.lastIndexOf(NEWLINE);
+            if (last === -1) {
+              if (pos === 0) {
+                // The long line starts the file
+                result.skipped++;
+                skipping = false;
+                upto = 0;
+                pending = Buffer.alloc(0);
+                progressed = true;
+              }
+              continue;
+            }
+            result.skipped++;
+            skipping = false;
+            upto = pos + last + 1;
+            pending = buffer.subarray(0, last + 1);
+            progressed = true;
+          } else {
+            pending = pending.length
+              ? Buffer.concat([buffer, pending])
+              : buffer;
+          }
+        }
+
+        // Complete lines, from the end of pending
+        while (pending.length) {
+          // (a negative offset would count from the end)
+          const previous =
+            pending.length > 1
+              ? pending.lastIndexOf(NEWLINE, pending.length - 2)
+              : -1;
+          if (previous === -1 && pos > 0) {
+            // The line may start before pending: read more, unless it's
+            // already too long
+            if (pending.length > MAX_LINE) {
+              skipping = true;
+              pending = Buffer.alloc(0);
+            }
+            break;
+          }
+          const start = previous + 1;
+          const lineEnd = upto;
+          const lineStart = pos + start;
+          const line = pending.subarray(start, pending.length - 1);
+          pending = pending.subarray(0, start);
+
+          const taken = take(line);
+          if (taken === 'full') {
+            // Not included: resume with this line
+            result.truncated = true;
+            if (!snapshot) {
+              result.cursor = `${file}:${lineEnd}`;
+            }
+            return result;
+          }
+          upto = lineStart;
+          progressed = true;
+          if (taken === 'done') {
+            if (!snapshot) {
+              result.cursor = `${file}:${upto}`;
+            }
+            return result;
+          }
+        }
+      }
+    } finally {
+      await handle.close();
+    }
+  }
+  return result;
+}
+
+module.exports = {
+  CursorError,
+  DEFAULT_BOUNDS,
+  FILE_PATTERN,
+  LogWriter,
+  MAX_LINE,
+  hourOf,
+  listFiles,
+  read,
+};

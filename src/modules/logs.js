@@ -21,7 +21,7 @@ function start() {
     api.streamToHttp(`/logs/${name}`, stream, defaultFormatter, {
       name: `HTTP stream (${name} logs)`,
       monitoringEnabled: true,
-      history: (limit, filters) => history.latest(name, limit, filters),
+      history: (limit, filters) => history.forView(name, limit, filters),
       header: (req) => html.nodesNav(req, name, pipeline.getTree()),
     });
   }
