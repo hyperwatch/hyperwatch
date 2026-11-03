@@ -8,6 +8,10 @@ Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases)
 
 - Logs keep `country`, `region` and `city` of the lookup instead of all of it: the rest (coordinates, IP range, timezone, metro and area codes, `eu`) was copied into every log, and with it into the history, the aggregator entries and their persistence documents. `modules.geoip.fields` keeps other fields (`timezone`, `ll`, `range`, `metro`, `area`, `eu`, as a list or a comma-separated string), or `"all"` for the whole lookup as before.
 
+### Signatures
+
+- Logs carry only `signature.id`: its headers were copies of `request.headers`, in every log, history buffer and aggregator entry. The `/signatures` table still shows them, computed once per signature (the id is the hash of these headers). Aggregators copying `signature` from logs no longer replace it on every log: its headers were a new plain object each time, so it never compared equal.
+
 ## 5.3.3 (2026-10-14)
 
 ### Identities

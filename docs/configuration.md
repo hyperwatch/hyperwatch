@@ -66,7 +66,7 @@ Only `status` is active by default.
 | language   | Parses the `Accept-Language` header                                                                                                                                     | –                       |
 | dnsbl      | Checks client addresses against DNS blocklists                                                                                                                          | –                       |
 | address    | Aggregates traffic per address                                                                                                                                          | `/addresses`            |
-| signature  | Aggregates traffic per request signature                                                                                                                                | `/signatures`           |
+| signature  | Aggregates traffic per request signature: logs carry `signature.id`, the table its headers                                                                              | `/signatures`           |
 | identity   | Identifies known robots and crawlers. Depends on `agent`, `hostname`, `signature` and `address`                                                                         | `/identities`           |
 | history    | Keeps the latest logs of each pipeline node in memory (`capacity`, default `100`, and per node, see below), saved and restored when `persistence.enabled`               | `/history/<node>.json`  |
 

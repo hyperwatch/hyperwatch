@@ -61,7 +61,7 @@ const addressesFormat = (entry, output) => {
 };
 
 const headersFormat = (entry, output) => {
-  const headers = Object.entries(entry.getIn(['signature', 'headers']))
+  const headers = Object.entries(entry.getIn(['signature', 'headers']) || {})
     .map((header) => header.join(':'))
     .map((header) => (output === 'html' ? escapeHtml(header) : header))
     .join('<br>');
@@ -76,17 +76,20 @@ function computeSignature(headers) {
   return md5(`${string};`);
 }
 
+// The headers a signature is computed from (Accept, User-Agent…), as a plain
+// object
+function signatureHeaders(log) {
+  const headers = log.getIn(['request', 'headers']);
+  return normalisedIdentityHeader(headers ? headers.toJS() : {});
+}
+
+// Logs only carry the signature id: its headers are in request.headers, and
+// the signatures aggregator keeps them once per signature
 function augment(log) {
-  const headers = log.getIn(['request', 'headers']).toJS();
-
-  const identityHeaders = normalisedIdentityHeader(headers);
-
-  const signature = computeSignature(identityHeaders);
-
-  log = log.setIn(['signature', 'id'], signature);
-  log = log.setIn(['signature', 'headers'], identityHeaders);
-
-  return log;
+  return log.setIn(
+    ['signature', 'id'],
+    computeSignature(signatureHeaders(log))
+  );
 }
 
 function init() {
@@ -146,10 +149,24 @@ function start() {
   aggregator.setFormatter(signatureFormatter);
 
   const enricher = (entry, log) => {
-    for (const field of ['signature', 'identity', 'agent']) {
+    for (const field of ['identity', 'agent']) {
       if (log.has(field) && !is(log.get(field), entry.get(field))) {
         entry = entry.set(field, log.get(field));
       }
+    }
+    // The entry's signature: its id, and its headers for the headers column.
+    // Same id, same headers: computed once per signature (a plain object, see
+    // Aggregator.load)
+    const id = log.getIn(['signature', 'id']);
+    if (
+      id &&
+      (entry.getIn(['signature', 'id']) !== id ||
+        !entry.hasIn(['signature', 'headers']))
+    ) {
+      entry = entry.set(
+        'signature',
+        log.get('signature').set('headers', signatureHeaders(log))
+      );
     }
 
     const address = log.get('address');
@@ -194,6 +211,7 @@ function start() {
 }
 
 module.exports = {
+  augment,
   init,
   start,
   get aggregator() {

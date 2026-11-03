@@ -5,16 +5,14 @@ const { fromJS } = require('immutable');
 const { now } = require('../../src/lib/util');
 const signature = require('../../src/modules/signature');
 
-function log(address, id = 'sig-abc') {
-  // signature.headers stays a plain object in real logs (see augment)
+// Logs only carry the signature id (see augment)
+function log(address, id = 'sig-abc', headers = { 'user-agent': 'Bot/1.0' }) {
   return fromJS({
-    request: { address },
+    request: { address, headers },
     address: { value: address },
+    signature: { id },
     executionTime: 1,
-  }).set(
-    'signature',
-    fromJS({ id }).set('headers', { 'User-Agent': 'Bot/1.0' })
-  );
+  });
 }
 
 describe('signature aggregator', () => {
@@ -41,16 +39,47 @@ describe('signature aggregator', () => {
   });
 
   it('escapes headers in HTML output', () => {
-    const entry = log('1.2.3.4').setIn(['signature', 'headers'], {
-      'User-Agent': '<script>',
-    });
-    aggregator.processLog(entry);
+    aggregator.processLog(
+      log('1.2.3.4', 'sig-abc', { 'user-agent': '<script>' })
+    );
 
     const formatted = aggregator.formatter.formatObject(
       aggregator.entries.first(),
       'html'
     );
     assert.strictEqual(formatted.headers, 'User-Agent:&lt;script&gt;');
+  });
+
+  it('keeps only the id in logs, and the headers once per signature', () => {
+    const augmented = signature.augment(
+      fromJS({
+        request: {
+          address: '1.2.3.4',
+          headers: { accept: '*/*', 'user-agent': 'Bot/1.0', host: 'x' },
+        },
+      })
+    );
+    assert.deepStrictEqual(augmented.get('signature').toJS(), {
+      id: augmented.getIn(['signature', 'id']),
+    });
+
+    aggregator.processLog(
+      augmented.set('address', fromJS({ value: '1.2.3.4' }))
+    );
+    const entry = aggregator.entries.first();
+    assert.deepStrictEqual(entry.getIn(['signature', 'headers']), {
+      Accept: '*/*',
+      'User-Agent': 'Bot/1.0',
+    });
+    const formatted = aggregator.formatter.formatObject(entry, 'text');
+    assert.strictEqual(formatted.headers, 'Accept:*/*<br>User-Agent:Bot/1.0');
+  });
+
+  it("keeps an entry's signature while its id doesn't change", () => {
+    aggregator.processLog(log('1.2.3.4'));
+    const first = aggregator.entries.first().get('signature');
+    aggregator.processLog(log('5.6.7.8'));
+    assert.strictEqual(aggregator.entries.first().get('signature'), first);
   });
 
   it('formats an entry without addresses', () => {
