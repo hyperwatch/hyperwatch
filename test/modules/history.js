@@ -1,7 +1,12 @@
 const assert = require('assert');
+const fs = require('fs');
+const http = require('http');
+const os = require('os');
+const path = require('path');
 
 const { fromJS } = require('immutable');
 
+const api = require('../../src/app/api');
 const constants = require('../../src/constants');
 const persistence = require('../../src/lib/persistence');
 const pipeline = require('../../src/lib/pipeline');
@@ -217,5 +222,179 @@ describe('history of a node turned off, then on again', () => {
       buffer.toArray().map((l) => l.get('id')),
       ['b', 'a']
     );
+  });
+});
+
+describe('history disk directory', () => {
+  const { diskDirFor } = history;
+  const disk = (nodes, dir = '/data/logs') => ({ disk: { dir, nodes } });
+
+  it('is off unless set for the node', () => {
+    assert.strictEqual(diskDirFor('main'), null);
+    assert.strictEqual(diskDirFor('main', { disk: {} }), null);
+    assert.strictEqual(diskDirFor('main', disk({ other: true })), null);
+    assert.strictEqual(diskDirFor('main', disk({ main: false })), null);
+    assert.strictEqual(diskDirFor('main', disk({ main: 'false' })), null);
+  });
+
+  it('takes node names and patterns, from the rc too', () => {
+    assert.strictEqual(
+      diskDirFor('main', disk({ main: true })),
+      '/data/logs/node-main'
+    );
+    assert.strictEqual(
+      diskDirFor('input-1', disk({ 'input-*': 'true' })),
+      '/data/logs/node-input-1'
+    );
+  });
+
+  it('keeps every node inside the directory', () => {
+    for (const name of ['..', '.', '../x', 'a/b']) {
+      const dir = diskDirFor(name, disk({ [name]: true }));
+      assert.strictEqual(path.dirname(dir), '/data/logs', name);
+    }
+  });
+
+  it('defaults to .hyperwatch-data/logs', () => {
+    assert.strictEqual(
+      diskDirFor('main', { disk: { nodes: { main: true } } }),
+      path.resolve('.hyperwatch-data', 'logs', 'node-main')
+    );
+  });
+});
+
+describe('history on disk', () => {
+  const original = {};
+  let config;
+  let send;
+  let server;
+  let baseUrl;
+  let dir;
+
+  before(async () => {
+    config = constants.modules.history;
+    original.nodes = pipeline.nodes;
+    original.registerNode = pipeline.registerNode;
+    original.children = pipeline.children;
+    original.inputs = pipeline.inputs;
+    original.monitors = pipeline.monitors;
+    pipeline.children = [];
+    pipeline.inputs = [];
+    pipeline.monitors = [];
+
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'history-disk-'));
+    constants.modules.history = {
+      active: true,
+      capacity: 0,
+      disk: {
+        dir,
+        nodes: { 'test-disk': true },
+        restore: (log) => log.set('restored', true),
+      },
+    };
+    pipeline.nodes = {
+      'test-disk': pipeline.getNode('raw').filter(() => true, 'test-disk'),
+    };
+    history.start();
+
+    pipeline.registerInput({
+      name: 'history-disk-test',
+      start: (handlers) => {
+        send = handlers.success;
+      },
+    });
+    pipeline.start();
+
+    server = http.createServer(api);
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    baseUrl = `http://127.0.0.1:${server.address().port}`;
+  });
+
+  after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    await pipeline.stop();
+    await history.flush();
+    Object.assign(pipeline, original);
+    constants.modules.history = config;
+  });
+
+  const log = (url, address = '10.0.0.1') =>
+    fromJS({
+      request: {
+        time: new Date().toISOString(),
+        address,
+        method: 'GET',
+        url,
+        headers: {},
+      },
+      response: { status: 200 },
+    });
+
+  const get = async (url) => {
+    const res = await fetch(`${baseUrl}${url}`);
+    return { status: res.status, body: await res.json() };
+  };
+
+  // Written once the stream wrote them
+  const written = async (count) => {
+    for (let i = 0; i < 100; i++) {
+      const { body } = await get('/history/disk.json');
+      if (body['test-disk'].written >= count) {
+        return body['test-disk'];
+      }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    throw new Error('Logs not written');
+  };
+
+  it('writes logs of nodes set for disk, even without a memory history', async () => {
+    send(log('/a'));
+    send(log('/b', '10.0.0.2'));
+    send(log('/c'));
+    const stats = await written(3);
+    assert.strictEqual(stats.files, 1);
+    assert.strictEqual(stats.dropped, 0);
+    assert.deepStrictEqual(history.latest('test-disk', 10, {}), []);
+  });
+
+  it('reads them back, newest first, filtered and paged', async () => {
+    const urls = (body) => body.logs.map((l) => l.request.url);
+
+    const all = await get('/history/test-disk/disk.json');
+    assert.strictEqual(all.status, 200);
+    assert.deepStrictEqual(urls(all.body), ['/c', '/b', '/a']);
+    assert.strictEqual(all.body.cursor, null);
+
+    const filtered = await get(
+      '/history/test-disk/disk.json?address=10.0.0.1&limit=1'
+    );
+    assert.deepStrictEqual(urls(filtered.body), ['/c']);
+    const next = await get(
+      `/history/test-disk/disk.json?address=10.0.0.1&limit=1&cursor=${encodeURIComponent(filtered.body.cursor)}`
+    );
+    assert.deepStrictEqual(urls(next.body), ['/a']);
+  });
+
+  it('starts filtered views with the logs on disk, restored', async () => {
+    const { body } = await get('/history/test-disk.json?address=10.0.0.1');
+    assert.deepStrictEqual(
+      body.map((l) => l.request.url),
+      ['/c', '/a']
+    );
+    assert.ok(body.every((l) => l.restored));
+    // Unfiltered: memory, empty here (capacity 0)
+    assert.deepStrictEqual((await get('/history/test-disk.json')).body, []);
+  });
+
+  it('rejects an invalid limit or cursor', async () => {
+    for (const query of ['limit=0', 'limit=1001', 'limit=x', 'cursor=nope']) {
+      const { status } = await get(`/history/test-disk/disk.json?${query}`);
+      assert.strictEqual(status, 400, query);
+    }
+  });
+
+  it('only serves nodes with disk history', async () => {
+    const res = await fetch(`${baseUrl}/history/main/disk.json`);
+    assert.strictEqual(res.status, 404);
   });
 });

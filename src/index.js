@@ -6,6 +6,7 @@ const format = require('./format');
 const input = require('./input');
 const lib = require('./lib');
 const modules = require('./modules');
+const history = require('./modules/history');
 const plugins = require('./plugins');
 const version = require('./version');
 
@@ -59,6 +60,13 @@ async function stop() {
     await pipeline.stop();
   } catch (err) {
     console.error('Error stopping the pipeline:', err.message);
+  }
+  // No more logs coming: end the log files (at most 5 s), whatever happens
+  // to persistence next
+  try {
+    await history.flush({ timeout: 5000 });
+  } catch (err) {
+    console.error('Error ending the log files:', err.message);
   }
   // Persist even if stopping the inputs failed
   if (constants.persistence.enabled) {

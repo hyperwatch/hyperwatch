@@ -41,6 +41,49 @@ describe('hyperwatch.stop', () => {
     }
   });
 
+  it('ends the log files after the pipeline, and persists even if that fails', async () => {
+    const { constants, lib, app } = hyperwatch;
+    const history = require('../src/modules/history');
+    const original = {
+      enabled: constants.persistence.enabled,
+      pipelineStop: lib.pipeline.stop,
+      stop: lib.persistence.stop,
+      flush: history.flush,
+      appStop: app.stop,
+      error: console.error,
+    };
+    const calls = [];
+
+    try {
+      constants.persistence.enabled = true;
+      lib.pipeline.stop = async () => calls.push('pipeline.stop');
+      history.flush = async ({ timeout }) => {
+        calls.push(`flush ${timeout}`);
+        throw new Error('disk gone');
+      };
+      lib.persistence.stop = async () => calls.push('persistence.stop');
+      app.stop = () => calls.push('app.stop');
+      console.error = (...args) => calls.push(`error: ${args.join(' ')}`);
+
+      await hyperwatch.stop();
+
+      assert.deepStrictEqual(calls, [
+        'pipeline.stop',
+        'flush 5000',
+        'error: Error ending the log files: disk gone',
+        'persistence.stop',
+        'app.stop',
+      ]);
+    } finally {
+      constants.persistence.enabled = original.enabled;
+      lib.pipeline.stop = original.pipelineStop;
+      lib.persistence.stop = original.stop;
+      history.flush = original.flush;
+      app.stop = original.appStop;
+      console.error = original.error;
+    }
+  });
+
   it("doesn't start the inputs and the app when stopped while restoring", async () => {
     const { constants, lib, app, modules } = hyperwatch;
     const original = {

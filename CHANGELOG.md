@@ -12,6 +12,11 @@ Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases)
 
 - Logs carry only `signature.id`: its headers were copies of `request.headers`, in every log, history buffer and aggregator entry. The `/signatures` table still shows them, computed once per signature (the id is the hash of these headers). Aggregators copying `signature` from logs no longer replace it on every log: its headers were a new plain object each time, so it never compared equal.
 
+### History
+
+- History on disk: `modules.history.disk` writes the logs of the nodes it names to hourly NDJSON files (`<dir>/node-<name>/<YYYY-MM-DDTHH>.ndjson`), so a filter can look much further back than the memory history. `/history/<node>/disk.json` reads them back, newest first, with the same filters as `/history/<node>.json`, a cursor for older pages and bounds per read. `/history/disk.json` shows their size and how many logs were written, dropped, lost or skipped. `disk.transform` sets what is written of each log (or skips it), `disk.restore` what is read back.
+- Filtered views (`/history/<node>.json`, `/logs/<node>` with `?identity=`, `?address=` or `?signature=`) on a node with disk history start with the logs on disk, then go on live, without a gap or a repeat. HTTP log streams can take a history given as a promise, and hold the live logs received meanwhile. Unfiltered views and the memory history are unchanged. See _History on disk_ in `docs/configuration.md`.
+
 ## 5.3.3 (2026-10-14)
 
 ### Identities
