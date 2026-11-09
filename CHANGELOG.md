@@ -2,20 +2,29 @@
 
 Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases). Versions before 5.0.0 have no entry: see the git history.
 
-## Unreleased
+## 5.4.0 (2026-11-09)
 
-### GeoIP
+### Features
 
-- Logs keep `country`, `region` and `city` of the lookup instead of all of it: the rest (coordinates, IP range, timezone, metro and area codes, `eu`) was copied into every log, and with it into the history, the aggregator entries and their persistence documents. `modules.geoip.fields` keeps other fields (`timezone`, `ll`, `range`, `metro`, `area`, `eu`, as a list or a comma-separated string), or `"all"` for the whole lookup as before.
+- History on disk: `modules.history.disk` writes the logs of the nodes it names to hourly NDJSON files (`<dir>/node-<name>/<YYYY-MM-DDTHH>.ndjson`), so a filter can look much further back than the memory history. `/history/<node>/disk.json` reads them back, newest first, with the same filters as `/history/<node>.json`, a cursor for older pages and bounds per read. `/history/disk.json` shows their size and how many logs were written, dropped, lost or skipped. `disk.transform` sets what is written of each log (or skips it), `disk.restore` what is read back. ([#674](https://github.com/hyperwatch/hyperwatch/pull/674))
+- Filtered views (`/history/<node>.json`, `/logs/<node>` with `?identity=`, `?address=` or `?signature=`) on a node with disk history start with the logs on disk, then go on live, without a gap or a repeat. HTTP log streams can take a history given as a promise, and hold the live logs received meanwhile. Unfiltered views and the memory history are unchanged. See _History on disk_ in `docs/configuration.md`. ([#674](https://github.com/hyperwatch/hyperwatch/pull/674))
+- Smaller logs: they are copied into the history, the aggregator entries, their persistence documents and now to disk, so two modules put less in them. Anything reading the fields left out must set `modules.geoip.fields` or read the headers from `request.headers`.
+  - Logs keep `country`, `region` and `city` of the GeoIP lookup instead of all of it: the rest (coordinates, IP range, timezone, metro and area codes, `eu`) was copied into every log. `modules.geoip.fields` keeps other fields (`timezone`, `ll`, `range`, `metro`, `area`, `eu`, as a list or a comma-separated string), or `"all"` for the whole lookup as before. ([#672](https://github.com/hyperwatch/hyperwatch/pull/672))
+  - Logs carry only `signature.id`: its headers were copies of `request.headers`, in every log, history buffer and aggregator entry. The `/signatures` table still shows them, computed once per signature (the id is the hash of these headers). Aggregators copying `signature` from logs no longer replace it on every log: its headers were a new plain object each time, so it never compared equal. ([#673](https://github.com/hyperwatch/hyperwatch/pull/673))
 
-### Signatures
+### Identities
 
-- Logs carry only `signature.id`: its headers were copies of `request.headers`, in every log, history buffer and aggregator entry. The `/signatures` table still shows them, computed once per signature (the id is the hash of these headers). Aggregators copying `signature` from logs no longer replace it on every log: its headers were a new plain object each time, so it never compared equal.
+- Operators' published address lists are checked next to the existing rules (an address in the list is enough, and so is what the rule checked before): Ahrefs (and `AhrefsSiteAudit`), Applebot, Babbar, Bing, Discord, DuckDuckGo (and `DuckAssistBot`), Googlebot, Lyrenth, Mojeek, Naver, Parallel, Pingdom, Qwant, SE Ranking, Seekport, Sentry, Seznam, Sofya, Uptime Robot. Daum and 360Spider now use their published lists instead of a wrong or partial inline range, and Twitter gets two more `/22`s. Single addresses are looked up in a `Map`, so long lists cost about 1–2 µs per lookup. ([#651](https://github.com/hyperwatch/hyperwatch/pull/651))
+- New identities: ibou, HubSpot, HaloScan and Idarus; Arquivo, RootCrawl and Reflection lists, SE Ranking's IPv6 list, Pinterest's and You.com's documented ranges; `Googlebot-Image` and `Googlebot-Video` in the Googlebot rule. ([#652](https://github.com/hyperwatch/hyperwatch/pull/652))
+- New identities: River (`RiverBot`), Kakao (`KakaoBot`) and PayPal (`PayPal`, `PayPal IPN`). ([#667](https://github.com/hyperwatch/hyperwatch/pull/667))
+- Robots are identified by the families their documented user agents actually parse as: Yahoo Slurp, RootCrawl, Arquivo.pt, British Library, Pinterest, Mail.RU, Coc Coc and Qwant never matched their rule. ([#649](https://github.com/hyperwatch/hyperwatch/pull/649))
+- Published ranges refreshed: Anthropic's ClaudeBot list shrank from 38 to 14 entries, Perplexity's two lists changed shape and dropped three entries; only additions for Bing, ChatGPT-User, CloudFront, GitHub, Google's user-triggered fetchers, ibou and Pingdom. ([#669](https://github.com/hyperwatch/hyperwatch/pull/669), [#678](https://github.com/hyperwatch/hyperwatch/pull/678))
 
-### History
+### Dependencies & tooling
 
-- History on disk: `modules.history.disk` writes the logs of the nodes it names to hourly NDJSON files (`<dir>/node-<name>/<YYYY-MM-DDTHH>.ndjson`), so a filter can look much further back than the memory history. `/history/<node>/disk.json` reads them back, newest first, with the same filters as `/history/<node>.json`, a cursor for older pages and bounds per read. `/history/disk.json` shows their size and how many logs were written, dropped, lost or skipped. `disk.transform` sets what is written of each log (or skips it), `disk.restore` what is read back.
-- Filtered views (`/history/<node>.json`, `/logs/<node>` with `?identity=`, `?address=` or `?signature=`) on a node with disk history start with the logs on disk, then go on live, without a gap or a repeat. HTTP log streams can take a history given as a promise, and hold the live logs received meanwhile. Unfiltered views and the memory history are unchanged. See _History on disk_ in `docs/configuration.md`.
+- `scripts/fetch-ips.js` replaces the eleven `scripts/fetch-*-ips.js` updaters: `node scripts/fetch-ips.js` refreshes every list, `node scripts/fetch-ips.js <name>…` only those named. A list that can't be fetched or parsed, is empty, or has an invalid entry keeps its current file, and the script exits with status 1. ([#651](https://github.com/hyperwatch/hyperwatch/pull/651), [#647](https://github.com/hyperwatch/hyperwatch/pull/647))
+- The list sources are data, in `src/data/ip-list-sources.json`. ([#654](https://github.com/hyperwatch/hyperwatch/pull/654))
+- Dependency updates: `@aws-sdk/client-s3`, body-parser 2.4.0, eslint, eslint-plugin-n, fast-uri, globals, ip-address 10.7.6, serialize-javascript, ws 8.22.1.
 
 ## 5.3.3 (2026-10-14)
 
