@@ -467,6 +467,60 @@ describe('identity', () => {
     });
   });
 
+  describe('Exa', () => {
+    const exa = (family, signatureAgent) =>
+      identity.augment(
+        fromJS({
+          request: {
+            address: '192.0.2.1',
+            headers: signatureAgent
+              ? { 'signature-agent': signatureAgent }
+              : {},
+          },
+          address: { value: '192.0.2.1' },
+          agent: { family },
+        })
+      );
+
+    it('should identify each crawler from its own Signature-Agent', () => {
+      assert.strictEqual(
+        exa('ExaSearchBot', '"https://crawler.exa.ai"').get('identity'),
+        'Exa'
+      );
+      assert.strictEqual(
+        exa('ExaSearchBot-Images', '"https://images.crawler.exa.ai"').get(
+          'identity'
+        ),
+        'Exa'
+      );
+    });
+
+    it('should parse the image crawler documented user agent', () => {
+      assert.strictEqual(
+        useragent.parse('ExaSearchBot-Images').family,
+        'ExaSearchBot-Images'
+      );
+    });
+
+    it('should not identify a crawler without its Signature-Agent', () => {
+      assert.strictEqual(exa('ExaSearchBot-Images').get('identity'), undefined);
+      assert.strictEqual(
+        exa('ExaSearchBot-Images', '"https://crawler.exa.ai"').get('identity'),
+        undefined
+      );
+      assert.strictEqual(
+        exa('ExaSearchBot', '"https://images.crawler.exa.ai"').get('identity'),
+        undefined
+      );
+      assert.strictEqual(
+        exa('ExaSearchBot', '"https://crawler.exa.ai.example.com"').get(
+          'identity'
+        ),
+        undefined
+      );
+    });
+  });
+
   describe('Linkup', () => {
     it('should identify an address in the published list', () => {
       const result = identity.augment(

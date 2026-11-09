@@ -157,6 +157,13 @@ const openaiSearchbotCidrs = compileRanges(openaiSearchbotIps);
 const gptbotCidrs = compileRanges(gptbotIps);
 const chatgptUserCidrs = compileRanges(chatgptUserIps);
 
+// The Signature-Agent each of Exa's crawlers signs with
+// https://crawler.exa.ai/
+const exaSignatureAgents = {
+  ExaSearchBot: '"https://crawler.exa.ai"',
+  'ExaSearchBot-Images': '"https://images.crawler.exa.ai"',
+};
+
 // Single ranges written inline below, each compiled once
 const inlineRanges = new Map();
 function inCidr(cidr, address) {
@@ -711,10 +718,12 @@ function augment(log) {
 
     // Web Bot Auth
     case 'ExaSearchBot':
-      // Exa search crawler. No published IP ranges or reverse DNS: requests
-      // are signed (RFC 9421) and carry a `Signature-Agent` header
-      // https://crawler.exa.ai/
-      return signatureAgent && signatureAgent.includes('https://crawler.exa.ai')
+    case 'ExaSearchBot-Images':
+      // Exa's search crawler, and the crawler of the images on the pages it
+      // crawls. No published IP ranges or reverse DNS: requests are signed
+      // (RFC 9421) and carry a `Signature-Agent` header, each crawler its own
+      return signatureAgent &&
+        signatureAgent.includes(exaSignatureAgents[family])
         ? log.set('identity', 'Exa')
         : log;
   }
