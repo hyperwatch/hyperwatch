@@ -55,20 +55,20 @@ Modules enrich logs and expose API endpoints. Each module is configured under `m
 
 Only `status` is active by default.
 
-| Module     | Description                                                                                                                                                             | Endpoints               |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| status     | Status of inputs and pipeline nodes                                                                                                                                     | `/`, `/status`          |
-| logs       | Streams every pipeline node over HTTP and WebSocket                                                                                                                     | `/logs`, `/logs/<node>` |
-| cloudflare | Uses Cloudflare headers (`cf-connecting-ip`, `cf-ipcountry`, `cf-ray`) for the client address and data                                                                  | –                       |
-| geoip      | Geolocates addresses: logs keep `country`, `region` and `city`; `fields` sets other fields of the lookup (`timezone`, `ll`, `range`, `metro`, `area`, `eu`), or `"all"` | –                       |
-| agent      | Parses User-Agents with [@hyperwatch/useragent](https://github.com/hyperwatch/useragent)                                                                                | –                       |
-| hostname   | Reverse DNS lookup and forward verification of client addresses                                                                                                         | –                       |
-| language   | Parses the `Accept-Language` header                                                                                                                                     | –                       |
-| dnsbl      | Checks client addresses against DNS blocklists                                                                                                                          | –                       |
-| address    | Aggregates traffic per address                                                                                                                                          | `/addresses`            |
-| signature  | Aggregates traffic per request signature: logs carry `signature.id`, the table its headers                                                                              | `/signatures`           |
-| identity   | Identifies known robots and crawlers. Depends on `agent`, `hostname`, `signature` and `address`                                                                         | `/identities`           |
-| history    | Keeps the latest logs of each pipeline node in memory (`capacity`, default `100`, and per node, see below), saved and restored when `persistence.enabled`               | `/history/<node>.json`  |
+| Module     | Description                                                                                                                                                                                           | Endpoints                                                                 |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| status     | Status of inputs and pipeline nodes                                                                                                                                                                   | `/`, `/status`                                                            |
+| logs       | Streams every pipeline node over HTTP and WebSocket                                                                                                                                                   | `/logs`, `/logs/<node>`                                                   |
+| cloudflare | Uses Cloudflare headers (`cf-connecting-ip`, `cf-ipcountry`, `cf-ray`) for the client address and data                                                                                                | –                                                                         |
+| geoip      | Geolocates addresses: logs keep `country`, `region` and `city`; `fields` sets other fields of the lookup (`timezone`, `ll`, `range`, `metro`, `area`, `eu`), or `"all"`                               | –                                                                         |
+| agent      | Parses User-Agents with [@hyperwatch/useragent](https://github.com/hyperwatch/useragent)                                                                                                              | –                                                                         |
+| hostname   | Reverse DNS lookup and forward verification of client addresses                                                                                                                                       | –                                                                         |
+| language   | Parses the `Accept-Language` header                                                                                                                                                                   | –                                                                         |
+| dnsbl      | Checks client addresses against DNS blocklists                                                                                                                                                        | –                                                                         |
+| address    | Aggregates traffic per address                                                                                                                                                                        | `/addresses`                                                              |
+| signature  | Aggregates traffic per request signature: logs carry `signature.id`, the table its headers                                                                                                            | `/signatures`                                                             |
+| identity   | Identifies known robots and crawlers. Depends on `agent`, `hostname`, `signature` and `address`                                                                                                       | `/identities`                                                             |
+| history    | Keeps the latest logs of each pipeline node in memory (`capacity`, default `100`, and per node, see below), saved and restored when `persistence.enabled`, and optionally on disk (`disk`, see below) | `/history/<node>.json`, `/history/<node>/disk.json`, `/history/disk.json` |
 
 Aggregator endpoints render an HTML table by default, or JSON and CSV with a `.json` or `.csv` extension. They accept `limit` (default `100`) and `sort` (default `count15m`) query parameters. In the HTML table, the headings of sortable columns link to the table sorted by them, and only the columns of the last 15 minutes are shown, or of the last 24 hours with `?period=24h` (which also sorts by `count24h` by default). `/addresses` and `/identities` also accept `filter=identified` or `filter=unidentified`, to keep only the entries with or without an identity (before `limit`), with links to switch in the HTML table. A single entry is available at `/<aggregator>/<id>.json`, and `DELETE /<aggregator>` resets it.
 
@@ -95,6 +95,31 @@ History is usually what uses the most memory: each node keeps its latest `capaci
 - An exact node name comes first; otherwise the first pattern ending with `*` that matches the name (`input-*` matches `input-1`, `input-2`…); otherwise `capacity`.
 - A node with `0` has no buffer and no persistence document: `/history/<node>.json` answers `[]`, and its live logs start empty. Persistence never deletes documents: one saved before the node was set to `0` stays in storage, and is restored if the node is turned on again (like the document of a renamed or removed node, it's ignored meanwhile).
 - Values may be strings (environment variables, through rc). An invalid value is reported, and `capacity` (or `100`) is used instead.
+
+### History on disk
+
+Memory history is short: a filter on `/history/<node>.json` only looks at the latest `capacity` logs. `modules.history.disk` also writes the logs of some nodes to disk, where they cost little memory:
+
+```json
+{
+  "modules": {
+    "history": {
+      "active": true,
+      "nodes": { "main": 1000 },
+      "disk": { "dir": ".hyperwatch-data/logs", "nodes": { "main": true } }
+    }
+  }
+}
+```
+
+- `disk.nodes` takes the same names and patterns as `nodes`, with `true` (or `"true"`). A node's logs go to `<dir>/node-<name>/<YYYY-MM-DDTHH>.ndjson`: one file per hour (UTC, by arrival), one JSON log per line, oldest first. `dir` defaults to `.hyperwatch-data/logs` in the current directory. Disk history doesn't depend on `capacity`: a node with `0` can still be written.
+- **Filtered views start with them:** `/history/<node>.json` and `/logs/<node>` with `?identity=`, `?address=` or `?signature=` read their history from disk (up to 1000 logs), then go on with live logs, without a gap or a repeat between the two: the writer keeps the logs it hasn't written yet, and a view takes them with the files when it starts. Unfiltered views, and filtered ones while 2 reads are running or when reading fails, use the memory history.
+- `disk.transform` (in options passed to `init()`, not in `.hyperwatchrc`): a function given each log before it's written, returning the log to write (e.g. without a large field), or `null` to skip it. A transform that throws drops the log.
+- `disk.restore` (same, a function, may be async): given each log read back, returns it with what `transform` left out put back (e.g. a large field written elsewhere once). Applied to filtered views and `/history/<node>/disk.json`.
+- Files are plain text and never deleted or compressed by Hyperwatch: remove old ones yourself. They aren't persistence documents, so they're never uploaded to S3. They hold the same client IPs, headers and URLs as the history.
+- Writing never slows the pipeline down: while the disk can't keep up or fails (full, not writable), logs are dropped and counted. A log longer than 1 MB is dropped. After an error, writing is tried again the next hour. When Hyperwatch stops, files are ended after the inputs stop, within 5 seconds.
+- `/history/<node>/disk.json` reads them back, newest first, with the `address`, `identity` and `signature` filters of `/history/<node>.json`, and `limit` (1 to 1000, default 100). It answers `{ logs, cursor, truncated, scannedBytes, skipped, oldest }`: pass `cursor` back to read the next (older) page; it's `null` after the oldest log. A read stops early (`truncated: true`) after 200 MB read, 10 seconds or 10 MB of logs, so a rare filter may take several pages. At most 2 reads run at once (`429` otherwise).
+- `/history/disk.json` shows, per node: `files`, `bytes`, `newest` and `oldest` hour, `written`, `dropped`, `lost` (failed writes), `skipped` (by `transform`), `lastError` and `lastWriteAt`.
 
 ## Persistence
 

@@ -637,6 +637,70 @@ describe('API log streams', () => {
   });
 });
 
+describe('API log streams with a history read asynchronously', () => {
+  let server;
+  let baseUrl;
+  let emit;
+  let resolveHistory;
+
+  before(async () => {
+    const stream = {
+      map(fn) {
+        emit = fn;
+      },
+    };
+    const formatter = { format: (log) => log.get('line') };
+    api.streamToHttp('/stream-async-test', stream, formatter, {
+      history: () =>
+        new Promise((resolve) => {
+          resolveHistory = resolve;
+        }),
+    });
+    server = http.createServer(api);
+    const port = await listen(server);
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  after(async () => {
+    await close(server);
+  });
+
+  it('writes live logs received meanwhile after the history', async () => {
+    const controller = new AbortController();
+    const response = await fetch(
+      `${baseUrl}/stream-async-test?address=10.0.0.1`,
+      { signal: controller.signal }
+    );
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let body = '';
+    let sent = false;
+    while (!body.includes('<div>after</div>')) {
+      const { value } = await reader.read();
+      body += decoder.decode(value);
+      if (!sent && body.includes('<main class="stream">')) {
+        sent = true;
+        const at = (line, address) =>
+          fromJS({ line, address: { value: address } });
+        // While the history is read: queued if they match
+        emit(at('live', '10.0.0.1'));
+        emit(at('other', '10.0.0.9'));
+        // Newest first, like history.latest()
+        resolveHistory([at('new', '10.0.0.1'), at('old', '10.0.0.1')]);
+        await new Promise((resolve) => setImmediate(resolve));
+        emit(at('after', '10.0.0.1'));
+      }
+    }
+    controller.abort();
+    const main = body.slice(body.indexOf('</nav>'));
+    assert.match(
+      main,
+      /<div>old<\/div><div>new<\/div><div>live<\/div><div>after<\/div>/
+    );
+    assert.doesNotMatch(main, /other/);
+  });
+});
+
 describe('API lastSeen', () => {
   let server;
   let baseUrl;
