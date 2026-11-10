@@ -4,9 +4,8 @@ const crypto = require('crypto');
 const {
   KeyStore,
   directoryMaxAge,
+  fetchDirectory,
   keysFromJwks,
-  parseDictionary,
-  parseSignatureAgent,
   thumbprint,
   verify,
 } = require('../../src/lib/webbotauth');
@@ -31,12 +30,22 @@ function signedRequest(
     expires = time + 300,
     label = 'sig1',
     tag = 'web-bot-auth',
+    components = ['@authority', 'signature-agent'],
+    alg = 'ed25519',
+    extra = '',
   } = {}
 ) {
-  const params = `("@authority" "signature-agent");created=${created};expires=${expires};keyid="${keyid}";tag="${tag}"`;
+  const values = {
+    '@authority': authority,
+    'signature-agent': signatureAgent,
+  };
+  const timing = [
+    created === null ? '' : `;created=${created}`,
+    expires === null ? '' : `;expires=${expires}`,
+  ].join('');
+  const params = `(${components.map((c) => `"${c}"`).join(' ')})${timing};keyid="${keyid}"${alg ? `;alg="${alg}"` : ''};tag="${tag}"${extra}`;
   const base = [
-    `"@authority": ${authority}`,
-    `"signature-agent": ${signatureAgent}`,
+    ...components.map((c) => `"${c}": ${values[c]}`),
     `"@signature-params": ${params}`,
   ].join('\n');
   const signature = crypto
@@ -54,78 +63,39 @@ function signedRequest(
   };
 }
 
+// A response of a key directory
+function directoryResponse(
+  jwks,
+  {
+    maxAge = 3600,
+    type = 'application/http-message-signatures-directory+json',
+  } = {}
+) {
+  return {
+    ok: true,
+    status: 200,
+    headers: new Map([
+      ['content-type', type],
+      ['cache-control', `max-age=${maxAge}`],
+    ]),
+    text: async () => JSON.stringify({ keys: jwks }),
+  };
+}
+
 // A fetch serving key directories, counting its calls
 function directoryFetch(directories, { maxAge = 3600 } = {}) {
   const fetch = async (url, options) => {
     fetch.calls.push({ url: String(url), options });
     const jwks = directories[new URL(url).origin];
-    if (!jwks) {
-      return { ok: false, status: 404 };
-    }
-    return {
-      ok: true,
-      status: 200,
-      headers: new Map([['cache-control', `max-age=${maxAge}`]]),
-      json: async () => ({ keys: jwks }),
-    };
+    return jwks
+      ? directoryResponse(jwks, { maxAge })
+      : { ok: false, status: 404 };
   };
   fetch.calls = [];
   return fetch;
 }
 
 describe('web bot auth', () => {
-  describe('parseDictionary', () => {
-    it('reads inner lists with parameters, and keeps them as sent', () => {
-      const members = parseDictionary(
-        'sig1=("@authority" "signature-agent");created=1;keyid="k";tag="web-bot-auth", sig2=:AAEC:'
-      );
-      const sig1 = members.get('sig1');
-      assert.deepStrictEqual(
-        sig1.items.map((item) => item.value),
-        ['@authority', 'signature-agent']
-      );
-      assert.deepStrictEqual(sig1.params, {
-        created: 1,
-        keyid: 'k',
-        tag: 'web-bot-auth',
-      });
-      assert.strictEqual(
-        sig1.raw,
-        '("@authority" "signature-agent");created=1;keyid="k";tag="web-bot-auth"'
-      );
-      assert.deepStrictEqual([...members.get('sig2').value], [0, 1, 2]);
-    });
-
-    it('rejects malformed input', () => {
-      assert.throws(() => parseDictionary('sig1=("a"'));
-      assert.throws(() => parseDictionary('sig1=:AAEC'));
-      assert.throws(() => parseDictionary('sig1=1 sig2=2'));
-    });
-  });
-
-  describe('parseSignatureAgent', () => {
-    it('reads a string, a dictionary by label, or a bare URL', () => {
-      assert.strictEqual(parseSignatureAgent('"https://bot.example"'), agent);
-      assert.strictEqual(
-        parseSignatureAgent(
-          'sig1="https://bot.example/", sig2="https://x.example"',
-          'sig1'
-        ),
-        agent
-      );
-      assert.strictEqual(parseSignatureAgent('https://bot.example'), agent);
-    });
-
-    it('rejects anything but an https origin', () => {
-      assert.strictEqual(parseSignatureAgent('"http://bot.example"'), null);
-      assert.strictEqual(parseSignatureAgent('bot'), null);
-      assert.strictEqual(
-        parseSignatureAgent('sig1="https://x.example"', 'sig2'),
-        null
-      );
-    });
-  });
-
   describe('keys', () => {
     it('keeps Ed25519 keys by thumbprint, and skips the others', () => {
       const { jwk, keyid } = keyPair();
@@ -264,6 +234,47 @@ describe('web bot auth', () => {
       assert.strictEqual((await check(both)).reason, 'unknown key');
     });
 
+    it('applies the Web Bot Auth profile', async () => {
+      const reasonOf = async (options) =>
+        (await check(signedRequest(pair, options))).reason;
+      // created, expires and (in web-bot-auth 0.2.0) alg are required
+      assert.strictEqual(await reasonOf({ expires: null }), 'policy');
+      assert.strictEqual(await reasonOf({ alg: null }), 'policy');
+      assert.strictEqual(await reasonOf({ created: null }), 'policy');
+      // The authority and the Signature-Agent must be covered
+      assert.strictEqual(
+        await reasonOf({ components: ['signature-agent'] }),
+        'policy'
+      );
+      assert.strictEqual(
+        await reasonOf({ components: ['@authority'] }),
+        'policy'
+      );
+      // At most a day old
+      assert.strictEqual(
+        (
+          await check(
+            signedRequest(pair, { created: time - 90000, expires: time + 300 })
+          )
+        ).reason,
+        'too old'
+      );
+      // A nonce, when there is one, of 64 bytes
+      const short = await check(
+        signedRequest(pair, {
+          extra: `;nonce="${Buffer.alloc(16, 1).toString('base64')}"`,
+        })
+      );
+      assert.strictEqual(short.reason, 'policy');
+      assert.match(short.detail, /nonce/);
+      assert.strictEqual(
+        await reasonOf({
+          extra: `;nonce="${crypto.randomBytes(64).toString('base64')}"`,
+        }),
+        'verified'
+      );
+    });
+
     it('rejects components that are not strings, without throwing', async () => {
       const request = signedRequest(pair);
       request.headers['signature-input'] =
@@ -272,12 +283,49 @@ describe('web bot auth', () => {
     });
 
     it('reports a missing agent and malformed headers', async () => {
-      const request = signedRequest(pair);
+      // No Signature-Agent at all: no directory to find the key in
+      const request = signedRequest(pair, { components: ['@authority'] });
       delete request.headers['signature-agent'];
       assert.strictEqual((await check(request)).reason, 'no agent');
+      // A covered Signature-Agent that is missing
+      const missing = signedRequest(pair);
+      delete missing.headers['signature-agent'];
+      assert.strictEqual((await check(missing)).reason, 'malformed');
       const malformed = signedRequest(pair);
       malformed.headers['signature-input'] = 'sig1=("@authority"';
       assert.strictEqual((await check(malformed)).reason, 'malformed');
+    });
+  });
+
+  describe('fetchDirectory', () => {
+    const { jwk } = keyPair();
+
+    it('reads the Ed25519 keys and the max-age, without following redirects', async () => {
+      const fetch = directoryFetch({ [agent]: [jwk] }, { maxAge: 600 });
+      const { jwks, maxAge } = await fetchDirectory(agent, { fetch });
+      assert.deepStrictEqual(jwks, [{ kty: jwk.kty, crv: jwk.crv, x: jwk.x }]);
+      assert.strictEqual(maxAge, 600);
+      assert.strictEqual(fetch.calls[0].options.redirect, 'error');
+    });
+
+    it('rejects another media type, a large body or no key', async () => {
+      const serve = (response) => async () => response;
+      await assert.rejects(
+        fetchDirectory(agent, {
+          fetch: serve(directoryResponse([jwk], { type: 'application/json' })),
+        }),
+        /media type/
+      );
+      const large = directoryResponse([jwk]);
+      large.text = async () => ' '.repeat(64 * 1024 + 1);
+      await assert.rejects(
+        fetchDirectory(agent, { fetch: serve(large) }),
+        /too large/
+      );
+      await assert.rejects(
+        fetchDirectory(agent, { fetch: serve(directoryResponse([])) }),
+        /no Ed25519 key/
+      );
     });
   });
 
@@ -325,13 +373,7 @@ describe('web bot auth', () => {
       let release;
       const fetch = () =>
         new Promise((resolve) => {
-          release = () =>
-            resolve({
-              ok: true,
-              status: 200,
-              headers: new Map(),
-              json: async () => ({ keys: [rotated.jwk] }),
-            });
+          release = () => resolve(directoryResponse([rotated.jwk]));
         });
       const keyStore = new KeyStore({
         agents: [agent],

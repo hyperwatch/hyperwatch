@@ -1,5 +1,6 @@
 // Verifies Web Bot Auth signatures (HTTP Message Signatures, RFC 9421) and
-// sets webbotauth: { agent, keyid, verified, reason } on signed requests.
+// sets webbotauth: { agent, keyid, verified, reason[, detail] } on signed
+// requests.
 // The identity module accepts a verified signature as a robot's proof.
 //
 // Keys of the known agents (src/data/webbotauth-agents.json) come from
@@ -108,7 +109,7 @@ function start() {
       `${log.getIn(['webbotauth', 'agent']) || '-'} ${log.getIn([
         'webbotauth',
         'reason',
-      ])}`
+      ])} ${log.getIn(['webbotauth', 'detail']) || ''}`
   );
 
   aggregator.setEnricher((entry, log) => {
@@ -124,6 +125,7 @@ function start() {
   formatter.setFormats([
     ['agent', (entry) => entry.getIn(['webbotauth', 'agent']) || ''],
     ['result', (entry) => entry.getIn(['webbotauth', 'reason']) || ''],
+    ['detail', (entry) => entry.getIn(['webbotauth', 'detail']) || ''],
     ['identity', (entry) => entry.get('identity') || ''],
     ['lastAgent', (entry) => entry.get('lastAgent') || ''],
     ['count15m', (entry) => aggregateCount(entry, 'per_minute')],
@@ -139,7 +141,15 @@ function start() {
 
   api.registerAggregator('webbotauth', aggregator, {
     nav: true,
-    columns: ['agent', 'result', 'identity', 'lastAgent', 'count', 'lastSeen'],
+    columns: [
+      'agent',
+      'result',
+      'detail',
+      'identity',
+      'lastAgent',
+      'count',
+      'lastSeen',
+    ],
   });
 }
 

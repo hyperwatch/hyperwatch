@@ -25,7 +25,7 @@ function signedLog(
   { privateKey, keyid },
   { agent, authority = 'www.example.com', host = authority, family }
 ) {
-  const params = `("@authority" "signature-agent");created=${created};expires=${created + 300};keyid="${keyid}";tag="web-bot-auth"`;
+  const params = `("@authority" "signature-agent");created=${created};expires=${created + 300};keyid="${keyid}";alg="ed25519";tag="web-bot-auth"`;
   const base = [
     `"@authority": ${authority}`,
     `"signature-agent": "${agent}"`,
