@@ -2,6 +2,32 @@
 
 Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases). Versions before 5.0.0 have no entry: see the git history.
 
+## 5.5.0 (2026-11-10)
+
+### Features
+
+- A new module, `webbotauth`, verifies [Web Bot Auth](https://datatracker.ietf.org/doc/draft-meunier-web-bot-auth-architecture/) signatures (HTTP Message Signatures, RFC 9421, with the Ed25519 keys agents publish at `/.well-known/http-message-signatures-directory`), with Cloudflare's `web-bot-auth` package. Signed requests get `webbotauth: { agent, keyid, verified, reason }`; `/webbotauth` counts signed requests per agent and result. Only the directories of the known agents in `src/data/webbotauth-agents.json` are fetched, and the keys committed in `src/data/webbotauth-keys.json` (refreshed by `scripts/fetch-webbotauth-keys.js`) work from the first request. Behind a proxy that rewrites `Host`, `authorities` (or `authority`, a function) maps the hosts Hyperwatch sees to the public ones. See _Web Bot Auth_ in `docs/configuration.md`. ([#688](https://github.com/hyperwatch/hyperwatch/pull/688), [#691](https://github.com/hyperwatch/hyperwatch/pull/691))
+- Filtered reads of the logs on disk (`/history/<node>/disk.json`, and filtered views with `?identity=`, `?address=` or `?signature=`) search the filter value in the bytes read, like grep, and parse only the lines holding it: reading the 100 latest logs of one address in 94 MB went from 234 ms to 26 ms. `skipped` now only counts the lines holding the value. ([#682](https://github.com/hyperwatch/hyperwatch/pull/682))
+- Address lists are matched with one lookup per prefix length instead of a test per range: 2 µs instead of 19 µs for an IPv4 address against Google's crawler and fetcher lists, with the same results. ([#690](https://github.com/hyperwatch/hyperwatch/pull/690))
+
+### Identities
+
+- Hostname rules require a forward-confirmed hostname (the reverse DNS name resolves back to the address) wherever the operator's names resolve back: an unconfirmed reverse DNS name can be set by whoever controls the address. Baidu, ByteDance, British Library and the rules whose names couldn't be checked keep the unconfirmed hostname. ([#684](https://github.com/hyperwatch/hyperwatch/pull/684))
+- Hostname checks match the naming scheme of each robot's servers rather than the operator's whole domain (`crawl-*.googlebot.com`, `msnbot-*.search.msn.com`, …), `*` matching within one label. A forward-confirmed name now identifies You.com, Stripe, Lyrenth, Yandex, Coc Coc and Naver whatever the user agent (their renderers and fetchers). ([#686](https://github.com/hyperwatch/hyperwatch/pull/686))
+- The `Google` identity (GoogleDocs, Google Favicon, GoogleImageProxy) is replaced by **`Google Special Crawlers`** and **`Google Proxy`**, from Google's special-case crawlers and user-triggered fetchers lists, matched by address or forward-confirmed name whatever the user agent. Rules matching the `Google` identity must be updated. ([#686](https://github.com/hyperwatch/hyperwatch/pull/686))
+- A verified Web Bot Auth signature is one more proof for River, RootCrawl, Lyrenth, DuckAssistBot, You.com, Keenable, Ahrefs, Naver and Parallel. With `webbotauth` active, Exa is identified only by a verified signature, no longer by its `Signature-Agent` header alone. ([#688](https://github.com/hyperwatch/hyperwatch/pull/688), [#691](https://github.com/hyperwatch/hyperwatch/pull/691))
+- New identity `Google Agent`, from Google's user-triggered agents list: these requests were identified as `Google Proxy`. ([#689](https://github.com/hyperwatch/hyperwatch/pull/689))
+- `ExaSearchBot-Images` is identified as Exa, and Exa's `Signature-Agent` values are matched exactly. ([#679](https://github.com/hyperwatch/hyperwatch/pull/679))
+- New identities: YepBot (as Ahrefs), ICC-Crawler (NICT) and LinkCheckerBot (LinkChecker). ([#683](https://github.com/hyperwatch/hyperwatch/pull/683))
+- Linkup's published list replaces its single address, and DataForSEO's subnets are checked next to its hostname (copied by hand, see RELEASING.md). ([#687](https://github.com/hyperwatch/hyperwatch/pull/687))
+- Published ranges refreshed: five more GitHub ranges. ([#693](https://github.com/hyperwatch/hyperwatch/pull/693))
+
+### Dependencies & tooling
+
+- New dependencies: `web-bot-auth` 0.2.0 and `structured-headers` 2.0.3. ([#688](https://github.com/hyperwatch/hyperwatch/pull/688))
+- `@hyperwatch/useragent` 4.0.2. ([#692](https://github.com/hyperwatch/hyperwatch/pull/692))
+- Dependency updates: `@aws-sdk/client-s3`.
+
 ## 5.4.0 (2026-11-09)
 
 ### Features
