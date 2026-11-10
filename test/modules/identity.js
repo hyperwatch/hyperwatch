@@ -454,6 +454,7 @@ describe('identity', () => {
           family: 'docs.google.com',
           address: '74.125.208.67',
           hostname: 'google-proxy-74-125-208-67.google.com',
+          verified: true,
         })
       );
       assert.strictEqual(result.get('identity'), 'Google');
@@ -674,6 +675,34 @@ describe('identity', () => {
       ['AIWebIndex', 'crawl.lyrenth.com', 'Lyrenth'],
       ['SeznamBot', 'fulltextrobot.seznam.cz', 'Seznam'],
       ['FacebookBot', 'fwdproxy.fbsv.net', 'Facebook'],
+      // Robots whose reverse DNS names resolve back
+      ['archive.org bot', 'k8s-worker-1.ca.archive.org', 'Archive.org'],
+      ['bnf.fr bot', 'robot3-depot-legal-web.bnf.fr', 'BnF.fr'],
+      ['coccocbot-fast', 'bot-203-0-113-7.coccoc.com', 'Coc Coc'],
+      [
+        'DataForSeoBot',
+        'crawling-gateway-203-0-113-7.dataforseo.com',
+        'DataForSeo',
+      ],
+      ['FlipboardProxy', 'flap14-web.proxy.flipboard.com', 'Flipboard'],
+      ['GoogleDocs', 'google-proxy-203-0-113-7.google.com', 'Google'],
+      ['ev-crawler', 'selfoss.core.headline.com', 'Headline'],
+      ['LinkedInBot', '203-0-113-7.fwd.linkedin.com', 'LinkedIn'],
+      ['MJ12bot', 'crawl-abcdef.mj12bot.com', 'Majestic'],
+      ['PetalBot', 'petalbot-203-0-113-7.petalsearch.com', 'PetalBot'],
+      ['Pinterestbot', 'crawl-203-0-113-7.pinterest.com', 'Pinterest'],
+      ['Sogou web spider', 'sogouspider-203-0-113-7.crawl.sogou.com', 'Sogou'],
+      ['Stripebot', 'ip-203-0-113-7.stripe.com', 'Stripe'],
+      ['Twitterbot', 'r-203-0-113-7.twttr.com', 'Twitter'],
+      ['BLEXBot', 'pot37.webmeup.com', 'WebMeUp'],
+      ['YandexBot', '203-0-113-7.spider.yandex.com', 'Yandex'],
+      ['YouBot', 'youbot-203-0-113-7.search.you.com', 'You.com'],
+      // "Hostname only": any user agent
+      ['Chrome', 'crawl-203-0-113-7.googlebot.com', 'Googlebot'],
+      ['Chrome', 'msnbot-203-0-113-7.search.msn.com', 'Bing'],
+      ['Chrome', 'sogouspider-203-0-113-7.crawl.sogou.com', 'Sogou'],
+      ['Chrome', 'crawl-1.us.archive.org', 'Archive.org'],
+      ['Chrome', 'qwantbot-203-0-113-7.qwant.com', 'Qwant'],
     ];
 
     for (const [family, hostname, expected] of cases) {

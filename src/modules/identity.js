@@ -182,9 +182,11 @@ function inCidr(cidr, address) {
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
   const hostname = log.getIn(['address', 'hostname']);
-  // Reverse DNS confirmed by a forward lookup back to the same address. Rules
-  // with a published list use it; the others still use the unconfirmed
-  // hostname, which whoever controls the address's reverse DNS can set.
+  // Reverse DNS confirmed by a forward lookup back to the same address. Used
+  // wherever the operator's names were seen to resolve back. The others still
+  // use the unconfirmed hostname, which whoever controls the address's reverse
+  // DNS can set: names without a forward record (Baidu, ByteDance, British
+  // Library) or not seen yet.
   const verifiedHostname = log.getIn(['hostname', 'verified'])
     ? hostname
     : undefined;
@@ -214,7 +216,7 @@ function augment(log) {
     case 'docs.google.com': // how the parser reads the GoogleDocs agent
     case 'Google Favicon':
     case 'GoogleImageProxy':
-      return hostname && hostname.endsWith('.google.com')
+      return verifiedHostname && verifiedHostname.endsWith('.google.com')
         ? log.set('identity', 'Google')
         : log;
     case 'Baiduspider':
@@ -234,7 +236,7 @@ function augment(log) {
     case 'YandexImages':
     case 'YandexMobileBot':
     case 'YandexAccessibilityBot':
-      return hostname && hostname.endsWith('.yandex.com')
+      return verifiedHostname && verifiedHostname.endsWith('.yandex.com')
         ? log.set('identity', 'Yandex')
         : log;
     // https://www.semrush.com/bot/ (SemrushBot-BA and SemrushBot-SI parse
@@ -264,12 +266,12 @@ function augment(log) {
         : log;
     case 'archive.org bot':
     case 'special archiver':
-      return hostname && hostname.endsWith('.archive.org')
+      return verifiedHostname && verifiedHostname.endsWith('.archive.org')
         ? log.set('identity', 'Archive.org')
         : log;
     case 'Sogou web spider':
     case 'Sogou Pic Spider':
-      return hostname && hostname.endsWith('.sogou.com')
+      return verifiedHostname && verifiedHostname.endsWith('.sogou.com')
         ? log.set('identity', 'Sogou')
         : log;
     case 'MojeekBot':
@@ -279,11 +281,11 @@ function augment(log) {
         : log;
     case 'AwarioBot':
     case 'BLEXBot':
-      return hostname && hostname.endsWith('.webmeup.com')
+      return verifiedHostname && verifiedHostname.endsWith('.webmeup.com')
         ? log.set('identity', 'WebMeUp')
         : log;
     case 'PetalBot':
-      return hostname && hostname.endsWith('.petalsearch.com')
+      return verifiedHostname && verifiedHostname.endsWith('.petalsearch.com')
         ? log.set('identity', family)
         : log;
     // YepBot is Yep's crawler, run by Ahrefs, with the same hostnames and list
@@ -299,7 +301,8 @@ function augment(log) {
     case 'Pinterestbot':
       // https://help.pinterest.com/en/business/article/pinterest-crawler: US
       // crawling comes from 54.236.1.0/24
-      return (hostname && hostname.endsWith('.pinterest.com')) ||
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.pinterest.com')) ||
         (address && inCidr('54.236.1.0/24', address))
         ? log.set('identity', 'Pinterest')
         : log;
@@ -311,7 +314,7 @@ function augment(log) {
 
     case 'Stripe':
     case 'Stripebot':
-      return hostname && hostname.endsWith('.stripe.com')
+      return verifiedHostname && verifiedHostname.endsWith('.stripe.com')
         ? log.set('identity', 'Stripe')
         : log;
     case 'PayPal':
@@ -334,7 +337,7 @@ function augment(log) {
     case 'coccocbot-fast':
     case 'coccocbot-ads':
     case 'coccocbot-shopping':
-      return hostname && hostname.endsWith('.coccoc.com')
+      return verifiedHostname && verifiedHostname.endsWith('.coccoc.com')
         ? log.set('identity', 'Coc Coc')
         : log;
     case 'DuckDuckGo':
@@ -348,7 +351,7 @@ function augment(log) {
         ? log.set('identity', 'DuckDuckGo')
         : log;
     case 'MJ12bot':
-      if (hostname && hostname.endsWith('.mj12bot.com')) {
+      if (verifiedHostname && verifiedHostname.endsWith('.mj12bot.com')) {
         return log.set('identity', 'Majestic');
       }
       break;
@@ -385,7 +388,7 @@ function augment(log) {
         ? log.set('identity', 'Alexa')
         : log;
     case 'LinkedInBot':
-      return hostname && hostname.endsWith('.linkedin.com')
+      return verifiedHostname && verifiedHostname.endsWith('.linkedin.com')
         ? log.set('identity', 'LinkedIn')
         : log;
     case 'Linespider':
@@ -427,7 +430,7 @@ function augment(log) {
         ? log.set('identity', 'SEOkicks')
         : log;
     case 'bnf.fr bot':
-      return hostname && hostname.endsWith('.bnf.fr')
+      return verifiedHostname && verifiedHostname.endsWith('.bnf.fr')
         ? log.set('identity', 'BnF.fr')
         : log;
     case 'BluechipBacklinks':
@@ -462,7 +465,7 @@ function augment(log) {
         ? log.set('identity', 'British Library')
         : log;
     case 'DataForSeoBot':
-      return hostname && hostname.endsWith('.dataforseo.com')
+      return verifiedHostname && verifiedHostname.endsWith('.dataforseo.com')
         ? log.set('identity', 'DataForSeo')
         : log;
     case 'Qwantify':
@@ -512,7 +515,8 @@ function augment(log) {
         : log;
     case 'YouBot':
       // https://docs.you.com/youbot: YouBot crawls from 68.67.112.0/24
-      return (hostname && hostname.endsWith('.search.you.com')) ||
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.search.you.com')) ||
         (address && inCidr('68.67.112.0/24', address))
         ? log.set('identity', 'You.com')
         : log;
@@ -527,7 +531,7 @@ function augment(log) {
 
     // Per hostname + CIDR
     case 'Twitterbot':
-      return (hostname && hostname.endsWith('.twttr.com')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.twttr.com')) ||
         (address && twitterCidrs(address))
         ? log.set('identity', 'Twitter')
         : log;
@@ -732,7 +736,7 @@ function augment(log) {
         ? log.set('identity', 'MegaIndex.ru')
         : log;
     case 'ev-crawler':
-      return hostname && hostname.endsWith('.headline.com')
+      return verifiedHostname && verifiedHostname.endsWith('.headline.com')
         ? log.set('identity', 'Headline')
         : log;
     case 'SentryUptimeBot':
@@ -741,7 +745,7 @@ function augment(log) {
         ? log.set('identity', 'Sentry')
         : log;
     case 'FlipboardProxy':
-      return hostname && hostname.endsWith('.flipboard.com')
+      return verifiedHostname && verifiedHostname.endsWith('.flipboard.com')
         ? log.set('identity', 'Flipboard')
         : log;
 
@@ -759,13 +763,15 @@ function augment(log) {
 
   // Hostname only
   if (hostname && !log.has('identity')) {
-    if (hostname.endsWith('.googlebot.com')) {
+    // Forward-confirmed, except Shenma and SpiderFoot: none of their names
+    // could be checked yet
+    if (verifiedHostname && verifiedHostname.endsWith('.googlebot.com')) {
       return log.set('identity', 'Googlebot');
     }
-    if (hostname.endsWith('.search.msn.com')) {
+    if (verifiedHostname && verifiedHostname.endsWith('.search.msn.com')) {
       return log.set('identity', 'Bing');
     }
-    if (hostname.endsWith('.crawl.sogou.com')) {
+    if (verifiedHostname && verifiedHostname.endsWith('.crawl.sogou.com')) {
       return log.set('identity', 'Sogou');
     }
     if (hostname.endsWith('.crawl.sm.cn')) {
@@ -774,10 +780,10 @@ function augment(log) {
     if (hostname.endsWith('.hx.spiderfoot.net')) {
       return log.set('identity', 'SpiderFoot');
     }
-    if (hostname.endsWith('.us.archive.org')) {
+    if (verifiedHostname && verifiedHostname.endsWith('.us.archive.org')) {
       return log.set('identity', 'Archive.org');
     }
-    if (hostname.endsWith('.qwant.com')) {
+    if (verifiedHostname && verifiedHostname.endsWith('.qwant.com')) {
       return log.set('identity', 'Qwant');
     }
     // Semrush crawlers not named above
