@@ -457,7 +457,7 @@ describe('identity', () => {
           verified: true,
         })
       );
-      assert.strictEqual(result.get('identity'), 'Google');
+      assert.strictEqual(result.get('identity'), 'Google Proxy');
     });
 
     it('should not identify the Google Docs proxy without a google.com hostname', () => {
@@ -575,6 +575,19 @@ describe('identity', () => {
       ['RiverBot', 'riverbot-ips', 'River'],
       ['KakaoBot', 'kakaobot-ips', 'Kakao'],
       ['LinkCheckerBot', 'linkcheckerbot-ips', 'LinkChecker'],
+      [
+        'GoogleImageProxy',
+        'google-user-triggered-fetchers-google-ips',
+        'Google Proxy',
+      ],
+      ['GoogleDocs', 'google-special-crawlers-ips', 'Google Special Crawlers'],
+      // Google's other pools: any user agent
+      [
+        'AdsBot-Google',
+        'google-special-crawlers-ips',
+        'Google Special Crawlers',
+      ],
+      ['Chrome', 'google-user-triggered-fetchers-google-ips', 'Google Proxy'],
     ];
 
     for (const [family, list, expected] of cases) {
@@ -655,26 +668,31 @@ describe('identity', () => {
       // hostname
       ['Applebot', '17-58-101-179.applebot.apple.com', 'Applebot'],
       ['Googlebot', 'crawl-66-249-66-1.googlebot.com', 'Googlebot'],
+      ['Googlebot', 'geo-crawl-35-247-243-240.geo.googlebot.com', 'Googlebot'],
       ['BingBot', 'msnbot-157-55-39-1.search.msn.com', 'Bing'],
-      ['PingdomBot', 'probe.pingdom.com', 'Pingdom'],
-      ['MojeekBot', 'crawl.mojeek.com', 'Mojeek'],
+      ['PingdomBot', 's4211.pingdom.com', 'Pingdom'],
+      ['MojeekBot', 'crawl-5-102-173-71.mojeek.com', 'Mojeek'],
       ['AhrefsBot', 'ip-203-0-113-7.a.ahrefs.com', 'Ahrefs'],
-      ['Yeti', 'crawl.naver.com', 'Naver'],
-      ['UptimeRobot', 'check.uptimerobot.com', 'Uptime Robot'],
-      ['DuckDuckBot', 'crawl.duckduckgo.com', 'DuckDuckGo'],
+      ['Yeti', 'crawl.125-209-235-169.web.naver.com', 'Naver'],
+      ['UptimeRobot', 'checker-fsn1.uptimerobot.com', 'Uptime Robot'],
+      ['DuckDuckBot', 'use-1.crawl.duckduckgo.com', 'DuckDuckGo'],
       ['Barkrowler', 'crawl.babbar.eu', 'Babbar'],
-      ['Arquivo-web-crawler', 'crawler.arquivo.pt', 'Arquivo'],
+      ['Arquivo-web-crawler', 'p97.arquivo.pt', 'Arquivo'],
       ['SeekportBot', 'a.links.ls.007ac9.net', 'Seekport'],
       ['RootCrawl', 'crawl.rootcrawl.org', 'RootCrawl'],
-      ['Qwantbot', 'qwantbot.qwant.com', 'Qwant'],
+      ['Qwantbot', 'qwantbot-1-162-242-91.qwant.com', 'Qwant'],
       ['Amazonbot', 'a.crawl.amazonbot.amazon', 'Amazonbot'],
       ['Amzn-SearchBot', 'a.crawl.amazonbot.amazon', 'Amazon SearchBot'],
       ['Amzn-User', 'a.crawl.amazonbot.amazon', 'Amazon User'],
-      ['SERankingBacklinksBot', 'a.blex.seranking.com', 'SE Ranking'],
-      ['SofyaBot', 'crawl.sofya.co', 'Sofya'],
-      ['AIWebIndex', 'crawl.lyrenth.com', 'Lyrenth'],
-      ['SeznamBot', 'fulltextrobot.seznam.cz', 'Seznam'],
-      ['FacebookBot', 'fwdproxy.fbsv.net', 'Facebook'],
+      [
+        'SERankingBacklinksBot',
+        'discovery-crawler1.blex.seranking.com',
+        'SE Ranking',
+      ],
+      ['SofyaBot', 'crawl-1.sofya.co', 'Sofya'],
+      ['AIWebIndex', 'crawler-17.lyrenth.com', 'Lyrenth'],
+      ['SeznamBot', 'fulltextrobot-77-75-77-1.seznam.cz', 'Seznam'],
+      ['FacebookBot', 'fwdproxy-dkl-029.fbsv.net', 'Facebook'],
       // Robots whose reverse DNS names resolve back
       ['archive.org bot', 'k8s-worker-1.ca.archive.org', 'Archive.org'],
       ['bnf.fr bot', 'robot3-depot-legal-web.bnf.fr', 'BnF.fr'],
@@ -685,7 +703,7 @@ describe('identity', () => {
         'DataForSeo',
       ],
       ['FlipboardProxy', 'flap14-web.proxy.flipboard.com', 'Flipboard'],
-      ['GoogleDocs', 'google-proxy-203-0-113-7.google.com', 'Google'],
+      ['GoogleDocs', 'google-proxy-203-0-113-7.google.com', 'Google Proxy'],
       ['ev-crawler', 'selfoss.core.headline.com', 'Headline'],
       ['LinkedInBot', '203-0-113-7.fwd.linkedin.com', 'LinkedIn'],
       ['MJ12bot', 'crawl-abcdef.mj12bot.com', 'Majestic'],
@@ -720,6 +738,110 @@ describe('identity', () => {
         assert.strictEqual(result.get('identity'), undefined);
       });
     }
+  });
+
+  // "Hostname only" by pattern: a robot's own servers, any user agent
+  describe('hostname patterns', () => {
+    const cases = [
+      ['google-proxy-66-249-83-73.google.com', 'Google Proxy'],
+      ['rate-limited-proxy-72-14-199-34.google.com', 'Google Special Crawlers'],
+      ['youbot-68-67-112-203.search.you.com', 'You.com'],
+      ['crawl.stripe.com', 'Stripe'],
+      ['a.crawl.stripe.com', 'Stripe'],
+      ['ip-54-187-216-72.stripe.com', 'Stripe'],
+      ['crawler-17.lyrenth.com', 'Lyrenth'],
+      ['render-19.lyrenth.com', 'Lyrenth'],
+      ['87-250-224-115.spider.yandex.com', 'Yandex'],
+      ['bot-103-131-71-52.coccoc.com', 'Coc Coc'],
+      ['crawl.211-249-46-35.web.naver.com', 'Naver'],
+    ];
+
+    for (const [hostname, expected] of cases) {
+      it(`should identify any user agent from a forward-confirmed ${hostname}`, () => {
+        const result = identity.augment(
+          log({
+            family: 'HeadlessChrome',
+            address: '203.0.113.7',
+            hostname,
+            verified: true,
+          })
+        );
+        assert.strictEqual(result.get('identity'), expected);
+      });
+
+      it(`should not identify an unconfirmed ${hostname}`, () => {
+        const result = identity.augment(
+          log({
+            family: 'HeadlessChrome',
+            address: '203.0.113.7',
+            hostname,
+            verified: false,
+          })
+        );
+        assert.strictEqual(result.get('identity'), undefined);
+      });
+    }
+
+    for (const hostname of [
+      'mail.google.com',
+      'www.stripe.com',
+      'api.lyrenth.com',
+      'a.render-19.lyrenth.com',
+      'spider.yandex.com',
+      'help.coccoc.com',
+      'www.naver.com',
+      'render-19.lyrenth.com.example.net',
+    ]) {
+      it(`should not identify another name: ${hostname}`, () => {
+        const result = identity.augment(
+          log({
+            family: 'HeadlessChrome',
+            address: '203.0.113.7',
+            hostname,
+            verified: true,
+          })
+        );
+        assert.strictEqual(result.get('identity'), undefined);
+      });
+    }
+
+    // Names of the operator's domain outside its robots' naming scheme
+    for (const [family, hostname] of [
+      ['Googlebot', 'mail.googlebot.com'],
+      ['BingBot', 'www.search.msn.com'],
+      ['YandexBot', 'mail.yandex.com'],
+      ['SeznamBot', 'www.seznam.cz'],
+      ['Chrome', 'mail.googlebot.com'],
+    ]) {
+      it(`should not identify ${family} from ${hostname}`, () => {
+        const result = identity.augment(
+          log({ family, address: '203.0.113.7', hostname, verified: true })
+        );
+        assert.strictEqual(result.get('identity'), undefined);
+      });
+    }
+
+    it("should identify Google's named fetchers by their pool", () => {
+      const result = identity.augment(
+        log({
+          family: 'GoogleDocs',
+          address: '203.0.113.7',
+          hostname: 'rate-limited-proxy-72-14-199-34.google.com',
+          verified: true,
+        })
+      );
+      assert.strictEqual(result.get('identity'), 'Google Special Crawlers');
+    });
+  });
+
+  describe('Google user-owned fetchers', () => {
+    it('should not identify an address of the user-owned list', () => {
+      const cidrs = require('../../src/data/google-user-triggered-fetchers-ips.json');
+      const result = identity.augment(
+        log({ family: 'Chrome', address: cidrs[0].split('/')[0] })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
   });
 
   describe('Applebot', () => {
@@ -803,7 +925,7 @@ describe('identity', () => {
     const cases = [
       [
         'DuckDuckBot/1.1; (+http://duckduckgo.com/duckduckbot.html)',
-        'crawl.duckduckgo.com',
+        'use-1.crawl.duckduckgo.com',
         'DuckDuckGo',
       ],
       [
@@ -818,7 +940,7 @@ describe('identity', () => {
       ],
       [
         'Arquivo-web-crawler (compatible; heritrix/3.4.0-20200304 +https://arquivo.pt/faq-crawling)',
-        'crawler.arquivo.pt',
+        'p97.arquivo.pt',
         'Arquivo',
       ],
       [
@@ -828,7 +950,7 @@ describe('identity', () => {
       ],
       [
         'Pinterest/0.2 (+https://www.pinterest.com/bot.html)',
-        'crawl.pinterest.com',
+        'crawl-54-236-1-69.pinterest.com',
         'Pinterest',
       ],
       [
@@ -838,27 +960,27 @@ describe('identity', () => {
       ],
       [
         'Mozilla/5.0 (compatible; coccocbot-fast/1.0; +http://help.coccoc.com/searchengine)',
-        'bot.coccoc.com',
+        'bot-103-131-71-52.coccoc.com',
         'Coc Coc',
       ],
       [
         'Mozilla/5.0 (compatible; coccocbot-ads/1.0; +http://help.coccoc.com/searchengine)',
-        'bot.coccoc.com',
+        'bot-103-131-71-52.coccoc.com',
         'Coc Coc',
       ],
       [
         'Mozilla/5.0 (compatible; coccocbot-shopping/1.0; +http://help.coccoc.com/searchengine)',
-        'bot.coccoc.com',
+        'bot-103-131-71-52.coccoc.com',
         'Coc Coc',
       ],
       [
         'Mozilla/5.0 (compatible; Qwantbot/1.0; +https://help.qwant.com/bot/)',
-        'qwantbot.qwant.com',
+        'qwantbot-1-162-242-91.qwant.com',
         'Qwant',
       ],
       [
         'Mozilla/5.0 (compatible; Qwantbot-news/2.0; +https://help.qwant.com/bot/)',
-        'qwantbot.qwant.com',
+        'qwantbot-1-162-242-91.qwant.com',
         'Qwant',
       ],
     ];
