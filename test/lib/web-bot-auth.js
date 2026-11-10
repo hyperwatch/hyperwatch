@@ -241,6 +241,13 @@ describe('web bot auth', () => {
       assert.strictEqual(fetch.calls.length, 0);
     });
 
+    it('rejects components that are not strings, without throwing', async () => {
+      const request = signedRequest(pair);
+      request.headers['signature-input'] =
+        `sig1=(1 "@authority");keyid="${pair.keyid}";tag="web-bot-auth"`;
+      assert.strictEqual((await check(request)).reason, 'malformed');
+    });
+
     it('reports a missing agent and malformed headers', async () => {
       const request = signedRequest(pair);
       delete request.headers['signature-agent'];
@@ -288,6 +295,31 @@ describe('web bot auth', () => {
       now += 31;
       assert.ok(await keyStore.get(agent, rotated.keyid));
       assert.strictEqual(fetch.calls.length, 2);
+    });
+
+    it('waits for a fetch in progress before reporting an unknown key', async () => {
+      const rotated = keyPair();
+      let release;
+      const fetch = () =>
+        new Promise((resolve) => {
+          release = () =>
+            resolve({
+              ok: true,
+              status: 200,
+              headers: new Map(),
+              json: async () => ({ keys: [rotated.jwk] }),
+            });
+        });
+      const keyStore = new KeyStore({
+        agents: [agent],
+        fetch,
+        now: () => time,
+      });
+      const first = keyStore.get(agent, rotated.keyid);
+      const second = keyStore.get(agent, rotated.keyid);
+      release();
+      assert.ok(await first);
+      assert.ok(await second);
     });
 
     it('fetches again when the max-age is over', async () => {

@@ -90,6 +90,17 @@ describe('webBotAuth module', () => {
       assert.strictEqual(await webBotAuth.augment(unsigned), unsigned);
     });
 
+    it('keeps the log when verification fails unexpectedly', async () => {
+      constants.modules.webBotAuth.authority = () => {
+        throw new Error('broken config');
+      };
+      const log = await webBotAuth.augment(
+        signedLog(exa, { agent: 'https://crawler.exa.ai' })
+      );
+      assert.strictEqual(log.getIn(['webBotAuth', 'reason']), 'error');
+      assert.strictEqual(log.getIn(['webBotAuth', 'verified']), false);
+    });
+
     it('verifies behind a proxy with the public host of `authorities`', async () => {
       const log = signedLog(exa, {
         agent: 'https://crawler.exa.ai',

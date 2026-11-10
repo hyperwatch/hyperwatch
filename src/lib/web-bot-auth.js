@@ -201,6 +201,10 @@ function componentValue(name, request, authority) {
 function signatureBase(input, request, authority) {
   const lines = [];
   for (const item of input.items) {
+    // Components are strings: anything else is not a valid Signature-Input
+    if (item.type !== 'string') {
+      return { reason: 'malformed' };
+    }
     if (Object.keys(item.params).length > 0) {
       return { reason: 'unsupported component' };
     }
@@ -311,6 +315,10 @@ class KeyStore {
     const entry = this.entries.get(agent);
     if (!entry) {
       return null;
+    }
+    // A fetch in progress may bring the key: wait for it
+    if (entry.pending) {
+      await entry.pending;
     }
     const now = this.now();
     const due =

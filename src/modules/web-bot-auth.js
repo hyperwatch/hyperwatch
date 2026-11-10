@@ -64,19 +64,25 @@ async function augment(log) {
     keyStore = createKeyStore();
   }
   const time = Date.parse(request.get('time'));
-  const result = await verify(
-    {
-      method: request.get('method'),
-      url: request.get('url'),
-      scheme: request.get('scheme'),
-      headers: headers.toJS(),
-    },
-    {
-      keyStore,
-      authorities: authoritiesOf(log),
-      time: (Number.isFinite(time) ? time : Date.now()) / 1000,
-    }
-  );
+  let result;
+  try {
+    result = await verify(
+      {
+        method: request.get('method'),
+        url: request.get('url'),
+        scheme: request.get('scheme'),
+        headers: headers.toJS(),
+      },
+      {
+        keyStore,
+        authorities: authoritiesOf(log),
+        time: (Number.isFinite(time) ? time : Date.now()) / 1000,
+      }
+    );
+  } catch (error) {
+    // Never drop the log: a request Hyperwatch can't check is unverified
+    result = { agent: null, keyid: null, verified: false, reason: 'error' };
+  }
   return result ? log.set('webBotAuth', fromJS(result)) : log;
 }
 
