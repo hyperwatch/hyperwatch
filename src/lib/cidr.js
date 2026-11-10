@@ -53,22 +53,20 @@ function inRange(range, address) {
   );
 }
 
-// The key of a parsed address or single-host range: its family and address
-const hostKey = (address) =>
-  `${address instanceof Address6 ? 6 : 4}:${address.correctForm()}`;
-
 /**
  * Compile a list of ranges (address/prefix, or a bare address for a single
  * host) once. The matcher returns the first range containing the address,
- * as written in the list, or null.
+ * as written in the list, or null. It takes an address as a string, or as
+ * parsed by parseAddress, to parse it once for several lists.
  *
- * Single hosts (/32, /128) are looked up in a map, so a long list of them
- * costs one lookup instead of a test per entry. Only wider ranges written
- * before the host's entry are tested before it, to keep the list's order.
+ * Ranges are grouped by prefix length, each group a map from network address
+ * to the first entry of the list with it. A lookup masks the address once
+ * per prefix length present (a handful), instead of testing every range, and
+ * keeps the candidate that comes first in the list.
  */
 function compileRanges(values) {
-  const hosts = new Map();
-  const ranges = [];
+  // Per family: prefix length → (network address → { value, index })
+  const groups = { 4: new Map(), 6: new Map() };
   values.forEach((value, index) => {
     const cidr = value.includes('/')
       ? value
@@ -77,35 +75,45 @@ function compileRanges(values) {
     if (!range) {
       throw new Error(`invalid CIDR "${value}"`);
     }
-    const bits = range instanceof Address6 ? 128 : 32;
-    // An IPv4-mapped IPv6 host never matches an address, which is read as
-    // IPv4: leave it with the ranges, which handle that
-    if (
-      range.subnetMask === bits &&
-      !(range instanceof Address6 && range.isMapped4())
-    ) {
-      const key = hostKey(range.startAddress());
-      if (!hosts.has(key)) {
-        hosts.set(key, { value, index });
-      }
-    } else {
-      ranges.push({ value, index, range });
+    // An IPv4-mapped IPv6 range never matches: addresses in it are read as
+    // IPv4 (see parseAddress)
+    if (range instanceof Address6 && range.isMapped4()) {
+      return;
+    }
+    const family = range instanceof Address6 ? 6 : 4;
+    const shift = BigInt((family === 6 ? 128 : 32) - range.subnetMask);
+    const network = range.startAddress().bigInt() >> shift;
+    if (!groups[family].has(shift)) {
+      groups[family].set(shift, new Map());
+    }
+    const networks = groups[family].get(shift);
+    if (!networks.has(network)) {
+      networks.set(network, { value, index });
     }
   });
+  const lookups = {
+    4: [...groups[4].entries()],
+    6: [...groups[6].entries()],
+  };
   return (address) => {
-    const parsed = parseAddress(address);
+    const parsed =
+      address instanceof Address4 || address instanceof Address6
+        ? address
+        : parseAddress(address);
     if (!parsed) {
       return null;
     }
-    const host = hosts.get(hostKey(parsed));
-    const before = host ? host.index : Infinity;
-    const match = ranges.find(
-      ({ index, range }) => index < before && inRange(range, parsed)
-    );
-    if (match) {
-      return match.value;
+    const number = parsed.bigInt();
+    let first = null;
+    for (const [shift, networks] of lookups[
+      parsed instanceof Address6 ? 6 : 4
+    ]) {
+      const match = networks.get(number >> shift);
+      if (match && (!first || match.index < first.index)) {
+        first = match;
+      }
     }
-    return host ? host.value : null;
+    return first ? first.value : null;
   };
 }
 
