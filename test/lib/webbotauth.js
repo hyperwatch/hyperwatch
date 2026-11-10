@@ -234,6 +234,14 @@ describe('web bot auth', () => {
       assert.strictEqual((await check(both)).reason, 'unknown key');
     });
 
+    it('serializes the signature parameters, whatever their spacing', async () => {
+      const request = signedRequest(pair);
+      request.headers['signature-input'] = request.headers['signature-input']
+        .replace('" "', '"  "')
+        .replace(/;/g, '; ');
+      assert.strictEqual((await check(request)).reason, 'verified');
+    });
+
     it('applies the Web Bot Auth profile', async () => {
       const reasonOf = async (options) =>
         (await check(signedRequest(pair, options))).reason;
