@@ -542,6 +542,7 @@ describe('identity', () => {
     const cases = [
       ['AhrefsBot', 'ahrefs-ips', 'Ahrefs'],
       ['AhrefsSiteAudit', 'ahrefs-ips', 'Ahrefs'],
+      ['YepBot', 'ahrefs-ips', 'Ahrefs'],
       ['Applebot', 'applebot-ips', 'Applebot'],
       ['Barkrowler', 'barkrowler-ips', 'Babbar'],
       ['BingBot', 'bingbot-ips', 'Bing'],
@@ -572,6 +573,7 @@ describe('identity', () => {
       ['IbouBot', 'iboubot-ips', 'ibou'],
       ['RiverBot', 'riverbot-ips', 'River'],
       ['KakaoBot', 'kakaobot-ips', 'Kakao'],
+      ['LinkCheckerBot', 'linkcheckerbot-ips', 'LinkChecker'],
     ];
 
     for (const [family, list, expected] of cases) {
@@ -596,6 +598,8 @@ describe('identity', () => {
       ['Pinterestbot', '54.236.1.10', '54.236.2.10', 'Pinterest'],
       ['YouBot', '68.67.112.106', '68.67.113.106', 'You.com'],
       ['IdarusBot', '141.94.42.166', '141.94.42.167', 'Idarus'],
+      ['ICC-Crawler', '202.180.34.186', '202.180.34.187', 'NICT'],
+      ['ICC-Crawler', '61.86.246.72', '61.86.246.73', 'NICT'],
     ];
 
     for (const [family, inside, outside, expected] of cases) {
