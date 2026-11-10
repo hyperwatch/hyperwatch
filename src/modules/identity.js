@@ -97,9 +97,9 @@ const keenableUserCidrs = compileRanges(keenableUserIps);
 // AWS's ip-ranges.json): copied from there in October 2026.
 const amazonQuickCidrs = compileRanges(amazonQuickIps);
 
-// Published lists checked next to the older hostname rules: an address in the
-// list is enough, and so is the hostname, so no robot identified before loses
-// its identity.
+// Published lists checked next to the hostname rules: an address in the list
+// is enough, and so is a forward-confirmed hostname, which also covers
+// addresses added since the list was last fetched.
 const applebotCidrs = compileRanges(applebotIps);
 const arquivoCidrs = compileRanges(arquivoIps);
 const reflectionbotCidrs = compileRanges(reflectionbotIps);
@@ -182,8 +182,9 @@ function inCidr(cidr, address) {
 function augment(log) {
   const family = log.getIn(['agent', 'family']);
   const hostname = log.getIn(['address', 'hostname']);
-  // Reverse DNS confirmed by a forward lookup back to the same address. The
-  // older identities below still use the unconfirmed hostname.
+  // Reverse DNS confirmed by a forward lookup back to the same address. Rules
+  // with a published list use it; the others still use the unconfirmed
+  // hostname, which whoever controls the address's reverse DNS can set.
   const verifiedHostname = log.getIn(['hostname', 'verified'])
     ? hostname
     : undefined;
@@ -195,14 +196,16 @@ function augment(log) {
   switch (family) {
     // Per hostname
     case 'Applebot':
-      return (hostname && hostname.endsWith('.apple.com')) ||
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.applebot.apple.com')) ||
         (address && applebotCidrs(address))
         ? log.set('identity', family)
         : log;
     case 'Googlebot':
     case 'Googlebot-Image':
     case 'Googlebot-Video':
-      return (hostname && hostname.endsWith('.googlebot.com')) ||
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.googlebot.com')) ||
         (address && googlebotCidrs(address))
         ? log.set('identity', 'Googlebot')
         : log;
@@ -222,7 +225,8 @@ function augment(log) {
         : log;
     case 'BingBot':
     case 'BingPreview':
-      return (hostname && hostname.endsWith('.search.msn.com')) ||
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.search.msn.com')) ||
         (address && bingbotCidrs(address))
         ? log.set('identity', 'Bing')
         : log;
@@ -254,7 +258,7 @@ function augment(log) {
       }
       break;
     case 'PingdomBot':
-      return (hostname && hostname.endsWith('.pingdom.com')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.pingdom.com')) ||
         (address && pingdomCidrs(address))
         ? log.set('identity', 'Pingdom')
         : log;
@@ -269,7 +273,7 @@ function augment(log) {
         ? log.set('identity', 'Sogou')
         : log;
     case 'MojeekBot':
-      return (hostname && hostname.endsWith('.mojeek.com')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.mojeek.com')) ||
         (address && mojeekbotCidrs(address))
         ? log.set('identity', 'Mojeek')
         : log;
@@ -287,7 +291,7 @@ function augment(log) {
     case 'AhrefsBot':
     case 'AhrefsSiteAudit':
     case 'YepBot':
-      return (hostname && hostname.endsWith('.ahrefs.com')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.ahrefs.com')) ||
         (address && ahrefsCidrs(address))
         ? log.set('identity', 'Ahrefs')
         : log;
@@ -300,7 +304,7 @@ function augment(log) {
         ? log.set('identity', 'Pinterest')
         : log;
     case 'Yeti':
-      return (hostname && hostname.endsWith('.naver.com')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.naver.com')) ||
         (address && naverbotCidrs(address))
         ? log.set('identity', 'Naver')
         : log;
@@ -319,7 +323,8 @@ function augment(log) {
         ? log.set('identity', 'PayPal')
         : log;
     case 'UptimeRobot':
-      return (hostname && hostname.endsWith('.uptimerobot.com')) ||
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.uptimerobot.com')) ||
         (address && uptimerobotCidrs(address))
         ? log.set('identity', 'Uptime Robot')
         : log;
@@ -337,7 +342,8 @@ function augment(log) {
     case 'DuckDuckBot-Https':
     case 'DuckAssistBot':
     case 'DuckDuckGo-Favicons-Bot':
-      return (hostname && hostname.endsWith('.duckduckgo.com')) ||
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.duckduckgo.com')) ||
         (address && duckduckgoCidrs(address))
         ? log.set('identity', 'DuckDuckGo')
         : log;
@@ -397,7 +403,7 @@ function augment(log) {
         : log;
     case 'Barkrowler':
       // https://babbar.tech/
-      return (hostname && hostname.endsWith('.babbar.eu')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.babbar.eu')) ||
         (address && barkrowlerCidrs(address))
         ? log.set('identity', 'Babbar')
         : log;
@@ -430,12 +436,12 @@ function augment(log) {
         : log;
     case 'arquivo-web-crawler':
     case 'Arquivo-web-crawler':
-      return (hostname && hostname.endsWith('.arquivo.pt')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.arquivo.pt')) ||
         (address && arquivoCidrs(address))
         ? log.set('identity', 'Arquivo')
         : log;
     case 'SeekportBot':
-      return (hostname && hostname.endsWith('.007ac9.net')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.007ac9.net')) ||
         (address && seekportbotCidrs(address))
         ? log.set('identity', 'Seekport')
         : log;
@@ -445,7 +451,8 @@ function augment(log) {
         : log;
     case 'RootCrawl':
     case 'RootCrawl-Crawler':
-      return (hostname && hostname.endsWith('.rootcrawl.org')) ||
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.rootcrawl.org')) ||
         (address && rootcrawlCidrs(address))
         ? log.set('identity', 'RootCrawl')
         : log;
@@ -462,7 +469,7 @@ function augment(log) {
     case 'Qwantify-dev':
     case 'Qwantbot':
     case 'Qwantbot-news':
-      return (hostname && hostname.endsWith('.qwant.com')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.qwant.com')) ||
         (address && qwantbotCidrs(address))
         ? log.set('identity', 'Qwant')
         : log;
@@ -471,12 +478,14 @@ function augment(log) {
         ? log.set('identity', 'InfoTiger')
         : log;
     case 'Amazonbot':
-      return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.crawl.amazonbot.amazon')) ||
         amazonBotCidrs(address)
         ? log.set('identity', 'Amazonbot')
         : log;
     case 'Amzn-SearchBot':
-      return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.crawl.amazonbot.amazon')) ||
         amazonSearchBotCidrs(address)
         ? log.set('identity', 'Amazon SearchBot')
         : log;
@@ -485,17 +494,19 @@ function augment(log) {
         ? log.set('identity', 'Amazon Quick')
         : log;
     case 'Amzn-User':
-      return (hostname && hostname.endsWith('.crawl.amazonbot.amazon')) ||
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.crawl.amazonbot.amazon')) ||
         amazonUserCidrs(address)
         ? log.set('identity', 'Amazon User')
         : log;
     case 'SERankingBacklinksBot':
-      return (hostname && hostname.endsWith('.blex.seranking.com')) ||
+      return (verifiedHostname &&
+        verifiedHostname.endsWith('.blex.seranking.com')) ||
         (address && serankingCidrs(address))
         ? log.set('identity', 'SE Ranking')
         : log;
     case 'SofyaBot':
-      return (hostname && hostname.endsWith('.sofya.co')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.sofya.co')) ||
         (address && sofyabotCidrs(address))
         ? log.set('identity', 'Sofya')
         : log;
@@ -509,7 +520,7 @@ function augment(log) {
     case 'AIWebIndex-Agent':
       // Lyrenth AI-readable web index, forward-confirmed rDNS under lyrenth.com
       // https://lyrenth.com/bot
-      return (hostname && hostname.endsWith('.lyrenth.com')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.lyrenth.com')) ||
         (address && lyrenthCidrs(address))
         ? log.set('identity', 'Lyrenth')
         : log;
@@ -521,13 +532,13 @@ function augment(log) {
         ? log.set('identity', 'Twitter')
         : log;
     case 'SeznamBot':
-      return (hostname && hostname.endsWith('.seznam.cz')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.seznam.cz')) ||
         (address && inCidr('2a02:598::/32', address)) ||
         (address && seznambotCidrs(address))
         ? log.set('identity', 'Seznam')
         : log;
     case 'FacebookBot':
-      return (hostname && hostname.endsWith('.fbsv.net')) ||
+      return (verifiedHostname && verifiedHostname.endsWith('.fbsv.net')) ||
         (address && metaCidrs(address))
         ? log.set('identity', 'Facebook')
         : log;

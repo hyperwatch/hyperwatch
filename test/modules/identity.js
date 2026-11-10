@@ -537,7 +537,7 @@ describe('identity', () => {
     });
   });
 
-  // Published lists, checked next to the older hostname rules
+  // Published lists, checked next to the hostname rules
   describe('published lists', () => {
     const cases = [
       ['AhrefsBot', 'ahrefs-ips', 'Ahrefs'],
@@ -650,6 +650,30 @@ describe('identity', () => {
       ['RiverBot', 'crawl-203-0-113-7.bot.river.ai', 'River'],
       ['PayPal', 'notify.paypal.com', 'PayPal'],
       ['PayPal IPN', 'notify.paypal.com', 'PayPal'],
+      // Robots with a published list too: the list or a forward-confirmed
+      // hostname
+      ['Applebot', '17-58-101-179.applebot.apple.com', 'Applebot'],
+      ['Googlebot', 'crawl-66-249-66-1.googlebot.com', 'Googlebot'],
+      ['BingBot', 'msnbot-157-55-39-1.search.msn.com', 'Bing'],
+      ['PingdomBot', 'probe.pingdom.com', 'Pingdom'],
+      ['MojeekBot', 'crawl.mojeek.com', 'Mojeek'],
+      ['AhrefsBot', 'ip-203-0-113-7.a.ahrefs.com', 'Ahrefs'],
+      ['Yeti', 'crawl.naver.com', 'Naver'],
+      ['UptimeRobot', 'check.uptimerobot.com', 'Uptime Robot'],
+      ['DuckDuckBot', 'crawl.duckduckgo.com', 'DuckDuckGo'],
+      ['Barkrowler', 'crawl.babbar.eu', 'Babbar'],
+      ['Arquivo-web-crawler', 'crawler.arquivo.pt', 'Arquivo'],
+      ['SeekportBot', 'a.links.ls.007ac9.net', 'Seekport'],
+      ['RootCrawl', 'crawl.rootcrawl.org', 'RootCrawl'],
+      ['Qwantbot', 'qwantbot.qwant.com', 'Qwant'],
+      ['Amazonbot', 'a.crawl.amazonbot.amazon', 'Amazonbot'],
+      ['Amzn-SearchBot', 'a.crawl.amazonbot.amazon', 'Amazon SearchBot'],
+      ['Amzn-User', 'a.crawl.amazonbot.amazon', 'Amazon User'],
+      ['SERankingBacklinksBot', 'a.blex.seranking.com', 'SE Ranking'],
+      ['SofyaBot', 'crawl.sofya.co', 'Sofya'],
+      ['AIWebIndex', 'crawl.lyrenth.com', 'Lyrenth'],
+      ['SeznamBot', 'fulltextrobot.seznam.cz', 'Seznam'],
+      ['FacebookBot', 'fwdproxy.fbsv.net', 'Facebook'],
     ];
 
     for (const [family, hostname, expected] of cases) {
@@ -667,6 +691,20 @@ describe('identity', () => {
         assert.strictEqual(result.get('identity'), undefined);
       });
     }
+  });
+
+  describe('Applebot', () => {
+    it('should not identify another apple.com hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'Applebot',
+          address: '203.0.113.7',
+          hostname: 'mail.apple.com',
+          verified: true,
+        })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
   });
 
   describe('Twitter', () => {
@@ -801,7 +839,7 @@ describe('identity', () => {
 
       it(`should identify ${family} as ${expected}`, () => {
         const result = identity.augment(
-          log({ family, address: '203.0.113.7', hostname })
+          log({ family, address: '203.0.113.7', hostname, verified: true })
         );
         assert.strictEqual(result.get('identity'), expected);
       });
