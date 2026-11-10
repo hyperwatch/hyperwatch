@@ -181,16 +181,16 @@ const exaSignatureAgents = {
   'ExaSearchBot-Images': 'https://images.crawler.exa.ai',
 };
 
-// A Web Bot Auth signature of `agent` verified by the webBotAuth module
+// A Web Bot Auth signature of `agent` verified by the webbotauth module
 function signedBy(log, agent) {
   return (
-    log.getIn(['webBotAuth', 'verified']) === true &&
-    log.getIn(['webBotAuth', 'agent']) === agent
+    log.getIn(['webbotauth', 'verified']) === true &&
+    log.getIn(['webbotauth', 'agent']) === agent
   );
 }
 
-function webBotAuthActive() {
-  const module = constants.modules.webBotAuth;
+function webbotauthActive() {
+  const module = constants.modules.webbotauth;
   return !!(module && module.active);
 }
 
@@ -862,10 +862,10 @@ function augment(log) {
       // Exa's search crawler, and the crawler of the images on the pages it
       // crawls. No published IP ranges or reverse DNS: requests are signed
       // (RFC 9421) and carry a `Signature-Agent` header, each crawler its own
-      // With the webBotAuth module, only a verified signature counts. Without
+      // With the webbotauth module, only a verified signature counts. Without
       // it, the header value is all there is to check.
       return (
-        webBotAuthActive()
+        webbotauthActive()
           ? signedBy(log, exaSignatureAgents[family])
           : signatureAgent &&
             signatureAgent.includes(`"${exaSignatureAgents[family]}"`)

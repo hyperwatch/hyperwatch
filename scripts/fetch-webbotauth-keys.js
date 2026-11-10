@@ -1,21 +1,21 @@
 // Refreshes the keys of the Web Bot Auth agents Hyperwatch knows
-// (src/data/web-bot-auth-agents.json) from their key directories, into
-// src/data/web-bot-auth-keys.json: all of them or those named.
+// (src/data/webbotauth-agents.json) from their key directories, into
+// src/data/webbotauth-keys.json: all of them or those named.
 //
-//   node scripts/fetch-web-bot-auth-keys.js
-//   node scripts/fetch-web-bot-auth-keys.js https://crawler.exa.ai
+//   node scripts/fetch-webbotauth-keys.js
+//   node scripts/fetch-webbotauth-keys.js https://crawler.exa.ai
 //
-// The web-bot-auth module starts with these keys, then fetches the
-// directories itself (modules.webBotAuth.fetch). An agent whose directory
+// The webbotauth module starts with these keys, then fetches the
+// directories itself (modules.webbotauth.fetch). An agent whose directory
 // can't be fetched keeps its current keys, and the script exits with status 1.
 const fs = require('fs');
 const path = require('path');
 
-const { fetchDirectory } = require('../src/lib/web-bot-auth');
+const { fetchDirectory } = require('../src/lib/webbotauth');
 
 const dataDir = path.join(__dirname, '..', 'src', 'data');
-const agentsFile = path.join(dataDir, 'web-bot-auth-agents.json');
-const keysFile = path.join(dataDir, 'web-bot-auth-keys.json');
+const agentsFile = path.join(dataDir, 'webbotauth-agents.json');
+const keysFile = path.join(dataDir, 'webbotauth-keys.json');
 
 async function main() {
   const agents = JSON.parse(fs.readFileSync(agentsFile, 'utf8')).map(

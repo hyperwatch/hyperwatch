@@ -25,4 +25,4 @@ Identities are checked against the address lists operators publish (`src/data/*-
 
 ## Web Bot Auth agents
 
-The `webBotAuth` module only fetches the key directories of the agents in `src/data/web-bot-auth-agents.json`. To add one, check that its directory answers with Ed25519 keys and that real signed requests verify, add it to the file, run `node scripts/fetch-web-bot-auth-keys.js <agent>`, and accept its verified signature in the robot's `identity` rule (`signedBy`).
+The `webbotauth` module only fetches the key directories of the agents in `src/data/webbotauth-agents.json`. To add one, check that its directory answers with Ed25519 keys and that real signed requests verify, add it to the file, run `node scripts/fetch-webbotauth-keys.js <agent>`, and accept its verified signature in the robot's `identity` rule (`signedBy`).

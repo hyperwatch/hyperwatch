@@ -46,7 +46,7 @@ const constants = {
       priority: 610,
     },
     // Web Bot Auth signatures, checked against the keys of known agents
-    webBotAuth: {
+    webbotauth: {
       active: false,
       priority: 615,
       // Fetch the agents' key directories (else only the committed keys)
@@ -58,7 +58,7 @@ const constants = {
     },
     identity: {
       active: false,
-      priority: 620, // depends on: agent, hostname, signature, address, webBotAuth
+      priority: 620, // depends on: agent, hostname, signature, address, webbotauth
     },
     firewall: {
       active: false,

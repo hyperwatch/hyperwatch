@@ -4,9 +4,9 @@ const crypto = require('crypto');
 const { fromJS } = require('immutable');
 
 const constants = require('../../src/constants');
-const { KeyStore, thumbprint } = require('../../src/lib/web-bot-auth');
+const { KeyStore, thumbprint } = require('../../src/lib/webbotauth');
 const identity = require('../../src/modules/identity');
-const webBotAuth = require('../../src/modules/web-bot-auth');
+const webbotauth = require('../../src/modules/webbotauth');
 
 const time = '2027-01-15T08:00:00.000Z';
 const created = Date.parse(time) / 1000;
@@ -51,11 +51,11 @@ function signedLog(
   });
 }
 
-describe('webBotAuth module', () => {
-  const saved = { ...constants.modules.webBotAuth };
+describe('webbotauth module', () => {
+  const saved = { ...constants.modules.webbotauth };
 
   before(() => {
-    webBotAuth.setKeyStore(
+    webbotauth.setKeyStore(
       new KeyStore({
         agents: ['https://crawler.exa.ai', 'https://river.ai'],
         committed: {
@@ -68,17 +68,17 @@ describe('webBotAuth module', () => {
   });
 
   afterEach(() => {
-    constants.modules.webBotAuth = { ...saved };
+    constants.modules.webbotauth = { ...saved };
   });
 
-  after(() => webBotAuth.setKeyStore(undefined));
+  after(() => webbotauth.setKeyStore(undefined));
 
   describe('augment', () => {
-    it('sets webBotAuth on signed requests only', async () => {
-      const log = await webBotAuth.augment(
+    it('sets webbotauth on signed requests only', async () => {
+      const log = await webbotauth.augment(
         signedLog(exa, { agent: 'https://crawler.exa.ai' })
       );
-      assert.deepStrictEqual(log.get('webBotAuth').toJS(), {
+      assert.deepStrictEqual(log.get('webbotauth').toJS(), {
         agent: 'https://crawler.exa.ai',
         keyid: exa.keyid,
         verified: true,
@@ -87,23 +87,23 @@ describe('webBotAuth module', () => {
       const unsigned = fromJS({
         request: { time, method: 'GET', url: '/', headers: { host: 'a' } },
       });
-      assert.strictEqual(await webBotAuth.augment(unsigned), unsigned);
+      assert.strictEqual(await webbotauth.augment(unsigned), unsigned);
     });
 
     it('keeps the log when verification fails unexpectedly', async () => {
-      constants.modules.webBotAuth.authority = () => {
+      constants.modules.webbotauth.authority = () => {
         throw new Error('broken config');
       };
-      const log = await webBotAuth.augment(
+      const log = await webbotauth.augment(
         signedLog(exa, { agent: 'https://crawler.exa.ai' })
       );
-      assert.strictEqual(log.getIn(['webBotAuth', 'reason']), 'error');
-      assert.strictEqual(log.getIn(['webBotAuth', 'verified']), false);
+      assert.strictEqual(log.getIn(['webbotauth', 'reason']), 'error');
+      assert.strictEqual(log.getIn(['webbotauth', 'verified']), false);
     });
 
     it("drops only the default port of the request's scheme", () => {
       const authorities = (host, scheme) =>
-        webBotAuth.authoritiesOf(
+        webbotauth.authoritiesOf(
           fromJS({ request: { scheme, headers: { host } } })
         );
       assert.deepStrictEqual(authorities('www.example.com:443'), [
@@ -129,20 +129,20 @@ describe('webBotAuth module', () => {
         host: 'internal.example',
       });
       assert.strictEqual(
-        (await webBotAuth.augment(log)).getIn(['webBotAuth', 'reason']),
+        (await webbotauth.augment(log)).getIn(['webbotauth', 'reason']),
         'bad signature'
       );
-      constants.modules.webBotAuth.authorities = {
+      constants.modules.webbotauth.authorities = {
         'internal.example': 'www.example.com',
       };
       assert.strictEqual(
-        (await webBotAuth.augment(log)).getIn(['webBotAuth', 'verified']),
+        (await webbotauth.augment(log)).getIn(['webbotauth', 'verified']),
         true
       );
     });
 
     it('takes the public hosts from an `authority` function too', () => {
-      constants.modules.webBotAuth.authority = (log) =>
+      constants.modules.webbotauth.authority = (log) =>
         log.getIn(['request', 'headers', 'host']).startsWith('internal.example')
           ? ['www.example.com', 'example.com']
           : null;
@@ -150,7 +150,7 @@ describe('webBotAuth module', () => {
         agent: 'https://crawler.exa.ai',
         host: 'internal.example:443',
       });
-      assert.deepStrictEqual(webBotAuth.authoritiesOf(log), [
+      assert.deepStrictEqual(webbotauth.authoritiesOf(log), [
         'www.example.com',
         'example.com',
         'internal.example',
@@ -159,15 +159,15 @@ describe('webBotAuth module', () => {
   });
 
   describe('aggregator', () => {
-    before(() => webBotAuth.start());
-    beforeEach(() => webBotAuth.aggregator.reset());
+    before(() => webbotauth.start());
+    beforeEach(() => webbotauth.aggregator.reset());
 
     it('counts signed requests by agent and result', async () => {
-      const { aggregator } = webBotAuth;
-      const good = await webBotAuth.augment(
+      const { aggregator } = webbotauth;
+      const good = await webbotauth.augment(
         signedLog(exa, { agent: 'https://crawler.exa.ai' })
       );
-      const bad = await webBotAuth.augment(
+      const bad = await webbotauth.augment(
         signedLog(river, { agent: 'https://crawler.exa.ai' })
       );
       aggregator.processLog(good);
@@ -186,10 +186,10 @@ describe('webBotAuth module', () => {
 
   describe('identity', () => {
     const identityOf = async (log) =>
-      identity.augment(await webBotAuth.augment(log)).get('identity');
+      identity.augment(await webbotauth.augment(log)).get('identity');
 
     it('identifies Exa only by a verified signature when the module is on', async () => {
-      constants.modules.webBotAuth.active = true;
+      constants.modules.webbotauth.active = true;
       assert.strictEqual(
         await identityOf(
           signedLog(exa, {
@@ -221,7 +221,7 @@ describe('webBotAuth module', () => {
     });
 
     it("keeps Exa's header check when the module is off", () => {
-      constants.modules.webBotAuth.active = false;
+      constants.modules.webbotauth.active = false;
       const headerOnly = fromJS({
         request: {
           time,

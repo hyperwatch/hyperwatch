@@ -16,12 +16,12 @@ git worktree add -b refresh-ranges ../hyperwatch-refresh origin/main
 cd ../hyperwatch-refresh
 npm ci
 node scripts/fetch-ips.js
-node scripts/fetch-web-bot-auth-keys.js
+node scripts/fetch-webbotauth-keys.js
 npx prettier --write src/data
 git status --short src/data
 ```
 
-`scripts/fetch-web-bot-auth-keys.js` refreshes the keys of the Web Bot Auth agents in `src/data/web-bot-auth-keys.json` the same way. `scripts/fetch-ips.js` fetches every list in `src/data/ip-list-sources.json`. A list that can't be fetched or parsed, is empty, or has an invalid entry keeps its current file; the script names it at the end and exits with a non-zero status. If one failed, stop: retry later (`node scripts/fetch-ips.js <name>` refreshes only that list), or find out why, rather than release with a list that wasn't refreshed.
+`scripts/fetch-webbotauth-keys.js` refreshes the keys of the Web Bot Auth agents in `src/data/webbotauth-keys.json` the same way. `scripts/fetch-ips.js` fetches every list in `src/data/ip-list-sources.json`. A list that can't be fetched or parsed, is empty, or has an invalid entry keeps its current file; the script names it at the end and exits with a non-zero status. If one failed, stop: retry later (`node scripts/fetch-ips.js <name>` refreshes only that list), or find out why, rather than release with a list that wasn't refreshed.
 
 Some lists have no updater: their operators publish them only inside a page, a table or a PDF, and a parser per page would break silently when the page changes. Compare them with their source too, by hand or by asking an agent to read each source below and update the file, then review the diff:
 

@@ -9,7 +9,7 @@ const {
   parseSignatureAgent,
   thumbprint,
   verify,
-} = require('../../src/lib/web-bot-auth');
+} = require('../../src/lib/webbotauth');
 
 const agent = 'https://bot.example';
 const time = 1800000000;
