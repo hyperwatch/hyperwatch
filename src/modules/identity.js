@@ -396,7 +396,8 @@ function augment(log) {
     case 'AhrefsSiteAudit':
     case 'YepBot':
       return (verifiedHostname && verifiedHostname.endsWith('.ahrefs.com')) ||
-        (address && ahrefsCidrs(address))
+        (address && ahrefsCidrs(address)) ||
+        signedBy(log, 'https://ahrefs.com')
         ? log.set('identity', 'Ahrefs')
         : log;
     case 'Pinterest':
@@ -409,7 +410,8 @@ function augment(log) {
         : log;
     case 'Yeti':
       return hostnameMatches(verifiedHostname, 'crawl.*.web.naver.com') ||
-        (address && naverbotCidrs(address))
+        (address && naverbotCidrs(address)) ||
+        signedBy(log, 'https://bot.naver.com')
         ? log.set('identity', 'Naver')
         : log;
 
@@ -834,7 +836,8 @@ function augment(log) {
       // Parallel Web Systems crawler, runs on GCE
       // https://docs.parallel.ai/resources/crawler
       return (hostname && hostname.endsWith('.googleusercontent.com')) ||
-        (address && shapbotCidrs(address))
+        (address && shapbotCidrs(address)) ||
+        signedBy(log, 'https://shapbot.parallel.ai')
         ? log.set('identity', 'Parallel')
         : log;
 

@@ -838,6 +838,45 @@ describe('identity', () => {
     });
   });
 
+  // Robots whose verified Web Bot Auth signature is one more proof
+  describe('verified signatures', () => {
+    const signed = (family, agent, verified = true) =>
+      identity.augment(
+        fromJS({
+          request: { address: '203.0.113.7', headers: {} },
+          address: { value: '203.0.113.7' },
+          agent: { family },
+          webbotauth: {
+            agent,
+            verified,
+            reason: verified ? 'verified' : 'bad signature',
+          },
+        })
+      );
+
+    for (const [family, agent, expected] of [
+      ['AhrefsBot', 'https://ahrefs.com', 'Ahrefs'],
+      ['AhrefsSiteAudit', 'https://ahrefs.com', 'Ahrefs'],
+      ['Yeti', 'https://bot.naver.com', 'Naver'],
+      ['ShapBot', 'https://shapbot.parallel.ai', 'Parallel'],
+    ]) {
+      it(`should identify ${family} by a verified signature of ${agent}`, () => {
+        assert.strictEqual(signed(family, agent).get('identity'), expected);
+      });
+
+      it(`should not identify ${family} by an unverified or another agent's signature`, () => {
+        assert.strictEqual(
+          signed(family, agent, false).get('identity'),
+          undefined
+        );
+        assert.strictEqual(
+          signed(family, 'https://crawler.exa.ai').get('identity'),
+          undefined
+        );
+      });
+    }
+  });
+
   describe('Google Agent', () => {
     it("should identify Google's agents by their list, before their google-proxy name", () => {
       const cidrs = require('../../src/data/google-user-triggered-agents-ips.json');
