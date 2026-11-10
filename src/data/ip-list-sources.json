@@ -86,6 +86,22 @@
     "format": "prefixes"
   },
   {
+    "name": "google-special-crawlers-ips",
+    "about": "Google's special-case crawlers (AdsBot-Google and others), listed at https://developers.google.com/crawling/docs/crawlers-fetchers/google-special-case-crawlers.",
+    "urls": [
+      "https://developers.google.com/static/crawling/ipranges/special-crawlers.json"
+    ],
+    "format": "prefixes"
+  },
+  {
+    "name": "google-user-triggered-fetchers-google-ips",
+    "about": "Google's own user-triggered fetchers (Docs, Gmail's image proxy and others), with google-proxy-*.google.com names, listed at https://developers.google.com/crawling/docs/crawlers-fetchers/google-user-triggered-fetchers. The user-owned ones are in google-user-triggered-fetchers-ips.",
+    "urls": [
+      "https://developers.google.com/static/crawling/ipranges/user-triggered-fetchers-google.json"
+    ],
+    "format": "prefixes"
+  },
+  {
     "name": "google-user-triggered-fetchers-ips",
     "about": "The fetchers acting on a user's request, shared by every user. Google Apps Script (UrlFetchApp) fetches from them, e.g. 34.116.28.0/27.",
     "urls": [

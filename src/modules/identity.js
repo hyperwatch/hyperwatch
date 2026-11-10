@@ -22,6 +22,8 @@ const discordIps = require('../data/discord-ips.json');
 const duckassistbotIps = require('../data/duckassistbot-ips.json');
 const duckduckbotIps = require('../data/duckduckbot-ips.json');
 const githubIps = require('../data/github-ips.json');
+const googleSpecialCrawlersIps = require('../data/google-special-crawlers-ips.json');
+const googleFetchersIps = require('../data/google-user-triggered-fetchers-google-ips.json');
 const googlebotIps = require('../data/googlebot-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
 const halobotIps = require('../data/halobot-ips.json');
@@ -107,6 +109,8 @@ const riverbotCidrs = compileRanges(riverbotIps);
 const kakaobotCidrs = compileRanges(kakaobotIps);
 const rootcrawlCidrs = compileRanges(rootcrawlIps);
 const googlebotCidrs = compileRanges(googlebotIps);
+const googleSpecialCrawlersCidrs = compileRanges(googleSpecialCrawlersIps);
+const googleFetchersCidrs = compileRanges(googleFetchersIps);
 const bingbotCidrs = compileRanges(bingbotIps);
 const pingdomCidrs = compileRanges(pingdomIps);
 const mojeekbotCidrs = compileRanges(mojeekbotIps);
@@ -199,10 +203,6 @@ function hostnameMatches(hostname, ...patterns) {
 // robot's own servers, which also send requests under other user agents
 // (renderers in headless Chrome, unknown fetchers)
 const hostnameOnly = [
-  [
-    'Google Proxy',
-    ['google-proxy-*.google.com', 'rate-limited-proxy-*.google.com'],
-  ],
   ['You.com', ['youbot-*.search.you.com']],
   ['Stripe', ['crawl.stripe.com', '*.crawl.stripe.com', 'ip-*.stripe.com']],
   ['Lyrenth', ['crawler-*.lyrenth.com', 'render-*.lyrenth.com']],
@@ -210,6 +210,31 @@ const hostnameOnly = [
   ['Coc Coc', ['bot-*.coccoc.com']],
   ['Naver', ['crawl.*.web.naver.com']],
 ].map(([identity, patterns]) => [identity, patterns.map(hostnamePattern)]);
+
+// Google's crawlers and fetchers other than its common crawlers (Googlebot),
+// by the address pool they come from, whatever the user agent:
+// https://developers.google.com/crawling/docs/crawlers-fetchers/overview-google-crawlers
+// - special-case crawlers (AdsBot-Google, …): special-crawlers.json,
+//   rate-limited-proxy-*.google.com
+// - Google's own user-triggered fetchers (Docs, Gmail's image proxy, …):
+//   user-triggered-fetchers-google.json, google-proxy-*.google.com
+// The user-owned user-triggered fetchers (*.gae.googleusercontent.com, e.g.
+// Apps Script) run anyone's code: no identity.
+function googleFetcher(address, verifiedHostname) {
+  if (
+    (address && googleSpecialCrawlersCidrs(address)) ||
+    hostnameMatches(verifiedHostname, 'rate-limited-proxy-*.google.com')
+  ) {
+    return 'Google Special Crawlers';
+  }
+  if (
+    (address && googleFetchersCidrs(address)) ||
+    hostnameMatches(verifiedHostname, 'google-proxy-*.google.com')
+  ) {
+    return 'Google Proxy';
+  }
+  return undefined;
+}
 
 // Single ranges written inline below, each compiled once
 const inlineRanges = new Map();
@@ -258,14 +283,10 @@ function augment(log) {
     case 'GoogleDocs':
     case 'docs.google.com': // how the parser reads the GoogleDocs agent
     case 'Google Favicon':
-    case 'GoogleImageProxy':
-      return hostnameMatches(
-        verifiedHostname,
-        'google-proxy-*.google.com',
-        'rate-limited-proxy-*.google.com'
-      )
-        ? log.set('identity', 'Google')
-        : log;
+    case 'GoogleImageProxy': {
+      const google = googleFetcher(address, verifiedHostname);
+      return google ? log.set('identity', google) : log;
+    }
     case 'Baiduspider':
     case 'Baiduspider-render':
     case 'Baiduspider-image':
@@ -866,6 +887,14 @@ function augment(log) {
           return log.set('identity', identity);
         }
       }
+    }
+  }
+
+  // Google's special-case crawlers and user-triggered fetchers, any user agent
+  if (!log.has('identity')) {
+    const google = googleFetcher(address, verifiedHostname);
+    if (google) {
+      return log.set('identity', google);
     }
   }
 

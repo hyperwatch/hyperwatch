@@ -457,7 +457,7 @@ describe('identity', () => {
           verified: true,
         })
       );
-      assert.strictEqual(result.get('identity'), 'Google');
+      assert.strictEqual(result.get('identity'), 'Google Proxy');
     });
 
     it('should not identify the Google Docs proxy without a google.com hostname', () => {
@@ -575,6 +575,19 @@ describe('identity', () => {
       ['RiverBot', 'riverbot-ips', 'River'],
       ['KakaoBot', 'kakaobot-ips', 'Kakao'],
       ['LinkCheckerBot', 'linkcheckerbot-ips', 'LinkChecker'],
+      [
+        'GoogleImageProxy',
+        'google-user-triggered-fetchers-google-ips',
+        'Google Proxy',
+      ],
+      ['GoogleDocs', 'google-special-crawlers-ips', 'Google Special Crawlers'],
+      // Google's other pools: any user agent
+      [
+        'AdsBot-Google',
+        'google-special-crawlers-ips',
+        'Google Special Crawlers',
+      ],
+      ['Chrome', 'google-user-triggered-fetchers-google-ips', 'Google Proxy'],
     ];
 
     for (const [family, list, expected] of cases) {
@@ -690,7 +703,7 @@ describe('identity', () => {
         'DataForSeo',
       ],
       ['FlipboardProxy', 'flap14-web.proxy.flipboard.com', 'Flipboard'],
-      ['GoogleDocs', 'google-proxy-203-0-113-7.google.com', 'Google'],
+      ['GoogleDocs', 'google-proxy-203-0-113-7.google.com', 'Google Proxy'],
       ['ev-crawler', 'selfoss.core.headline.com', 'Headline'],
       ['LinkedInBot', '203-0-113-7.fwd.linkedin.com', 'LinkedIn'],
       ['MJ12bot', 'crawl-abcdef.mj12bot.com', 'Majestic'],
@@ -731,7 +744,7 @@ describe('identity', () => {
   describe('hostname patterns', () => {
     const cases = [
       ['google-proxy-66-249-83-73.google.com', 'Google Proxy'],
-      ['rate-limited-proxy-72-14-199-34.google.com', 'Google Proxy'],
+      ['rate-limited-proxy-72-14-199-34.google.com', 'Google Special Crawlers'],
       ['youbot-68-67-112-203.search.you.com', 'You.com'],
       ['crawl.stripe.com', 'Stripe'],
       ['a.crawl.stripe.com', 'Stripe'],
@@ -808,16 +821,26 @@ describe('identity', () => {
       });
     }
 
-    it('should keep Google for its named fetchers on the same proxies', () => {
+    it("should identify Google's named fetchers by their pool", () => {
       const result = identity.augment(
         log({
           family: 'GoogleDocs',
           address: '203.0.113.7',
-          hostname: 'google-proxy-66-249-83-73.google.com',
+          hostname: 'rate-limited-proxy-72-14-199-34.google.com',
           verified: true,
         })
       );
-      assert.strictEqual(result.get('identity'), 'Google');
+      assert.strictEqual(result.get('identity'), 'Google Special Crawlers');
+    });
+  });
+
+  describe('Google user-owned fetchers', () => {
+    it('should not identify an address of the user-owned list', () => {
+      const cidrs = require('../../src/data/google-user-triggered-fetchers-ips.json');
+      const result = identity.augment(
+        log({ family: 'Chrome', address: cidrs[0].split('/')[0] })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
     });
   });
 
