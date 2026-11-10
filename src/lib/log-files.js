@@ -382,15 +382,21 @@ async function parseCursor(dir, files, cursor) {
 }
 
 /**
- * What a line matching `filters` contains for sure: each filter value as the
- * JSON string the writer wrote. A line without one of them can't match, and
- * isn't parsed: searching bytes is much cheaper than parsing every log.
+ * What a line matching `filters` contains for sure, searched in the bytes
+ * read like grep: a filter value as the JSON string the writer wrote (the
+ * longest, usually the rarest), or null without filters. Searching bytes is
+ * much cheaper than parsing every log.
  */
-const needlesFor = (filters = {}) =>
+const searchFor = (filters = {}) =>
   ['identity', 'address', 'signature']
     .map((key) => filters[key])
     .filter((value) => typeof value === 'string' && value)
-    .map((value) => Buffer.from(JSON.stringify(value)));
+    .map((value) => Buffer.from(JSON.stringify(value)))
+    .reduce(
+      (longest, value) =>
+        !longest || value.length > longest.length ? value : longest,
+      null
+    );
 
 // The parsed log of a line, or null when it isn't one
 function parseLine(line) {
@@ -457,25 +463,20 @@ async function read(
     end = parsed.offset;
   }
 
-  const needles = needlesFor(filters);
+  const search = searchFor(filters);
   let responseBytes = 0;
   let progressed = false;
   const overBudget = () =>
     progressed && (result.scannedBytes >= scan || Date.now() - started >= time);
 
   // Takes a line (without its newline) if it's a log matching the filters.
-  // 'full' when it doesn't fit in the response, 'done' at the limit. A line
-  // without the filter values is passed over unparsed (so a line that isn't
-  // a log is only counted in `skipped` when it has them)
+  // 'full' when it doesn't fit in the response, 'done' at the limit
   const take = (line) => {
     if (line.length > MAX_LINE) {
       result.skipped++;
       return null;
     }
     if (!line.length) {
-      return null;
-    }
-    if (needles.some((needle) => line.indexOf(needle) === -1)) {
       return null;
     }
     const data = parseLine(line);
@@ -609,6 +610,26 @@ async function read(
 
         // Complete lines, from the end of pending
         while (pending.length) {
+          // With filters, like grep: the lines after the last one holding
+          // the search value can't match, passed over at once. The first
+          // line may start before pending: kept, to be searched whole
+          if (search) {
+            const hit = pending.lastIndexOf(search);
+            const cut =
+              hit !== -1
+                ? pending.indexOf(NEWLINE, hit) + 1
+                : pos > 0
+                  ? pending.indexOf(NEWLINE) + 1
+                  : 0;
+            if (cut < pending.length) {
+              pending = pending.subarray(0, cut);
+              upto = pos + cut;
+              progressed = true;
+              if (!pending.length) {
+                break;
+              }
+            }
+          }
           // (a negative offset would count from the end)
           const previous =
             pending.length > 1
