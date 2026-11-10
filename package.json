@@ -54,7 +54,7 @@
     "micro-strptime": "^1.0.0",
     "proxy-addr": "^2.0.7",
     "rc": "^1.2.8",
-    "structured-headers": "2.0.3",
+    "structured-headers": "2.1.1",
     "syslog-parse": "^2.0.0",
     "tail": "^2.2.6",
     "web-bot-auth": "0.2.0",
