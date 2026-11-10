@@ -45,9 +45,20 @@ const constants = {
       active: false,
       priority: 610,
     },
+    // Web Bot Auth signatures, checked against the keys of known agents
+    webBotAuth: {
+      active: false,
+      priority: 615,
+      // Fetch the agents' key directories (else only the committed keys)
+      fetch: true,
+      // Public hosts the clients sign for, by Host header, behind a proxy
+      // that rewrites it: { 'internal.example': 'example.com' }. In a
+      // JavaScript config, `authority: (log) => host or [hosts]` instead.
+      authorities: {},
+    },
     identity: {
       active: false,
-      priority: 620, // depends on: agent, hostname, signature, address
+      priority: 620, // depends on: agent, hostname, signature, address, webBotAuth
     },
     firewall: {
       active: false,

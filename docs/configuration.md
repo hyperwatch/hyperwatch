@@ -67,12 +67,34 @@ Only `status` is active by default.
 | dnsbl      | Checks client addresses against DNS blocklists                                                                                                                                                        | –                                                                         |
 | address    | Aggregates traffic per address                                                                                                                                                                        | `/addresses`                                                              |
 | signature  | Aggregates traffic per request signature: logs carry `signature.id`, the table its headers                                                                                                            | `/signatures`                                                             |
-| identity   | Identifies known robots and crawlers. Depends on `agent`, `hostname`, `signature` and `address`                                                                                                       | `/identities`                                                             |
+| webBotAuth | Verifies [Web Bot Auth](https://datatracker.ietf.org/doc/draft-meunier-web-bot-auth-architecture/) signatures of known robots: logs of signed requests carry `webBotAuth` (see below)                 | `/web-bot-auth`                                                           |
+| identity   | Identifies known robots and crawlers. Depends on `agent`, `hostname`, `signature`, `address` and `webBotAuth`                                                                                         | `/identities`                                                             |
 | history    | Keeps the latest logs of each pipeline node in memory (`capacity`, default `100`, and per node, see below), saved and restored when `persistence.enabled`, and optionally on disk (`disk`, see below) | `/history/<node>.json`, `/history/<node>/disk.json`, `/history/disk.json` |
 
 Aggregator endpoints render an HTML table by default, or JSON and CSV with a `.json` or `.csv` extension. They accept `limit` (default `100`) and `sort` (default `count15m`) query parameters. In the HTML table, the headings of sortable columns link to the table sorted by them, and only the columns of the last 15 minutes are shown, or of the last 24 hours with `?period=24h` (which also sorts by `count24h` by default). `/addresses` and `/identities` also accept `filter=identified` or `filter=unidentified`, to keep only the entries with or without an identity (before `limit`), with links to switch in the HTML table. A single entry is available at `/<aggregator>/<id>.json`, and `DELETE /<aggregator>` resets it.
 
 The HTTP log streams (`/logs/<node>`, `/logs` opens `main`) link to the nodes above and one level below them in the pipeline, show the latest lines at the bottom, keep the logs of one `?address=`, `?identity=` or `?signature=` (exact matches, like `/history/<node>.json`; an identity without a name is matched by its address), and lines including `?grep=`. On the addresses and identities pages, addresses and identities link to their logs. When `history` is active, they start with the latest `100` logs of the node: `?history=<n>` changes that number, `?history=0` only shows live logs. WebSocket streams only send live logs.
+
+### Web Bot Auth
+
+Some robots sign their requests with HTTP Message Signatures ([RFC 9421](https://www.rfc-editor.org/rfc/rfc9421)) and publish their Ed25519 keys at `/.well-known/http-message-signatures-directory`. The `webBotAuth` module verifies the signatures of the agents listed in `src/data/web-bot-auth-agents.json`, and sets on the log `webBotAuth: { agent, keyid, verified, reason }`, where `reason` is `verified`, `bad signature`, `unknown key`, `expired`, `not yet valid`, `unknown agent`, `no agent`, `malformed`, `missing component` or `unsupported component`. Requests without a Web Bot Auth signature get no `webBotAuth`. `identity` accepts a verified signature of a robot's agent as proof, next to its address list and hostname, and for Exa as the only proof.
+
+The keys come from `src/data/web-bot-auth-keys.json` (refreshed by `node scripts/fetch-web-bot-auth-keys.js`), then from the agents' directories, fetched when first needed, again after their `max-age` (between 5 minutes and a day) or for an unknown key (at most once a minute per agent). Fetched keys replace the committed ones; if a fetch fails, the last good keys stay. Directories of other agents are never fetched: their requests are `unknown agent`.
+
+```json
+{
+  "modules": {
+    "webBotAuth": {
+      "active": true,
+      "fetch": true,
+      "authorities": { "internal.example.com": "www.example.com" }
+    }
+  }
+}
+```
+
+- `fetch`: `false` uses the committed keys only.
+- `authorities`: signatures cover the host the client sent the request to (`@authority`). Behind a proxy that rewrites the `Host` header, map the hosts Hyperwatch sees to the public ones (a string or an array). In a JavaScript configuration, `authority: (log) => host or [hosts]` can be used instead.
 
 To use a custom DNS server for the `hostname` module, set the `HYPERWATCH_DNS_SERVER` environment variable.
 

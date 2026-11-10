@@ -1,0 +1,221 @@
+const assert = require('assert');
+const crypto = require('crypto');
+
+const { fromJS } = require('immutable');
+
+const constants = require('../../src/constants');
+const { KeyStore, thumbprint } = require('../../src/lib/web-bot-auth');
+const identity = require('../../src/modules/identity');
+const webBotAuth = require('../../src/modules/web-bot-auth');
+
+const time = '2027-01-15T08:00:00.000Z';
+const created = Date.parse(time) / 1000;
+
+function keyPair() {
+  const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
+  const jwk = publicKey.export({ format: 'jwk' });
+  return { jwk, privateKey, keyid: thumbprint(jwk) };
+}
+
+const exa = keyPair();
+const river = keyPair();
+
+// A log of a request signed by `agent` for `authority`, reaching `host`
+function signedLog(
+  { privateKey, keyid },
+  { agent, authority = 'www.example.com', host = authority, family }
+) {
+  const params = `("@authority" "signature-agent");created=${created};expires=${created + 300};keyid="${keyid}";tag="web-bot-auth"`;
+  const base = [
+    `"@authority": ${authority}`,
+    `"signature-agent": "${agent}"`,
+    `"@signature-params": ${params}`,
+  ].join('\n');
+  const signature = crypto.sign(null, Buffer.from(base), privateKey);
+  return fromJS({
+    request: {
+      time,
+      method: 'GET',
+      url: '/',
+      address: '203.0.113.7',
+      headers: {
+        host,
+        'signature-agent': `"${agent}"`,
+        'signature-input': `sig1=${params}`,
+        signature: `sig1=:${signature.toString('base64')}:`,
+      },
+    },
+    address: { value: '203.0.113.7' },
+    agent: { family },
+    executionTime: 1,
+  });
+}
+
+describe('webBotAuth module', () => {
+  const saved = { ...constants.modules.webBotAuth };
+
+  before(() => {
+    webBotAuth.setKeyStore(
+      new KeyStore({
+        agents: ['https://crawler.exa.ai', 'https://river.ai'],
+        committed: {
+          'https://crawler.exa.ai': [exa.jwk],
+          'https://river.ai': [river.jwk],
+        },
+        fetchKeys: false,
+      })
+    );
+  });
+
+  afterEach(() => {
+    constants.modules.webBotAuth = { ...saved };
+  });
+
+  after(() => webBotAuth.setKeyStore(undefined));
+
+  describe('augment', () => {
+    it('sets webBotAuth on signed requests only', async () => {
+      const log = await webBotAuth.augment(
+        signedLog(exa, { agent: 'https://crawler.exa.ai' })
+      );
+      assert.deepStrictEqual(log.get('webBotAuth').toJS(), {
+        agent: 'https://crawler.exa.ai',
+        keyid: exa.keyid,
+        verified: true,
+        reason: 'verified',
+      });
+      const unsigned = fromJS({
+        request: { time, method: 'GET', url: '/', headers: { host: 'a' } },
+      });
+      assert.strictEqual(await webBotAuth.augment(unsigned), unsigned);
+    });
+
+    it('verifies behind a proxy with the public host of `authorities`', async () => {
+      const log = signedLog(exa, {
+        agent: 'https://crawler.exa.ai',
+        host: 'internal.example',
+      });
+      assert.strictEqual(
+        (await webBotAuth.augment(log)).getIn(['webBotAuth', 'reason']),
+        'bad signature'
+      );
+      constants.modules.webBotAuth.authorities = {
+        'internal.example': 'www.example.com',
+      };
+      assert.strictEqual(
+        (await webBotAuth.augment(log)).getIn(['webBotAuth', 'verified']),
+        true
+      );
+    });
+
+    it('takes the public hosts from an `authority` function too', () => {
+      constants.modules.webBotAuth.authority = (log) =>
+        log.getIn(['request', 'headers', 'host']).startsWith('internal.example')
+          ? ['www.example.com', 'example.com']
+          : null;
+      const log = signedLog(exa, {
+        agent: 'https://crawler.exa.ai',
+        host: 'internal.example:443',
+      });
+      assert.deepStrictEqual(webBotAuth.authoritiesOf(log), [
+        'www.example.com',
+        'example.com',
+        'internal.example',
+      ]);
+    });
+  });
+
+  describe('aggregator', () => {
+    before(() => webBotAuth.start());
+    beforeEach(() => webBotAuth.aggregator.reset());
+
+    it('counts signed requests by agent and result', async () => {
+      const { aggregator } = webBotAuth;
+      const good = await webBotAuth.augment(
+        signedLog(exa, { agent: 'https://crawler.exa.ai' })
+      );
+      const bad = await webBotAuth.augment(
+        signedLog(river, { agent: 'https://crawler.exa.ai' })
+      );
+      aggregator.processLog(good);
+      aggregator.processLog(good);
+      aggregator.processLog(bad);
+      const rows = aggregator
+        .getData({ sort: 'count15m', limit: 10, format: 'json' })
+        .toJS()
+        .map(({ agent, result, count15m }) => ({ agent, result, count15m }));
+      assert.deepStrictEqual(rows, [
+        { agent: 'https://crawler.exa.ai', result: 'verified', count15m: 2 },
+        { agent: 'https://crawler.exa.ai', result: 'unknown key', count15m: 1 },
+      ]);
+    });
+  });
+
+  describe('identity', () => {
+    const identityOf = async (log) =>
+      identity.augment(await webBotAuth.augment(log)).get('identity');
+
+    it('identifies Exa only by a verified signature when the module is on', async () => {
+      constants.modules.webBotAuth.active = true;
+      assert.strictEqual(
+        await identityOf(
+          signedLog(exa, {
+            agent: 'https://crawler.exa.ai',
+            family: 'ExaSearchBot',
+          })
+        ),
+        'Exa'
+      );
+      // Signed with another key
+      assert.strictEqual(
+        await identityOf(
+          signedLog(river, {
+            agent: 'https://crawler.exa.ai',
+            family: 'ExaSearchBot',
+          })
+        ),
+        undefined
+      );
+      // The header alone, without a signature
+      const headerOnly = fromJS({
+        request: {
+          time,
+          headers: { 'signature-agent': '"https://crawler.exa.ai"' },
+        },
+        agent: { family: 'ExaSearchBot' },
+      });
+      assert.strictEqual(await identityOf(headerOnly), undefined);
+    });
+
+    it("keeps Exa's header check when the module is off", () => {
+      constants.modules.webBotAuth.active = false;
+      const headerOnly = fromJS({
+        request: {
+          time,
+          headers: { 'signature-agent': '"https://crawler.exa.ai"' },
+        },
+        agent: { family: 'ExaSearchBot' },
+      });
+      assert.strictEqual(identity.augment(headerOnly).get('identity'), 'Exa');
+    });
+
+    it('accepts a verified signature next to the other checks', async () => {
+      assert.strictEqual(
+        await identityOf(
+          signedLog(river, { agent: 'https://river.ai', family: 'RiverBot' })
+        ),
+        'River'
+      );
+      // Another agent's verified signature proves nothing for River
+      assert.strictEqual(
+        await identityOf(
+          signedLog(exa, {
+            agent: 'https://crawler.exa.ai',
+            family: 'RiverBot',
+          })
+        ),
+        undefined
+      );
+    });
+  });
+});

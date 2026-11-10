@@ -1,0 +1,65 @@
+{
+  "https://api.lyrenth.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "i5y-kdYWmMyODuzYKkCBZfLEip8s8RU96JPPM5nsCeQ"
+    }
+  ],
+  "https://assistbot.duckduckgo.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "upEckfyLMLFHfYMsv4nV--WJRMj6QDO94DNQ1nbywhM"
+    }
+  ],
+  "https://crawler.exa.ai": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "f1UrAERwBTuaxqbngzcny0_rm7JycUzgbb0bUUvh0yw"
+    }
+  ],
+  "https://images.crawler.exa.ai": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "QJRhKmjgcHrQvrPQ0j_M2ktTo1oKOH7byhUpUvKkPM4"
+    }
+  ],
+  "https://keenable-user.keenable.ai": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "ACWHEupKLqOj2EJg6QB5wjUfraJRrlE5IM7NZhtv_D8"
+    }
+  ],
+  "https://keenablebot.keenable.ai": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "OzlYX7BiFxTjOo0d7EDdhRRReg02oPr7UYnQrjA7M9A"
+    }
+  ],
+  "https://river.ai": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "UGZ0GaqIziEOz4taOkvgT6P4P_ZI_md8KR420J_Y6HU"
+    }
+  ],
+  "https://rootcrawl.org": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "rsQbUaoDW0sh1kf91h-oOTEbxbnByD_9qBPkUM5fM3o"
+    }
+  ],
+  "https://you.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "0DJXAmXhPs6hq-7SHZFAFJZHW2-8zQNh8wkdD8UKZSM"
+    }
+  ]
+}

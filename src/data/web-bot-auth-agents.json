@@ -1,0 +1,14 @@
+[
+  { "agent": "https://api.lyrenth.com", "robots": ["AIWebIndex"] },
+  { "agent": "https://assistbot.duckduckgo.com", "robots": ["DuckAssistBot"] },
+  { "agent": "https://crawler.exa.ai", "robots": ["ExaSearchBot"] },
+  {
+    "agent": "https://images.crawler.exa.ai",
+    "robots": ["ExaSearchBot-Images"]
+  },
+  { "agent": "https://keenable-user.keenable.ai", "robots": ["Keenable-User"] },
+  { "agent": "https://keenablebot.keenable.ai", "robots": ["KeenableBot"] },
+  { "agent": "https://river.ai", "robots": ["RiverBot"] },
+  { "agent": "https://rootcrawl.org", "robots": ["RootCrawl"] },
+  { "agent": "https://you.com", "robots": ["YouBot"] }
+]
