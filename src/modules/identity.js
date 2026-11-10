@@ -1,5 +1,6 @@
 const api = require('../app/api');
 const html = require('../app/html');
+const constants = require('../constants');
 // Bot IP lists for identity verification. Run `node scripts/fetch-ips.js` to
 // update them (sources in src/data/ip-list-sources.json). Lists published only
 // inside a page, a table or a PDF (Amazon, Amazon Quick, DataForSEO, Daum,
@@ -176,9 +177,22 @@ const chatgptUserCidrs = compileRanges(chatgptUserIps);
 // The Signature-Agent each of Exa's crawlers signs with
 // https://crawler.exa.ai/
 const exaSignatureAgents = {
-  ExaSearchBot: '"https://crawler.exa.ai"',
-  'ExaSearchBot-Images': '"https://images.crawler.exa.ai"',
+  ExaSearchBot: 'https://crawler.exa.ai',
+  'ExaSearchBot-Images': 'https://images.crawler.exa.ai',
 };
+
+// A Web Bot Auth signature of `agent` verified by the webbotauth module
+function signedBy(log, agent) {
+  return (
+    log.getIn(['webbotauth', 'verified']) === true &&
+    log.getIn(['webbotauth', 'agent']) === agent
+  );
+}
+
+function webbotauthActive() {
+  const module = constants.modules.webbotauth;
+  return !!(module && module.active);
+}
 
 // Hostname patterns: `*` matches within a single label of the name, so
 // 'render-*.lyrenth.com' matches render-12.lyrenth.com but not
@@ -427,7 +441,8 @@ function augment(log) {
     case 'DuckAssistBot':
     case 'DuckDuckGo-Favicons-Bot':
       return hostnameMatches(verifiedHostname, '*.crawl.duckduckgo.com') ||
-        (address && duckduckgoCidrs(address))
+        (address && duckduckgoCidrs(address)) ||
+        signedBy(log, 'https://assistbot.duckduckgo.com')
         ? log.set('identity', 'DuckDuckGo')
         : log;
     case 'MJ12bot':
@@ -501,7 +516,8 @@ function augment(log) {
       // https://river.ai/bot: its list, or a forward-confirmed hostname under
       // bot.river.ai
       return (verifiedHostname && verifiedHostname.endsWith('.bot.river.ai')) ||
-        (address && riverbotCidrs(address))
+        (address && riverbotCidrs(address)) ||
+        signedBy(log, 'https://river.ai')
         ? log.set('identity', 'River')
         : log;
     case 'SEOkicks':
@@ -536,7 +552,8 @@ function augment(log) {
     case 'RootCrawl-Crawler':
       return (verifiedHostname &&
         verifiedHostname.endsWith('.rootcrawl.org')) ||
-        (address && rootcrawlCidrs(address))
+        (address && rootcrawlCidrs(address)) ||
+        signedBy(log, 'https://rootcrawl.org')
         ? log.set('identity', 'RootCrawl')
         : log;
     case 'bl.uk ldfc bot':
@@ -599,7 +616,8 @@ function augment(log) {
     case 'YouBot':
       // https://docs.you.com/youbot: YouBot crawls from 68.67.112.0/24
       return hostnameMatches(verifiedHostname, 'youbot-*.search.you.com') ||
-        (address && inCidr('68.67.112.0/24', address))
+        (address && inCidr('68.67.112.0/24', address)) ||
+        signedBy(log, 'https://you.com')
         ? log.set('identity', 'You.com')
         : log;
     case 'AIWebIndex':
@@ -611,7 +629,8 @@ function augment(log) {
         'crawler-*.lyrenth.com',
         'render-*.lyrenth.com'
       ) ||
-        (address && lyrenthCidrs(address))
+        (address && lyrenthCidrs(address)) ||
+        signedBy(log, 'https://api.lyrenth.com')
         ? log.set('identity', 'Lyrenth')
         : log;
 
@@ -771,11 +790,13 @@ function augment(log) {
 
     // GCE
     case 'KeenableBot':
-      return address && keenableBotCidrs(address)
+      return (address && keenableBotCidrs(address)) ||
+        signedBy(log, 'https://keenablebot.keenable.ai')
         ? log.set('identity', 'Keenable')
         : log;
     case 'Keenable-User':
-      return address && keenableUserCidrs(address)
+      return (address && keenableUserCidrs(address)) ||
+        signedBy(log, 'https://keenable-user.keenable.ai')
         ? log.set('identity', 'Keenable')
         : log;
     case 'Aranet-SearchBot':
@@ -841,8 +862,14 @@ function augment(log) {
       // Exa's search crawler, and the crawler of the images on the pages it
       // crawls. No published IP ranges or reverse DNS: requests are signed
       // (RFC 9421) and carry a `Signature-Agent` header, each crawler its own
-      return signatureAgent &&
-        signatureAgent.includes(exaSignatureAgents[family])
+      // With the webbotauth module, only a verified signature counts. Without
+      // it, the header value is all there is to check.
+      return (
+        webbotauthActive()
+          ? signedBy(log, exaSignatureAgents[family])
+          : signatureAgent &&
+            signatureAgent.includes(`"${exaSignatureAgents[family]}"`)
+      )
         ? log.set('identity', 'Exa')
         : log;
   }

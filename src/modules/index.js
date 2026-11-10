@@ -33,6 +33,8 @@ function get(module) {
       return require('./signature');
     case 'status':
       return require('./status');
+    case 'webbotauth':
+      return require('./webbotauth');
     default:
       debugModules(`Unknown module '${module}'`);
       return;

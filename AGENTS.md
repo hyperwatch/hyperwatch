@@ -22,3 +22,7 @@ Identities are checked against the address lists operators publish (`src/data/*-
 - Lists published only inside a page, a table or a PDF are copied by hand, listed in [RELEASING.md](RELEASING.md) ("Some lists have no updater"). Don't write a parser for them: a parser per page breaks silently when the page changes. To refresh them, read each source, update its file in the same format (a JSON array of ranges, single addresses as `/32` or `/128`), run `npx prettier --write src/data`, and report what was added and removed.
 - A new operator list: if it is structured, add a source to `ip-list-sources.json`; otherwise copy it by hand, add it to the RELEASING.md list and to `handCopied` in `test/scripts/published-ips.js`.
 - Before a release, refresh both kinds ([RELEASING.md](RELEASING.md), "Before you start: refresh the published ranges").
+
+## Web Bot Auth agents
+
+The `webbotauth` module only fetches the key directories of the agents in `src/data/webbotauth-agents.json`. To add one, check that its directory answers with Ed25519 keys and that real signed requests verify, add it to the file, run `node scripts/fetch-webbotauth-keys.js <agent>`, and accept its verified signature in the robot's `identity` rule (`signedBy`).
