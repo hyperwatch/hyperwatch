@@ -381,6 +381,23 @@ async function parseCursor(dir, files, cursor) {
   return { file, offset };
 }
 
+/**
+ * What a line matching `filters` contains for sure, searched in the bytes
+ * read like grep: a filter value as the JSON string the writer wrote (the
+ * longest, usually the rarest), or null without filters. Searching bytes is
+ * much cheaper than parsing every log.
+ */
+const searchFor = (filters = {}) =>
+  ['identity', 'address', 'signature']
+    .map((key) => filters[key])
+    .filter((value) => typeof value === 'string' && value)
+    .map((value) => Buffer.from(JSON.stringify(value)))
+    .reduce(
+      (longest, value) =>
+        !longest || value.length > longest.length ? value : longest,
+      null
+    );
+
 // The parsed log of a line, or null when it isn't one
 function parseLine(line) {
   let data;
@@ -446,6 +463,7 @@ async function read(
     end = parsed.offset;
   }
 
+  const search = searchFor(filters);
   let responseBytes = 0;
   let progressed = false;
   const overBudget = () =>
@@ -592,6 +610,26 @@ async function read(
 
         // Complete lines, from the end of pending
         while (pending.length) {
+          // With filters, like grep: the lines after the last one holding
+          // the search value can't match, passed over at once. The first
+          // line may start before pending: kept, to be searched whole
+          if (search) {
+            const hit = pending.lastIndexOf(search);
+            const cut =
+              hit !== -1
+                ? pending.indexOf(NEWLINE, hit) + 1
+                : pos > 0
+                  ? pending.indexOf(NEWLINE) + 1
+                  : 0;
+            if (cut < pending.length) {
+              pending = pending.subarray(0, cut);
+              upto = pos + cut;
+              progressed = true;
+              if (!pending.length) {
+                break;
+              }
+            }
+          }
           // (a negative offset would count from the end)
           const previous =
             pending.length > 1

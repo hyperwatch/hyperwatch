@@ -385,6 +385,68 @@ describe('log files reader', () => {
     assert.deepStrictEqual(await by({ signature: 'abc' }), ['c']);
   });
 
+  it("doesn't parse lines without the filter values", async () => {
+    write(
+      '2026-11-03T10',
+      `${lines(
+        record('a', { address: { value: '2a02::1' } }),
+        // The value elsewhere: parsed, then left out by the exact match
+        record('b', { request: { address: '10.0.0.1', url: '/2a02::1' } }),
+        record('c', { address: { value: 'a"b\\c' } })
+      )}not a log\n`
+    );
+    const read1 = (filters) => read(dir, { filters });
+    let result = await read1({ address: '2a02::1' });
+    assert.deepStrictEqual(ids(result), ['a']);
+    // The line that isn't a log was never parsed
+    assert.strictEqual(result.skipped, 0);
+    // Values are searched as written, JSON escapes included
+    result = await read1({ address: 'a"b\\c' });
+    assert.deepStrictEqual(ids(result), ['c']);
+    // Values that aren't strings are left to the exact match
+    result = await read1({ address: ['2a02::1'] });
+    assert.deepStrictEqual(ids(result), []);
+  });
+
+  it('finds filtered logs across chunks and pages, like grep', async () => {
+    const records = [];
+    for (let i = 0; i < 30; i++) {
+      const address = i % 7 === 3 ? '2a02::1' : `10.0.0.${i}`;
+      records.push(
+        record(String(i), {
+          address: { value: address },
+          // The value outside the address of some logs: never taken
+          text: i % 5 === 0 ? '"2a02::1"' : 'x'.repeat(i),
+        })
+      );
+    }
+    write('2026-11-03T09', lines(...records.slice(0, 12)));
+    write('2026-11-03T10', `${lines(...records.slice(12))}not a log\n`);
+    const expected = records
+      .filter((r) => r.address.value === '2a02::1')
+      .map((r) => r.id)
+      .reverse();
+    const filters = { address: '2a02::1', signature: undefined };
+    for (const chunk of [1, 2, 5, 9, 64, 1024 * 1024]) {
+      const whole = await read(dir, { filters, bounds: { chunk } });
+      assert.deepStrictEqual(ids(whole), expected, `chunk ${chunk}`);
+      for (const limit of [1, 2]) {
+        const { all } = await readAll(dir, {
+          filters,
+          limit,
+          bounds: { chunk },
+        });
+        assert.deepStrictEqual(all, expected, `chunk ${chunk}, ${limit}`);
+      }
+      // Stopped on the scan bound, the cursor resumes without a gap
+      const { all } = await readAll(dir, {
+        filters,
+        bounds: { chunk, scan: 1 },
+      });
+      assert.deepStrictEqual(all, expected, `chunk ${chunk}, scan bound`);
+    }
+  });
+
   it('pages without gaps or duplicates while files grow and rotate', async () => {
     write('2026-11-03T09', lines(record('a'), record('b')));
     write('2026-11-03T10', lines(record('c'), record('d'), record('e')));
