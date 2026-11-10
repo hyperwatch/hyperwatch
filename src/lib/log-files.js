@@ -381,6 +381,17 @@ async function parseCursor(dir, files, cursor) {
   return { file, offset };
 }
 
+/**
+ * What a line matching `filters` contains for sure: each filter value as the
+ * JSON string the writer wrote. A line without one of them can't match, and
+ * isn't parsed: searching bytes is much cheaper than parsing every log.
+ */
+const needlesFor = (filters = {}) =>
+  ['identity', 'address', 'signature']
+    .map((key) => filters[key])
+    .filter((value) => typeof value === 'string' && value)
+    .map((value) => Buffer.from(JSON.stringify(value)));
+
 // The parsed log of a line, or null when it isn't one
 function parseLine(line) {
   let data;
@@ -446,19 +457,25 @@ async function read(
     end = parsed.offset;
   }
 
+  const needles = needlesFor(filters);
   let responseBytes = 0;
   let progressed = false;
   const overBudget = () =>
     progressed && (result.scannedBytes >= scan || Date.now() - started >= time);
 
   // Takes a line (without its newline) if it's a log matching the filters.
-  // 'full' when it doesn't fit in the response, 'done' at the limit
+  // 'full' when it doesn't fit in the response, 'done' at the limit. A line
+  // without the filter values is passed over unparsed (so a line that isn't
+  // a log is only counted in `skipped` when it has them)
   const take = (line) => {
     if (line.length > MAX_LINE) {
       result.skipped++;
       return null;
     }
     if (!line.length) {
+      return null;
+    }
+    if (needles.some((needle) => line.indexOf(needle) === -1)) {
       return null;
     }
     const data = parseLine(line);

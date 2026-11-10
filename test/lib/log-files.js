@@ -385,6 +385,29 @@ describe('log files reader', () => {
     assert.deepStrictEqual(await by({ signature: 'abc' }), ['c']);
   });
 
+  it("doesn't parse lines without the filter values", async () => {
+    write(
+      '2026-11-03T10',
+      `${lines(
+        record('a', { address: { value: '2a02::1' } }),
+        // The value elsewhere: parsed, then left out by the exact match
+        record('b', { request: { address: '10.0.0.1', url: '/2a02::1' } }),
+        record('c', { address: { value: 'a"b\\c' } })
+      )}not a log\n`
+    );
+    const read1 = (filters) => read(dir, { filters });
+    let result = await read1({ address: '2a02::1' });
+    assert.deepStrictEqual(ids(result), ['a']);
+    // The line that isn't a log was never parsed
+    assert.strictEqual(result.skipped, 0);
+    // Values are searched as written, JSON escapes included
+    result = await read1({ address: 'a"b\\c' });
+    assert.deepStrictEqual(ids(result), ['c']);
+    // Values that aren't strings are left to the exact match
+    result = await read1({ address: ['2a02::1'] });
+    assert.deepStrictEqual(ids(result), []);
+  });
+
   it('pages without gaps or duplicates while files grow and rotate', async () => {
     write('2026-11-03T09', lines(record('a'), record('b')));
     write('2026-11-03T10', lines(record('c'), record('d'), record('e')));
