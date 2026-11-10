@@ -31,6 +31,7 @@ const ibouBotIps = require('../data/iboubot-ips.json');
 const kakaobotIps = require('../data/kakaobot-ips.json');
 const keenableUserIps = require('../data/keenable-user-ips.json');
 const keenableBotIps = require('../data/keenablebot-ips.json');
+const linkcheckerbotIps = require('../data/linkcheckerbot-ips.json');
 const lyrenthIps = require('../data/lyrenth-ips.json');
 const metaIps = require('../data/meta-ips.json');
 const mojeekbotIps = require('../data/mojeekbot-ips.json');
@@ -143,7 +144,12 @@ const twitterCidrs = compileRanges([
   '192.133.76.0/22',
 ]);
 
+// The two addresses NICT lists for ICC-Crawler
+// https://ucri.nict.go.jp/en/icccrawler.html
+const iccCrawlerCidrs = compileRanges(['202.180.34.186/32', '61.86.246.72/32']);
+
 // Robots identified from their published list only
+const linkcheckerbotCidrs = compileRanges(linkcheckerbotIps);
 const halobotCidrs = compileRanges(halobotIps);
 const hubspotCidrs = compileRanges(hubspotIps);
 const ibouCidrs = compileRanges(ibouIps);
@@ -276,8 +282,11 @@ function augment(log) {
       return hostname && hostname.endsWith('.petalsearch.com')
         ? log.set('identity', family)
         : log;
+    // YepBot is Yep's crawler, run by Ahrefs, with the same hostnames and list
+    // https://yep.com/yepbot/
     case 'AhrefsBot':
     case 'AhrefsSiteAudit':
+    case 'YepBot':
       return (hostname && hostname.endsWith('.ahrefs.com')) ||
         (address && ahrefsCidrs(address))
         ? log.set('identity', 'Ahrefs')
@@ -576,6 +585,15 @@ function augment(log) {
       return (verifiedHostname && verifiedHostname.endsWith('.ibou.io')) ||
         (address && ibouBotCidrs(address))
         ? log.set('identity', 'ibou')
+        : log;
+    case 'ICC-Crawler':
+      return address && iccCrawlerCidrs(address)
+        ? log.set('identity', 'NICT')
+        : log;
+    case 'LinkCheckerBot':
+      // https://linkchecker.pro/robot/
+      return address && linkcheckerbotCidrs(address)
+        ? log.set('identity', 'LinkChecker')
         : log;
     case 'LinkupBot':
       // https://www.linkup.so/linkupbot-ips.txt

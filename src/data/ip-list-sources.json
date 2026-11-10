@@ -144,6 +144,12 @@
     "marker": "KakaoBot은 다음의 IP를 사용합니다"
   },
   {
+    "name": "linkcheckerbot-ips",
+    "about": "https://linkchecker.pro/robot/ links to the list as \"IP address range\"",
+    "urls": ["https://linkchecker.pro/robot-ips"],
+    "format": "lines"
+  },
+  {
     "name": "lyrenth-ips",
     "urls": ["https://lyrenth.com/bot/ip-ranges.json"],
     "format": "prefixes"
