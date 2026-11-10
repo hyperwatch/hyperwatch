@@ -166,6 +166,12 @@
     "format": "lines"
   },
   {
+    "name": "linkupbot-ips",
+    "about": "https://www.linkup.so/linkupbot links to its list of addresses.",
+    "urls": ["https://www.linkup.so/linkupbot-ips.txt"],
+    "format": "lines"
+  },
+  {
     "name": "lyrenth-ips",
     "urls": ["https://lyrenth.com/bot/ip-ranges.json"],
     "format": "prefixes"
