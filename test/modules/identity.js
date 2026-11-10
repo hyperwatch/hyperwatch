@@ -590,6 +590,8 @@ describe('identity', () => {
         'Google Special Crawlers',
       ],
       ['Chrome', 'google-user-triggered-fetchers-google-ips', 'Google Proxy'],
+      ['Google-Agent', 'google-user-triggered-agents-ips', 'Google Agent'],
+      ['Chrome', 'google-user-triggered-agents-ips', 'Google Agent'],
     ];
 
     for (const [family, list, expected] of cases) {
@@ -833,6 +835,34 @@ describe('identity', () => {
         })
       );
       assert.strictEqual(result.get('identity'), 'Google Special Crawlers');
+    });
+  });
+
+  describe('Google Agent', () => {
+    it("should identify Google's agents by their list, before their google-proxy name", () => {
+      const cidrs = require('../../src/data/google-user-triggered-agents-ips.json');
+      const address = cidrs.find((cidr) => !cidr.includes(':')).split('/')[0];
+      const result = identity.augment(
+        log({
+          family: 'Google-Agent',
+          address,
+          hostname: `google-proxy-${address.replace(/\./g, '-')}.google.com`,
+          verified: true,
+        })
+      );
+      assert.strictEqual(result.get('identity'), 'Google Agent');
+    });
+
+    it('should leave Google-Agent from the Google Proxy pool to Google Proxy', () => {
+      const result = identity.augment(
+        log({
+          family: 'Google-Agent',
+          address: '203.0.113.7',
+          hostname: 'google-proxy-203-0-113-7.google.com',
+          verified: true,
+        })
+      );
+      assert.strictEqual(result.get('identity'), 'Google Proxy');
     });
   });
 

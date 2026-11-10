@@ -94,6 +94,14 @@
     "format": "prefixes"
   },
   {
+    "name": "google-user-triggered-agents-ips",
+    "about": "Google-Agent, Google's agents browsing and acting on a user's request, listed at https://developers.google.com/crawling/docs/crawlers-fetchers/google-user-triggered-fetchers. Their reverse DNS names are google-proxy-*.google.com, like Google's own user-triggered fetchers.",
+    "urls": [
+      "https://developers.google.com/static/crawling/ipranges/user-triggered-agents.json"
+    ],
+    "format": "prefixes"
+  },
+  {
     "name": "google-user-triggered-fetchers-google-ips",
     "about": "Google's own user-triggered fetchers (Docs, Gmail's image proxy and others), with google-proxy-*.google.com names, listed at https://developers.google.com/crawling/docs/crawlers-fetchers/google-user-triggered-fetchers. The user-owned ones are in google-user-triggered-fetchers-ips.",
     "urls": [

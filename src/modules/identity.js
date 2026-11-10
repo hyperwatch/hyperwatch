@@ -25,6 +25,7 @@ const duckassistbotIps = require('../data/duckassistbot-ips.json');
 const duckduckbotIps = require('../data/duckduckbot-ips.json');
 const githubIps = require('../data/github-ips.json');
 const googleSpecialCrawlersIps = require('../data/google-special-crawlers-ips.json');
+const googleAgentsIps = require('../data/google-user-triggered-agents-ips.json');
 const googleFetchersIps = require('../data/google-user-triggered-fetchers-google-ips.json');
 const googlebotIps = require('../data/googlebot-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
@@ -113,6 +114,7 @@ const kakaobotCidrs = compileRanges(kakaobotIps);
 const rootcrawlCidrs = compileRanges(rootcrawlIps);
 const googlebotCidrs = compileRanges(googlebotIps);
 const googleSpecialCrawlersCidrs = compileRanges(googleSpecialCrawlersIps);
+const googleAgentsCidrs = compileRanges(googleAgentsIps);
 const googleFetchersCidrs = compileRanges(googleFetchersIps);
 const bingbotCidrs = compileRanges(bingbotIps);
 const pingdomCidrs = compileRanges(pingdomIps);
@@ -236,20 +238,26 @@ const hostnameOnly = [
 // https://developers.google.com/crawling/docs/crawlers-fetchers/overview-google-crawlers
 // - special-case crawlers (AdsBot-Google, …): special-crawlers.json,
 //   rate-limited-proxy-*.google.com
+// - Google-Agent, agents browsing and acting on a user's request:
+//   user-triggered-agents.json only, as their names are google-proxy-* too
 // - Google's own user-triggered fetchers (Docs, Gmail's image proxy, …):
 //   user-triggered-fetchers-google.json, google-proxy-*.google.com
 // The user-owned user-triggered fetchers (*.gae.googleusercontent.com, e.g.
 // Apps Script) run anyone's code: no identity.
+// The cheap hostname test comes before each list.
 function googleFetcher(address, verifiedHostname) {
   if (
-    (address && googleSpecialCrawlersCidrs(address)) ||
-    hostnameMatches(verifiedHostname, 'rate-limited-proxy-*.google.com')
+    hostnameMatches(verifiedHostname, 'rate-limited-proxy-*.google.com') ||
+    (address && googleSpecialCrawlersCidrs(address))
   ) {
     return 'Google Special Crawlers';
   }
+  if (address && googleAgentsCidrs(address)) {
+    return 'Google Agent';
+  }
   if (
-    (address && googleFetchersCidrs(address)) ||
-    hostnameMatches(verifiedHostname, 'google-proxy-*.google.com')
+    hostnameMatches(verifiedHostname, 'google-proxy-*.google.com') ||
+    (address && googleFetchersCidrs(address))
   ) {
     return 'Google Proxy';
   }
