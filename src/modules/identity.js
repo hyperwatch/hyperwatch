@@ -1,9 +1,9 @@
 const api = require('../app/api');
 const html = require('../app/html');
 // Bot IP lists for identity verification. Run `node scripts/fetch-ips.js` to
-// update them (sources in src/data/ip-list-sources.json). The Amazon Quick,
-// Daum and 360Spider lists are copied by hand (see amazonQuickCidrs,
-// daumBotCidrs and spider360Cidrs below).
+// update them (sources in src/data/ip-list-sources.json). Lists published only
+// inside a page, a table or a PDF (Amazon, Amazon Quick, DataForSEO, Daum,
+// 360Spider) are copied by hand: see RELEASING.md.
 const spider360Ips = require('../data/360spider-ips.json');
 const ahrefsIps = require('../data/ahrefs-ips.json');
 const amazonQuickIps = require('../data/amazon-quick-ips.json');
@@ -17,6 +17,7 @@ const bingbotIps = require('../data/bingbot-ips.json');
 const ccbotIps = require('../data/ccbot-ips.json');
 const chatgptUserIps = require('../data/chatgpt-user-ips.json');
 const claudeBotIps = require('../data/claude-bot-ips.json');
+const dataforseoIps = require('../data/dataforseo-ips.json');
 const daumBotIps = require('../data/daumbot-ips.json');
 const discordIps = require('../data/discord-ips.json');
 const duckassistbotIps = require('../data/duckassistbot-ips.json');
@@ -34,6 +35,7 @@ const kakaobotIps = require('../data/kakaobot-ips.json');
 const keenableUserIps = require('../data/keenable-user-ips.json');
 const keenableBotIps = require('../data/keenablebot-ips.json');
 const linkcheckerbotIps = require('../data/linkcheckerbot-ips.json');
+const linkupbotIps = require('../data/linkupbot-ips.json');
 const lyrenthIps = require('../data/lyrenth-ips.json');
 const metaIps = require('../data/meta-ips.json');
 const mojeekbotIps = require('../data/mojeekbot-ips.json');
@@ -134,6 +136,10 @@ const duckduckgoCidrs = compileRanges([...duckduckbotIps, ...duckassistbotIps]);
 // intermediate certificate, so Node can't fetch it: copied with curl in
 // October 2026.
 const daumBotCidrs = compileRanges(daumBotIps);
+
+// DataForSEO's subnets, written in https://dataforseo.com/dataforseo-bot
+const dataforseoCidrs = compileRanges(dataforseoIps);
+const linkupbotCidrs = compileRanges(linkupbotIps);
 
 // 360 Search's crawler. 360 says reverse DNS doesn't work for it and
 // publishes its addresses as a PDF
@@ -542,7 +548,8 @@ function augment(log) {
       return hostnameMatches(
         verifiedHostname,
         'crawling-gateway-*.dataforseo.com'
-      )
+      ) ||
+        (address && dataforseoCidrs(address))
         ? log.set('identity', 'DataForSeo')
         : log;
     case 'Qwantify':
@@ -691,7 +698,7 @@ function augment(log) {
         : log;
     case 'LinkupBot':
       // https://www.linkup.so/linkupbot-ips.txt
-      return address && inCidr('35.198.113.100/32', address)
+      return address && linkupbotCidrs(address)
         ? log.set('identity', 'Linkup')
         : log;
     case 'OAI-SearchBot':

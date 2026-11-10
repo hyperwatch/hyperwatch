@@ -28,6 +28,7 @@ const handCopied = [
   'amazon-searchbot-ips',
   'amazon-user-ips',
   'amazonbot-ips',
+  'dataforseo-ips',
   'daumbot-ips',
 ];
 

@@ -575,6 +575,8 @@ describe('identity', () => {
       ['RiverBot', 'riverbot-ips', 'River'],
       ['KakaoBot', 'kakaobot-ips', 'Kakao'],
       ['LinkCheckerBot', 'linkcheckerbot-ips', 'LinkChecker'],
+      ['DataForSeoBot', 'dataforseo-ips', 'DataForSeo'],
+      ['LinkupBot', 'linkupbot-ips', 'Linkup'],
       [
         'GoogleImageProxy',
         'google-user-triggered-fetchers-google-ips',

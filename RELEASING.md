@@ -22,12 +22,13 @@ git status --short src/data
 
 `scripts/fetch-ips.js` fetches every list in `src/data/ip-list-sources.json`. A list that can't be fetched or parsed, is empty, or has an invalid entry keeps its current file; the script names it at the end and exits with a non-zero status. If one failed, stop: retry later (`node scripts/fetch-ips.js <name>` refreshes only that list), or find out why, rather than release with a list that wasn't refreshed.
 
-Some lists have no updater and are copied by hand. Compare them with their source too:
+Some lists have no updater: their operators publish them only inside a page, a table or a PDF, and a parser per page would break silently when the page changes. Compare them with their source too, by hand or by asking an agent to read each source below and update the file, then review the diff:
 
 - `amazonbot-ips.json`, `amazon-searchbot-ips.json`, `amazon-user-ips.json`: the JSON embedded in Amazon's pages for [Amazonbot](https://developer.amazon.com/amazonbot/ip-addresses/), [Amzn-SearchBot](https://developer.amazon.com/amazonbot/searchbot-ip-addresses/) and [Amzn-User](https://developer.amazon.com/amazonbot/live-ip-addresses/).
 - `amazon-quick-ips.json`: the table of [Amazon Quick's regions](https://docs.aws.amazon.com/quick/latest/userguide/regions.html).
 - `daumbot-ips.json`: [daumbot.json](https://webmaster.daum.net/crawler/daumbot.json). Its server doesn't send its intermediate certificate, so Node can't fetch it, but curl can: `curl -s https://webmaster.daum.net/crawler/daumbot.json`.
 - `360spider-ips.json`: the PDF linked from [360's spider page](https://www.so.com/help/spider_ip.html), one address per line (`pdftotext` reads it).
+- `dataforseo-ips.json`: the IPv4 and IPv6 subnets written under "IPv4:" and "IPv6:" on [DataForSEO's bot page](https://dataforseo.com/dataforseo-bot).
 
 If any list changed, run `npm test`, then open a PR "Refresh the published IP ranges" with a table of the ranges added and removed per list, and the lists left unchanged (as in [#636](https://github.com/hyperwatch/hyperwatch/pull/636)). Merge it before step 1, and mention it under **Identities** in the release notes. If nothing changed, go on.
 
