@@ -101,6 +101,28 @@ describe('webBotAuth module', () => {
       assert.strictEqual(log.getIn(['webBotAuth', 'verified']), false);
     });
 
+    it("drops only the default port of the request's scheme", () => {
+      const authorities = (host, scheme) =>
+        webBotAuth.authoritiesOf(
+          fromJS({ request: { scheme, headers: { host } } })
+        );
+      assert.deepStrictEqual(authorities('www.example.com:443'), [
+        'www.example.com',
+      ]);
+      assert.deepStrictEqual(authorities('www.example.com:80', 'http'), [
+        'www.example.com',
+      ]);
+      assert.deepStrictEqual(authorities('www.example.com:80', 'https'), [
+        'www.example.com:80',
+      ]);
+      assert.deepStrictEqual(authorities('www.example.com:443', 'http'), [
+        'www.example.com:443',
+      ]);
+      assert.deepStrictEqual(authorities('www.example.com:8443'), [
+        'www.example.com:8443',
+      ]);
+    });
+
     it('verifies behind a proxy with the public host of `authorities`', async () => {
       const log = signedLog(exa, {
         agent: 'https://crawler.exa.ai',

@@ -241,6 +241,29 @@ describe('web bot auth', () => {
       assert.strictEqual(fetch.calls.length, 0);
     });
 
+    it('checks every Web Bot Auth signature, whatever their order', async () => {
+      const valid = signedRequest(pair, { label: 'sig2' });
+      const unknown = signedRequest(keyPair(), { label: 'sig1' });
+      const request = {
+        ...valid,
+        headers: {
+          ...valid.headers,
+          'signature-input': `${unknown.headers['signature-input']}, ${valid.headers['signature-input']}`,
+          signature: `${unknown.headers.signature}, ${valid.headers.signature}`,
+        },
+      };
+      assert.strictEqual((await check(request)).reason, 'verified');
+      // None verifies: the first failure
+      const both = {
+        ...request,
+        headers: {
+          ...request.headers,
+          signature: `${unknown.headers.signature}, sig2=:AAAA:`,
+        },
+      };
+      assert.strictEqual((await check(both)).reason, 'unknown key');
+    });
+
     it('rejects components that are not strings, without throwing', async () => {
       const request = signedRequest(pair);
       request.headers['signature-input'] =

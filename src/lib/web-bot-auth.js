@@ -374,50 +374,72 @@ async function verify(request, { keyStore, authorities, time }) {
     return { agent: null, keyid: null, verified: false, reason: 'malformed' };
   }
 
+  // Every Web Bot Auth signature is checked (a robot may sign with an old
+  // and a new key during a rotation): the first verified one wins, else the
+  // first failure is reported
+  let failure;
   for (const [label, input] of inputs) {
     if (!input.items || input.params.tag !== 'web-bot-auth') {
       continue;
     }
-    const keyid =
-      typeof input.params.keyid === 'string' ? input.params.keyid : null;
-    const agent = headers['signature-agent']
-      ? parseSignatureAgent(headers['signature-agent'], label)
-      : null;
-    const result = (verified, reason) => ({ agent, keyid, verified, reason });
-
-    if (!agent) {
-      return result(false, 'no agent');
+    const result = await verifyOne(label, input, signatures.get(label), {
+      request,
+      keyStore,
+      authorities,
+      time,
+    });
+    if (result.verified) {
+      return result;
     }
-    if (!keyStore.has(agent)) {
-      return result(false, 'unknown agent');
-    }
-    const signature = signatures.get(label);
-    if (!signature || signature.type !== 'bytes') {
-      return result(false, 'malformed');
-    }
-    const { created, expires } = input.params;
-    if (typeof created === 'number' && created > time + skew) {
-      return result(false, 'not yet valid');
-    }
-    if (typeof expires === 'number' && expires < time - skew) {
-      return result(false, 'expired');
-    }
-    const key = await keyStore.get(agent, keyid);
-    if (!key) {
-      return result(false, 'unknown key');
-    }
-    for (const authority of authorities) {
-      const { base, reason } = signatureBase(input, request, authority);
-      if (!base) {
-        return result(false, reason);
-      }
-      if (crypto.verify(null, base, key, signature.value)) {
-        return result(true, 'verified');
-      }
-    }
-    return result(false, 'bad signature');
+    failure = failure || result;
   }
-  return undefined;
+  return failure;
+}
+
+async function verifyOne(
+  label,
+  input,
+  signature,
+  { request, keyStore, authorities, time }
+) {
+  const headers = request.headers;
+  const keyid =
+    typeof input.params.keyid === 'string' ? input.params.keyid : null;
+  const agent = headers['signature-agent']
+    ? parseSignatureAgent(headers['signature-agent'], label)
+    : null;
+  const result = (verified, reason) => ({ agent, keyid, verified, reason });
+
+  if (!agent) {
+    return result(false, 'no agent');
+  }
+  if (!keyStore.has(agent)) {
+    return result(false, 'unknown agent');
+  }
+  if (!signature || signature.type !== 'bytes') {
+    return result(false, 'malformed');
+  }
+  const { created, expires } = input.params;
+  if (typeof created === 'number' && created > time + skew) {
+    return result(false, 'not yet valid');
+  }
+  if (typeof expires === 'number' && expires < time - skew) {
+    return result(false, 'expired');
+  }
+  const key = await keyStore.get(agent, keyid);
+  if (!key) {
+    return result(false, 'unknown key');
+  }
+  for (const authority of authorities) {
+    const { base, reason } = signatureBase(input, request, authority);
+    if (!base) {
+      return result(false, reason);
+    }
+    if (crypto.verify(null, base, key, signature.value)) {
+      return result(true, 'verified');
+    }
+  }
+  return result(false, 'bad signature');
 }
 
 module.exports = {

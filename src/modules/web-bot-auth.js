@@ -45,9 +45,16 @@ function setKeyStore(store) {
 // modules.webBotAuth.authorities ({ 'internal.example': 'example.com' }) or
 // modules.webBotAuth.authority (a function of the log, in JavaScript configs)
 function authoritiesOf(log) {
-  const host = String(log.getIn(['request', 'headers', 'host']) || '')
-    .toLowerCase()
-    .replace(/:(443|80)$/, '');
+  // Without the default port of the request's scheme (https when unknown,
+  // as for @scheme), other ports are part of the authority
+  const scheme = log.getIn(['request', 'scheme']) || 'https';
+  const defaultPort = scheme === 'http' ? ':80' : ':443';
+  let host = String(
+    log.getIn(['request', 'headers', 'host']) || ''
+  ).toLowerCase();
+  if (host.endsWith(defaultPort)) {
+    host = host.slice(0, -defaultPort.length);
+  }
   const { authority, authorities = {} } = config();
   const extra =
     typeof authority === 'function' ? authority(log) : authorities[host];
