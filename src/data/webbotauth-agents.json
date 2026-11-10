@@ -1,6 +1,8 @@
 [
+  { "agent": "https://ahrefs.com", "robots": ["AhrefsBot", "AhrefsSiteAudit"] },
   { "agent": "https://api.lyrenth.com", "robots": ["AIWebIndex"] },
   { "agent": "https://assistbot.duckduckgo.com", "robots": ["DuckAssistBot"] },
+  { "agent": "https://bot.naver.com", "robots": ["Yeti"] },
   { "agent": "https://crawler.exa.ai", "robots": ["ExaSearchBot"] },
   {
     "agent": "https://images.crawler.exa.ai",
@@ -10,5 +12,6 @@
   { "agent": "https://keenablebot.keenable.ai", "robots": ["KeenableBot"] },
   { "agent": "https://river.ai", "robots": ["RiverBot"] },
   { "agent": "https://rootcrawl.org", "robots": ["RootCrawl"] },
+  { "agent": "https://shapbot.parallel.ai", "robots": ["ShapBot"] },
   { "agent": "https://you.com", "robots": ["YouBot"] }
 ]

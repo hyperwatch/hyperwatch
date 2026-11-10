@@ -1,4 +1,16 @@
 {
+  "https://ahrefs.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "0g1xFRWdVlSOm1h92tZ4VFl7FWGtvRnTZ0PwuBdJuDU"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "v02owuOay4qEWYA4r-BZzdwy7ySHU8o1FESfuY4ICro"
+    }
+  ],
   "https://api.lyrenth.com": [
     {
       "kty": "OKP",
@@ -11,6 +23,13 @@
       "kty": "OKP",
       "crv": "Ed25519",
       "x": "upEckfyLMLFHfYMsv4nV--WJRMj6QDO94DNQ1nbywhM"
+    }
+  ],
+  "https://bot.naver.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "r6qADsF5QmSJPh7Wuz1yPDYpE9Mq0uQEzo4uzgBoJZM"
     }
   ],
   "https://crawler.exa.ai": [
@@ -53,6 +72,18 @@
       "kty": "OKP",
       "crv": "Ed25519",
       "x": "rsQbUaoDW0sh1kf91h-oOTEbxbnByD_9qBPkUM5fM3o"
+    }
+  ],
+  "https://shapbot.parallel.ai": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "54rZhEAwc3RdneODJpsevo9DpL18CblYxEt-h1vbs9U"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "C4_bB1JuoVMO8RNa_Z9i75_7H5ulmJmXpoR_o-M7E_w"
     }
   ],
   "https://you.com": [
