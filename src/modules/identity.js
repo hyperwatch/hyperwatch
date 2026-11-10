@@ -244,10 +244,11 @@ const hostnameOnly = [
 //   user-triggered-fetchers-google.json, google-proxy-*.google.com
 // The user-owned user-triggered fetchers (*.gae.googleusercontent.com, e.g.
 // Apps Script) run anyone's code: no identity.
+// The cheap hostname test comes before each list.
 function googleFetcher(address, verifiedHostname) {
   if (
-    (address && googleSpecialCrawlersCidrs(address)) ||
-    hostnameMatches(verifiedHostname, 'rate-limited-proxy-*.google.com')
+    hostnameMatches(verifiedHostname, 'rate-limited-proxy-*.google.com') ||
+    (address && googleSpecialCrawlersCidrs(address))
   ) {
     return 'Google Special Crawlers';
   }
@@ -255,8 +256,8 @@ function googleFetcher(address, verifiedHostname) {
     return 'Google Agent';
   }
   if (
-    (address && googleFetchersCidrs(address)) ||
-    hostnameMatches(verifiedHostname, 'google-proxy-*.google.com')
+    hostnameMatches(verifiedHostname, 'google-proxy-*.google.com') ||
+    (address && googleFetchersCidrs(address))
   ) {
     return 'Google Proxy';
   }
