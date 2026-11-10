@@ -58,7 +58,7 @@ const shapbotIps = require('../data/shapbot-ips.json');
 const sofyabotIps = require('../data/sofyabot-ips.json');
 const uptimerobotIps = require('../data/uptimerobot-ips.json');
 const { Aggregator } = require('../lib/aggregator');
-const { compileRanges } = require('../lib/cidr');
+const { compileRanges, parseAddress } = require('../lib/cidr');
 const pipeline = require('../lib/pipeline');
 const { identityKey, safeHtml } = require('../lib/util');
 
@@ -246,18 +246,20 @@ const hostnameOnly = [
 // Apps Script) run anyone's code: no identity.
 // The cheap hostname test comes before each list.
 function googleFetcher(address, verifiedHostname) {
+  // Parsed once for the three lists
+  const parsed = address ? parseAddress(address) : null;
   if (
     hostnameMatches(verifiedHostname, 'rate-limited-proxy-*.google.com') ||
-    (address && googleSpecialCrawlersCidrs(address))
+    (parsed && googleSpecialCrawlersCidrs(parsed))
   ) {
     return 'Google Special Crawlers';
   }
-  if (address && googleAgentsCidrs(address)) {
+  if (parsed && googleAgentsCidrs(parsed)) {
     return 'Google Agent';
   }
   if (
     hostnameMatches(verifiedHostname, 'google-proxy-*.google.com') ||
-    (address && googleFetchersCidrs(address))
+    (parsed && googleFetchersCidrs(parsed))
   ) {
     return 'Google Proxy';
   }

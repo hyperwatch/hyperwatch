@@ -163,6 +163,26 @@ describe('cidr', () => {
       assert.strictEqual(mapped('::ffff:198.51.100.7'), null);
     });
 
+    it('returns the first matching range of the list, whatever its length', () => {
+      const wideFirst = compileRanges(['10.0.0.0/8', '10.1.0.0/16']);
+      assert.strictEqual(wideFirst('10.1.2.3'), '10.0.0.0/8');
+      const narrowFirst = compileRanges(['10.1.0.0/16', '10.0.0.0/8']);
+      assert.strictEqual(narrowFirst('10.1.2.3'), '10.1.0.0/16');
+      assert.strictEqual(narrowFirst('10.2.0.1'), '10.0.0.0/8');
+      const v6 = compileRanges(['2001:db8:0:1::/64', '2001:db8::/32']);
+      assert.strictEqual(v6('2001:db8:0:1::5'), '2001:db8:0:1::/64');
+      assert.strictEqual(v6('2001:db8:ffff::1'), '2001:db8::/32');
+    });
+
+    it('takes an address parsed once, for several lists', () => {
+      const first = compileRanges(['192.0.2.0/24']);
+      const second = compileRanges(['2001:db8::/32', '192.0.2.128/25']);
+      const parsed = parseAddress('::ffff:192.0.2.200');
+      assert.strictEqual(first(parsed), '192.0.2.0/24');
+      assert.strictEqual(second(parsed), '192.0.2.128/25');
+      assert.strictEqual(second(parseAddress('2001:db8::9')), '2001:db8::/32');
+    });
+
     it('rejects an invalid range at compile time', () => {
       assert.throws(() => compileRanges(['198.51.100.0/33']), /invalid CIDR/);
     });
