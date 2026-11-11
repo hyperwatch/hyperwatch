@@ -183,6 +183,19 @@ const exaSignatureAgents = {
   'ExaSearchBot-Images': 'https://images.crawler.exa.ai',
 };
 
+// Agents whose verified Web Bot Auth signature identifies a request whatever
+// its user agent: each agent signs for one operator's robots only. ChatGPT
+// Agent browses with a desktop Chrome user agent, and its tools with others.
+const signedOnly = new Map([
+  ['https://chatgpt.com', 'ChatGPT Agent'],
+  ['https://exauser.crawler.exa.ai', 'Exa'],
+  ['https://bot.duckduckgo.com', 'DuckDuckGo'],
+  ['https://crawler.octen.ai', 'Octen'],
+  ['https://search.isonai.com', 'Ison'],
+  ['https://us.posthog.com', 'PostHog'],
+  ['https://substack.com', 'Substack'],
+]);
+
 // A Web Bot Auth signature of `agent` verified by the webbotauth module
 function signedBy(log, agent) {
   return (
@@ -454,7 +467,8 @@ function augment(log) {
     case 'DuckDuckGo-Favicons-Bot':
       return hostnameMatches(verifiedHostname, '*.crawl.duckduckgo.com') ||
         (address && duckduckgoCidrs(address)) ||
-        signedBy(log, 'https://assistbot.duckduckgo.com')
+        signedBy(log, 'https://assistbot.duckduckgo.com') ||
+        signedBy(log, 'https://bot.duckduckgo.com')
         ? log.set('identity', 'DuckDuckGo')
         : log;
     case 'MJ12bot':
@@ -885,6 +899,14 @@ function augment(log) {
       )
         ? log.set('identity', 'Exa')
         : log;
+  }
+
+  // Signed only: a verified signature of the agents above, any user agent
+  if (log.getIn(['webbotauth', 'verified']) === true && !log.has('identity')) {
+    const signer = signedOnly.get(log.getIn(['webbotauth', 'agent']));
+    if (signer) {
+      return log.set('identity', signer);
+    }
   }
 
   // Hostname only
