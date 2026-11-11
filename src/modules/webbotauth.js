@@ -18,7 +18,7 @@ const keysData = require('../data/webbotauth-keys.json');
 const { Aggregator, lastSeen } = require('../lib/aggregator');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
-const { aggregateCount } = require('../lib/util');
+const { aggregateCount, safeHtml } = require('../lib/util');
 const { KeyStore, verify } = require('../lib/webbotauth');
 
 let keyStore;
@@ -129,7 +129,18 @@ function start() {
       (entry) =>
         (entry.getIn(['webbotauth', 'agent']) || '').replace(/^https:\/\//, ''),
     ],
-    ['result', (entry) => entry.getIn(['webbotauth', 'reason']) || ''],
+    // In HTML, a verified signature gets the ✓ of verified hostnames
+    [
+      'result',
+      (entry, output) => {
+        const reason = entry.getIn(['webbotauth', 'reason']) || '';
+        return output === 'html' && reason === 'verified'
+          ? safeHtml(
+              '<span class="verified" title="Verified with a key the agent publishes">verified</span>'
+            )
+          : reason;
+      },
+    ],
     ['detail', (entry) => entry.getIn(['webbotauth', 'detail']) || ''],
     ['identity', (entry) => entry.get('identity') || ''],
     ['lastAgent', (entry) => entry.get('lastAgent') || ''],
