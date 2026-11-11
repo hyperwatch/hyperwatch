@@ -195,6 +195,7 @@ const signedOnly = new Map([
   ['https://search.isonai.com', 'Ison'],
   ['https://us.posthog.com', 'PostHog'],
   ['https://substack.com', 'Substack'],
+  ['https://agent.bot.goog', 'Google Agent'],
 ]);
 
 // A Web Bot Auth signature of `agent` verified by the webbotauth module

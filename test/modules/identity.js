@@ -901,6 +901,7 @@ describe('identity', () => {
       ['https://search.isonai.com', 'Ison'],
       ['https://us.posthog.com', 'PostHog'],
       ['https://substack.com', 'Substack'],
+      ['https://agent.bot.goog', 'Google Agent'],
     ]) {
       it(`should identify any user agent by a verified signature of ${agent}`, () => {
         for (const family of ['Chrome', 'curl', undefined]) {
