@@ -139,17 +139,11 @@ function start() {
     .filter((log) => log.has('webbotauth'))
     .map((log) => aggregator.processLog(log), 'aggregator');
 
+  // `detail` (why a signature is outside the Web Bot Auth profile) is long:
+  // in JSON and CSV only (/webbotauth.json, /webbotauth.csv)
   api.registerAggregator('webbotauth', aggregator, {
     nav: true,
-    columns: [
-      'agent',
-      'result',
-      'detail',
-      'identity',
-      'lastAgent',
-      'count',
-      'lastSeen',
-    ],
+    columns: ['agent', 'result', 'identity', 'lastAgent', 'count', 'lastSeen'],
   });
 }
 
