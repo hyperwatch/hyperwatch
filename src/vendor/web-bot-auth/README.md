@@ -1,0 +1,14 @@
+# web-bot-auth (vendored)
+
+CommonJS builds of Cloudflare's [web-bot-auth](https://github.com/cloudflare/web-bot-auth) packages (`web-bot-auth`, `http-message-sig`, `jsonwebkey-thumbprint`, Apache-2.0, see [LICENSE](LICENSE)) at the commit in [source.json](source.json), used by `src/lib/webbotauth.js`.
+
+They are vendored because the version on npm (`web-bot-auth` 0.2.0, August 2026) predates [draft-ietf-webbotauth-httpsig-protocol-01](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/) and rejects signatures the draft accepts: it requires `alg` and a 64-byte nonce. The repository's `main` follows the draft, but isn't published yet, and npm can't install a package from a subdirectory of a repository.
+
+Don't edit these files. To update them:
+
+```bash
+node scripts/vendor-web-bot-auth.js <commit>
+npm test
+```
+
+The script builds the three packages at that commit and rewrites the requires between them to relative paths; `structured-headers` stays a dependency of Hyperwatch, at the version `http-message-sig` pins. Once npm has a version at least as recent, depend on `web-bot-auth` again and remove this directory and the script.

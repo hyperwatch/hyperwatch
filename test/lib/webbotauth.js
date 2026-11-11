@@ -268,10 +268,10 @@ describe('web bot auth', () => {
     it('applies the Web Bot Auth profile', async () => {
       const reasonOf = async (options) =>
         (await check(signedRequest(pair, options))).reason;
-      // created, expires and (in web-bot-auth 0.2.0) alg are required
+      // created and expires are required; alg isn't
       assert.strictEqual(await reasonOf({ expires: null }), 'policy');
-      assert.strictEqual(await reasonOf({ alg: null }), 'policy');
       assert.strictEqual(await reasonOf({ created: null }), 'policy');
+      assert.strictEqual(await reasonOf({ alg: null }), 'verified');
       // The authority and the Signature-Agent must be covered
       assert.strictEqual(
         await reasonOf({ components: ['signature-agent'] }),
@@ -290,20 +290,15 @@ describe('web bot auth', () => {
         ).reason,
         'too old'
       );
-      // A nonce, when there is one, of 64 bytes
-      const short = await check(
-        signedRequest(pair, {
-          extra: `;nonce="${Buffer.alloc(16, 1).toString('base64')}"`,
-        })
-      );
-      assert.strictEqual(short.reason, 'policy');
-      assert.match(short.detail, /nonce/);
-      assert.strictEqual(
-        await reasonOf({
-          extra: `;nonce="${crypto.randomBytes(64).toString('base64')}"`,
-        }),
-        'verified'
-      );
+      // A nonce of any length (protocol-01 sets no requirement)
+      for (const bytes of [8, 16, 64]) {
+        assert.strictEqual(
+          await reasonOf({
+            extra: `;nonce="${crypto.randomBytes(bytes).toString('base64')}"`,
+          }),
+          'verified'
+        );
+      }
     });
 
     it('rejects components that are not strings, without throwing', async () => {

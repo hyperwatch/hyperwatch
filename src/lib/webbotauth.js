@@ -3,21 +3,24 @@
 // (/.well-known/http-message-signatures-directory).
 // https://datatracker.ietf.org/wg/webbotauth/about/
 //
-// Signatures are verified by Cloudflare's web-bot-auth package, which applies
-// the Web Bot Auth profile (created, expires, keyid and tag required, the
-// authority and Signature-Agent covered, at most a day old). This file keeps
+// Signatures are verified by Cloudflare's web-bot-auth package (vendored at a
+// commit following draft-ietf-webbotauth-httpsig-protocol-01, see
+// src/vendor/web-bot-auth/README.md), which applies the Web Bot Auth profile
+// (created, expires, keyid and tag required, the authority and
+// Signature-Agent covered, at most a day old). This file keeps
 // the keys of the known agents and turns the outcome into a result for logs.
 
 const crypto = require('crypto');
 
 const { parseDictionary } = require('structured-headers');
+
+const { verifierFromJWK } = require('../vendor/web-bot-auth/crypto.cjs');
 const {
   HTTP_MESSAGE_SIGNATURE_TAG,
   HTTP_MESSAGE_SIGNATURES_DIRECTORY,
   parseSignatureAgentHeader,
   verify: verifySignature,
-} = require('web-bot-auth');
-const { verifierFromJWK } = require('web-bot-auth/crypto');
+} = require('../vendor/web-bot-auth/index.cjs');
 
 const directoryMediaType = 'application/http-message-signatures-directory+json';
 const directoryMaxBytes = 64 * 1024;

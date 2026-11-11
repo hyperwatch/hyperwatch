@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/cloudflare/web-bot-auth.git",
+  "commit": "01c0d10a5f00d4e77cc5677576a7a2b6e4954d50",
+  "date": "2026-11-10",
+  "versions": {
+    "web-bot-auth": "0.2.0",
+    "http-message-sig": "0.3.0",
+    "jsonwebkey-thumbprint": "0.1.0"
+  }
+}
