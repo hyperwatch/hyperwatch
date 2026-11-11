@@ -1,7 +1,8 @@
-// Type-checks the published declarations (types/) the way a consumer uses
-// Hyperwatch: `npm run types && npm run types:test`
+// Uses Hyperwatch the way a TypeScript user does. `npm run types:test`
+// (scripts/test-types.js) installs the packed package in a temporary project
+// and type-checks this file with it, strict.
 import express = require('express');
-import hyperwatch = require('../../types/hyperwatch');
+import hyperwatch = require('@hyperwatch/hyperwatch');
 
 const { pipeline, input, lib, modules, app } = hyperwatch;
 

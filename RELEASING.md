@@ -59,7 +59,7 @@ npm test
 npm run lint
 npm run prettier:check
 npm run type:check
-npm run types && npm run types:test
+npm run types:test
 ```
 
 Fix anything that fails on `main` first, through a normal PR.

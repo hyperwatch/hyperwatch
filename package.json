@@ -38,7 +38,7 @@
     "test": "mocha --recursive",
     "type:check": "tsc -p .",
     "types": "node -e \"require('fs').rmSync('types', { recursive: true, force: true })\" && tsc -p tsconfig.types.json",
-    "types:test": "tsc -p test/types"
+    "types:test": "node scripts/test-types.js"
   },
   "types": "types/hyperwatch.d.ts",
   "dependencies": {
@@ -108,6 +108,9 @@
     "ignores": [
       "prettier-package-json",
       "@types/*"
+    ],
+    "ignorePatterns": [
+      "test/types"
     ]
   },
   "lint-staged": {

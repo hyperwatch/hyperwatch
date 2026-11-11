@@ -28,9 +28,9 @@ Identities are checked against the address lists operators publish (`src/data/*-
 The sources are JavaScript with JSDoc types, checked by TypeScript (`checkJs`, not `strict` yet): `npm run type:check` must pass, as in CI.
 
 - Type options objects and anything public with JSDoc (`@param`, `@returns`, `@typedef`). Shared types (`Log`, `Config`, `ModuleConfig`, `Abortable`) are in `src/types.js`.
-- `npm run types` generates the declarations the package publishes (`types/`, not committed; `prepack` runs it). `npm run types:test` checks `test/types/consumer.ts` against them, strict and without `skipLibCheck`: add a line there when the public API changes, and an `@ts-expect-error` for what must be rejected.
+- `npm run types` generates the declarations the package publishes (`types/`, not committed; `prepack` runs it). `npm run types:test` packs the package, installs it in a temporary project with its dependencies only, and type-checks `test/types/consumer.ts` and every published declaration, strict and without `skipLibCheck`: add a line to `consumer.ts` when the public API changes, and an `@ts-expect-error` for what must be rejected.
 - A class used as a type in another module must be exported by name (`module.exports.X = X`, or a `@typedef` next to `module.exports = { … }`): `import('./x').X` doesn't see classes in an object literal. A module exporting an instance (`pipeline.js`) exports its class's type with a `@typedef` (`Root`), and modules re-exporting it cast to that type, so the declarations refer to it instead of copying it.
-- `@types` packages the published declarations need (`@types/express`, `@types/ws`) are dependencies, not devDependencies.
+- The published declarations may only refer to packages users get: dependencies with their own types, `@types` packages in `dependencies` (`@types/express`, `@types/ws`), Node's modules. Otherwise declare the type in JSDoc (as `GeoipLookup` for geoip-lite); `types:test` fails when a declaration needs a devDependency.
 
 ## Web Bot Auth agents
 

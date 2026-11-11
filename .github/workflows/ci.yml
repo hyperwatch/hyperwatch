@@ -95,7 +95,7 @@ jobs:
         with:
           node-version: 24.x
       - run: npm ci
-      # The sources (JSDoc), then the declarations the package publishes
+      # The sources (JSDoc), then the declarations the package publishes,
+      # installed from the packed package with its dependencies only
       - run: npm run type:check
-      - run: npm run types
       - run: npm run types:test
