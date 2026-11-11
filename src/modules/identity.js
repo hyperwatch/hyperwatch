@@ -420,8 +420,8 @@ function augment(log) {
     case 'AhrefsSiteAudit':
     case 'YepBot':
       return (verifiedHostname && verifiedHostname.endsWith('.ahrefs.com')) ||
-        (address && ahrefsCidrs(address)) ||
-        signedBy(log, 'https://ahrefs.com')
+        signedBy(log, 'https://ahrefs.com') ||
+        (address && ahrefsCidrs(address))
         ? log.set('identity', 'Ahrefs')
         : log;
     case 'Pinterest':
@@ -434,8 +434,8 @@ function augment(log) {
         : log;
     case 'Yeti':
       return hostnameMatches(verifiedHostname, 'crawl.*.web.naver.com') ||
-        (address && naverbotCidrs(address)) ||
-        signedBy(log, 'https://bot.naver.com')
+        signedBy(log, 'https://bot.naver.com') ||
+        (address && naverbotCidrs(address))
         ? log.set('identity', 'Naver')
         : log;
 
@@ -477,8 +477,8 @@ function augment(log) {
     case 'DuckAssistBot':
     case 'DuckDuckGo-Favicons-Bot':
       return hostnameMatches(verifiedHostname, '*.crawl.duckduckgo.com') ||
-        (address && duckduckgoCidrs(address)) ||
-        signedBy(log, 'https://assistbot.duckduckgo.com')
+        signedBy(log, 'https://assistbot.duckduckgo.com') ||
+        (address && duckduckgoCidrs(address))
         ? log.set('identity', 'DuckDuckGo')
         : log;
     case 'MJ12bot':
@@ -552,8 +552,8 @@ function augment(log) {
       // https://river.ai/bot: its list, or a forward-confirmed hostname under
       // bot.river.ai
       return (verifiedHostname && verifiedHostname.endsWith('.bot.river.ai')) ||
-        (address && riverbotCidrs(address)) ||
-        signedBy(log, 'https://river.ai')
+        signedBy(log, 'https://river.ai') ||
+        (address && riverbotCidrs(address))
         ? log.set('identity', 'River')
         : log;
     case 'SEOkicks':
@@ -588,8 +588,8 @@ function augment(log) {
     case 'RootCrawl-Crawler':
       return (verifiedHostname &&
         verifiedHostname.endsWith('.rootcrawl.org')) ||
-        (address && rootcrawlCidrs(address)) ||
-        signedBy(log, 'https://rootcrawl.org')
+        signedBy(log, 'https://rootcrawl.org') ||
+        (address && rootcrawlCidrs(address))
         ? log.set('identity', 'RootCrawl')
         : log;
     case 'bl.uk ldfc bot':
@@ -652,8 +652,8 @@ function augment(log) {
     case 'YouBot':
       // https://docs.you.com/youbot: YouBot crawls from 68.67.112.0/24
       return hostnameMatches(verifiedHostname, 'youbot-*.search.you.com') ||
-        (address && inCidr('68.67.112.0/24', address)) ||
-        signedBy(log, 'https://you.com')
+        signedBy(log, 'https://you.com') ||
+        (address && inCidr('68.67.112.0/24', address))
         ? log.set('identity', 'You.com')
         : log;
     case 'AIWebIndex':
@@ -665,8 +665,8 @@ function augment(log) {
         'crawler-*.lyrenth.com',
         'render-*.lyrenth.com'
       ) ||
-        (address && lyrenthCidrs(address)) ||
-        signedBy(log, 'https://api.lyrenth.com')
+        signedBy(log, 'https://api.lyrenth.com') ||
+        (address && lyrenthCidrs(address))
         ? log.set('identity', 'Lyrenth')
         : log;
 
@@ -826,13 +826,13 @@ function augment(log) {
 
     // GCE
     case 'KeenableBot':
-      return (address && keenableBotCidrs(address)) ||
-        signedBy(log, 'https://keenablebot.keenable.ai')
+      return signedBy(log, 'https://keenablebot.keenable.ai') ||
+        (address && keenableBotCidrs(address))
         ? log.set('identity', 'Keenable')
         : log;
     case 'Keenable-User':
-      return (address && keenableUserCidrs(address)) ||
-        signedBy(log, 'https://keenable-user.keenable.ai')
+      return signedBy(log, 'https://keenable-user.keenable.ai') ||
+        (address && keenableUserCidrs(address))
         ? log.set('identity', 'Keenable')
         : log;
     case 'Aranet-SearchBot':
@@ -860,8 +860,8 @@ function augment(log) {
       // Parallel Web Systems crawler, runs on GCE
       // https://docs.parallel.ai/resources/crawler
       return (hostname && hostname.endsWith('.googleusercontent.com')) ||
-        (address && shapbotCidrs(address)) ||
-        signedBy(log, 'https://shapbot.parallel.ai')
+        signedBy(log, 'https://shapbot.parallel.ai') ||
+        (address && shapbotCidrs(address))
         ? log.set('identity', 'Parallel')
         : log;
 
