@@ -178,8 +178,8 @@ describe('webbotauth module', () => {
         .toJS()
         .map(({ agent, result, count15m }) => ({ agent, result, count15m }));
       assert.deepStrictEqual(rows, [
-        { agent: 'https://crawler.exa.ai', result: 'verified', count15m: 2 },
-        { agent: 'https://crawler.exa.ai', result: 'unknown key', count15m: 1 },
+        { agent: 'crawler.exa.ai', result: 'verified', count15m: 2 },
+        { agent: 'crawler.exa.ai', result: 'unknown key', count15m: 1 },
       ]);
     });
   });

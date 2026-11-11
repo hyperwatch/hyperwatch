@@ -123,7 +123,12 @@ function start() {
 
   const formatter = new Formatter();
   formatter.setFormats([
-    ['agent', (entry) => entry.getIn(['webbotauth', 'agent']) || ''],
+    // Agents are https origins: the host is enough
+    [
+      'agent',
+      (entry) =>
+        (entry.getIn(['webbotauth', 'agent']) || '').replace(/^https:\/\//, ''),
+    ],
     ['result', (entry) => entry.getIn(['webbotauth', 'reason']) || ''],
     ['detail', (entry) => entry.getIn(['webbotauth', 'detail']) || ''],
     ['identity', (entry) => entry.get('identity') || ''],
