@@ -25,6 +25,13 @@
       "x": "upEckfyLMLFHfYMsv4nV--WJRMj6QDO94DNQ1nbywhM"
     }
   ],
+  "https://bot.duckduckgo.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "pVqc2ohmGpL_H1OJGq7mIGkxAk65mm5JkY7qSdJachE"
+    }
+  ],
   "https://bot.naver.com": [
     {
       "kty": "OKP",
@@ -32,11 +39,37 @@
       "x": "r6qADsF5QmSJPh7Wuz1yPDYpE9Mq0uQEzo4uzgBoJZM"
     }
   ],
+  "https://chatgpt.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "P_1c4SX6fCavDcq6FRegWcVvaOKsp_aXHPEN1FcKDIA"
+    }
+  ],
   "https://crawler.exa.ai": [
     {
       "kty": "OKP",
       "crv": "Ed25519",
       "x": "f1UrAERwBTuaxqbngzcny0_rm7JycUzgbb0bUUvh0yw"
+    }
+  ],
+  "https://crawler.octen.ai": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "v-4T8q70IWXRZpgDNMx4T6E4m-2NEsJ9C0km1YvDpfU"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "DDKRSLoodM_wpY3nc5ujvsukdh9Y8nuF0BfqsHJGS_M"
+    }
+  ],
+  "https://exauser.crawler.exa.ai": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "UBcHds6G9U6NdwxowlyGODfY12d2BDihT5pbPmfZOc8"
     }
   ],
   "https://images.crawler.exa.ai": [
@@ -74,6 +107,13 @@
       "x": "rsQbUaoDW0sh1kf91h-oOTEbxbnByD_9qBPkUM5fM3o"
     }
   ],
+  "https://search.isonai.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "t_iaNPu2RFGwTpzVDF4WQssq3hI8JSWL8q_TKih0LpE"
+    }
+  ],
   "https://shapbot.parallel.ai": [
     {
       "kty": "OKP",
@@ -84,6 +124,20 @@
       "kty": "OKP",
       "crv": "Ed25519",
       "x": "C4_bB1JuoVMO8RNa_Z9i75_7H5ulmJmXpoR_o-M7E_w"
+    }
+  ],
+  "https://substack.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "o5kcuyjl063DgfCQaCuOG5Dsij1bec7rSOG10gRAT98"
+    }
+  ],
+  "https://us.posthog.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "76D-hlwWEoulJApAhK_LOYg-l_DZRqxgfwgwz74JlnM"
     }
   ],
   "https://you.com": [

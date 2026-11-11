@@ -859,6 +859,7 @@ describe('identity', () => {
       ['AhrefsSiteAudit', 'https://ahrefs.com', 'Ahrefs'],
       ['Yeti', 'https://bot.naver.com', 'Naver'],
       ['ShapBot', 'https://shapbot.parallel.ai', 'Parallel'],
+      ['DuckDuckBot', 'https://bot.duckduckgo.com', 'DuckDuckGo'],
     ]) {
       it(`should identify ${family} by a verified signature of ${agent}`, () => {
         assert.strictEqual(signed(family, agent).get('identity'), expected);
@@ -875,6 +876,64 @@ describe('identity', () => {
         );
       });
     }
+  });
+
+  describe('signed only', () => {
+    const signed = (family, agent, verified = true) =>
+      identity.augment(
+        fromJS({
+          request: { address: '203.0.113.7', headers: {} },
+          address: { value: '203.0.113.7' },
+          agent: { family },
+          webbotauth: {
+            agent,
+            verified,
+            reason: verified ? 'verified' : 'bad signature',
+          },
+        })
+      );
+
+    for (const [agent, expected] of [
+      ['https://chatgpt.com', 'ChatGPT Agent'],
+      ['https://exauser.crawler.exa.ai', 'Exa'],
+      ['https://bot.duckduckgo.com', 'DuckDuckGo'],
+      ['https://crawler.octen.ai', 'Octen'],
+      ['https://search.isonai.com', 'Ison'],
+      ['https://us.posthog.com', 'PostHog'],
+      ['https://substack.com', 'Substack'],
+    ]) {
+      it(`should identify any user agent by a verified signature of ${agent}`, () => {
+        for (const family of ['Chrome', 'curl', undefined]) {
+          assert.strictEqual(signed(family, agent).get('identity'), expected);
+        }
+      });
+
+      it(`should not identify an unverified signature of ${agent}`, () => {
+        assert.strictEqual(
+          signed('Chrome', agent, false).get('identity'),
+          undefined
+        );
+      });
+    }
+
+    it('should identify a family with its own rule when that rule fails', () => {
+      // Outside OpenAI's ChatGPT-User ranges and DuckDuckGo's list
+      assert.strictEqual(
+        signed('ChatGPT-User', 'https://chatgpt.com').get('identity'),
+        'ChatGPT Agent'
+      );
+      assert.strictEqual(
+        signed('DuckDuckBot', 'https://bot.duckduckgo.com').get('identity'),
+        'DuckDuckGo'
+      );
+    });
+
+    it('should not identify a verified signature of another agent', () => {
+      assert.strictEqual(
+        signed('Chrome', 'https://example.com').get('identity'),
+        undefined
+      );
+    });
   });
 
   describe('Google Agent', () => {

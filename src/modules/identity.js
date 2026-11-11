@@ -183,6 +183,20 @@ const exaSignatureAgents = {
   'ExaSearchBot-Images': 'https://images.crawler.exa.ai',
 };
 
+// Agents whose verified Web Bot Auth signature identifies a request whatever
+// its user agent, checked before the rules per family: each agent signs for
+// one operator's robots only. ChatGPT
+// Agent browses with a desktop Chrome user agent, and its tools with others.
+const signedOnly = new Map([
+  ['https://chatgpt.com', 'ChatGPT Agent'],
+  ['https://exauser.crawler.exa.ai', 'Exa'],
+  ['https://bot.duckduckgo.com', 'DuckDuckGo'],
+  ['https://crawler.octen.ai', 'Octen'],
+  ['https://search.isonai.com', 'Ison'],
+  ['https://us.posthog.com', 'PostHog'],
+  ['https://substack.com', 'Substack'],
+]);
+
 // A Web Bot Auth signature of `agent` verified by the webbotauth module
 function signedBy(log, agent) {
   return (
@@ -291,6 +305,16 @@ function augment(log) {
   const signature = log.getIn(['signature', 'id']);
   const signatureAgent = log.getIn(['request', 'headers', 'signature-agent']);
 
+  // Signed only: a verified signature of one of the signedOnly agents gives
+  // the identity whatever the user agent, before the rules per family (whose
+  // other checks may fail, e.g. ChatGPT-User outside OpenAI's ranges)
+  if (log.getIn(['webbotauth', 'verified']) === true) {
+    const signer = signedOnly.get(log.getIn(['webbotauth', 'agent']));
+    if (signer) {
+      return log.set('identity', signer);
+    }
+  }
+
   switch (family) {
     // Per hostname
     case 'Applebot':
@@ -396,8 +420,8 @@ function augment(log) {
     case 'AhrefsSiteAudit':
     case 'YepBot':
       return (verifiedHostname && verifiedHostname.endsWith('.ahrefs.com')) ||
-        (address && ahrefsCidrs(address)) ||
-        signedBy(log, 'https://ahrefs.com')
+        signedBy(log, 'https://ahrefs.com') ||
+        (address && ahrefsCidrs(address))
         ? log.set('identity', 'Ahrefs')
         : log;
     case 'Pinterest':
@@ -410,8 +434,8 @@ function augment(log) {
         : log;
     case 'Yeti':
       return hostnameMatches(verifiedHostname, 'crawl.*.web.naver.com') ||
-        (address && naverbotCidrs(address)) ||
-        signedBy(log, 'https://bot.naver.com')
+        signedBy(log, 'https://bot.naver.com') ||
+        (address && naverbotCidrs(address))
         ? log.set('identity', 'Naver')
         : log;
 
@@ -453,8 +477,8 @@ function augment(log) {
     case 'DuckAssistBot':
     case 'DuckDuckGo-Favicons-Bot':
       return hostnameMatches(verifiedHostname, '*.crawl.duckduckgo.com') ||
-        (address && duckduckgoCidrs(address)) ||
-        signedBy(log, 'https://assistbot.duckduckgo.com')
+        signedBy(log, 'https://assistbot.duckduckgo.com') ||
+        (address && duckduckgoCidrs(address))
         ? log.set('identity', 'DuckDuckGo')
         : log;
     case 'MJ12bot':
@@ -528,8 +552,8 @@ function augment(log) {
       // https://river.ai/bot: its list, or a forward-confirmed hostname under
       // bot.river.ai
       return (verifiedHostname && verifiedHostname.endsWith('.bot.river.ai')) ||
-        (address && riverbotCidrs(address)) ||
-        signedBy(log, 'https://river.ai')
+        signedBy(log, 'https://river.ai') ||
+        (address && riverbotCidrs(address))
         ? log.set('identity', 'River')
         : log;
     case 'SEOkicks':
@@ -564,8 +588,8 @@ function augment(log) {
     case 'RootCrawl-Crawler':
       return (verifiedHostname &&
         verifiedHostname.endsWith('.rootcrawl.org')) ||
-        (address && rootcrawlCidrs(address)) ||
-        signedBy(log, 'https://rootcrawl.org')
+        signedBy(log, 'https://rootcrawl.org') ||
+        (address && rootcrawlCidrs(address))
         ? log.set('identity', 'RootCrawl')
         : log;
     case 'bl.uk ldfc bot':
@@ -628,8 +652,8 @@ function augment(log) {
     case 'YouBot':
       // https://docs.you.com/youbot: YouBot crawls from 68.67.112.0/24
       return hostnameMatches(verifiedHostname, 'youbot-*.search.you.com') ||
-        (address && inCidr('68.67.112.0/24', address)) ||
-        signedBy(log, 'https://you.com')
+        signedBy(log, 'https://you.com') ||
+        (address && inCidr('68.67.112.0/24', address))
         ? log.set('identity', 'You.com')
         : log;
     case 'AIWebIndex':
@@ -641,8 +665,8 @@ function augment(log) {
         'crawler-*.lyrenth.com',
         'render-*.lyrenth.com'
       ) ||
-        (address && lyrenthCidrs(address)) ||
-        signedBy(log, 'https://api.lyrenth.com')
+        signedBy(log, 'https://api.lyrenth.com') ||
+        (address && lyrenthCidrs(address))
         ? log.set('identity', 'Lyrenth')
         : log;
 
@@ -802,13 +826,13 @@ function augment(log) {
 
     // GCE
     case 'KeenableBot':
-      return (address && keenableBotCidrs(address)) ||
-        signedBy(log, 'https://keenablebot.keenable.ai')
+      return signedBy(log, 'https://keenablebot.keenable.ai') ||
+        (address && keenableBotCidrs(address))
         ? log.set('identity', 'Keenable')
         : log;
     case 'Keenable-User':
-      return (address && keenableUserCidrs(address)) ||
-        signedBy(log, 'https://keenable-user.keenable.ai')
+      return signedBy(log, 'https://keenable-user.keenable.ai') ||
+        (address && keenableUserCidrs(address))
         ? log.set('identity', 'Keenable')
         : log;
     case 'Aranet-SearchBot':
@@ -836,8 +860,8 @@ function augment(log) {
       // Parallel Web Systems crawler, runs on GCE
       // https://docs.parallel.ai/resources/crawler
       return (hostname && hostname.endsWith('.googleusercontent.com')) ||
-        (address && shapbotCidrs(address)) ||
-        signedBy(log, 'https://shapbot.parallel.ai')
+        signedBy(log, 'https://shapbot.parallel.ai') ||
+        (address && shapbotCidrs(address))
         ? log.set('identity', 'Parallel')
         : log;
 
