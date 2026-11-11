@@ -916,6 +916,18 @@ describe('identity', () => {
       });
     }
 
+    it('should identify a family with its own rule when that rule fails', () => {
+      // Outside OpenAI's ChatGPT-User ranges and DuckDuckGo's list
+      assert.strictEqual(
+        signed('ChatGPT-User', 'https://chatgpt.com').get('identity'),
+        'ChatGPT Agent'
+      );
+      assert.strictEqual(
+        signed('DuckDuckBot', 'https://bot.duckduckgo.com').get('identity'),
+        'DuckDuckGo'
+      );
+    });
+
     it('should not identify a verified signature of another agent', () => {
       assert.strictEqual(
         signed('Chrome', 'https://example.com').get('identity'),

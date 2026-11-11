@@ -184,7 +184,8 @@ const exaSignatureAgents = {
 };
 
 // Agents whose verified Web Bot Auth signature identifies a request whatever
-// its user agent: each agent signs for one operator's robots only. ChatGPT
+// its user agent, checked before the rules per family: each agent signs for
+// one operator's robots only. ChatGPT
 // Agent browses with a desktop Chrome user agent, and its tools with others.
 const signedOnly = new Map([
   ['https://chatgpt.com', 'ChatGPT Agent'],
@@ -303,6 +304,16 @@ function augment(log) {
     log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
   const signature = log.getIn(['signature', 'id']);
   const signatureAgent = log.getIn(['request', 'headers', 'signature-agent']);
+
+  // Signed only: a verified signature of one of the signedOnly agents gives
+  // the identity whatever the user agent, before the rules per family (whose
+  // other checks may fail, e.g. ChatGPT-User outside OpenAI's ranges)
+  if (log.getIn(['webbotauth', 'verified']) === true) {
+    const signer = signedOnly.get(log.getIn(['webbotauth', 'agent']));
+    if (signer) {
+      return log.set('identity', signer);
+    }
+  }
 
   switch (family) {
     // Per hostname
@@ -467,8 +478,7 @@ function augment(log) {
     case 'DuckDuckGo-Favicons-Bot':
       return hostnameMatches(verifiedHostname, '*.crawl.duckduckgo.com') ||
         (address && duckduckgoCidrs(address)) ||
-        signedBy(log, 'https://assistbot.duckduckgo.com') ||
-        signedBy(log, 'https://bot.duckduckgo.com')
+        signedBy(log, 'https://assistbot.duckduckgo.com')
         ? log.set('identity', 'DuckDuckGo')
         : log;
     case 'MJ12bot':
@@ -899,14 +909,6 @@ function augment(log) {
       )
         ? log.set('identity', 'Exa')
         : log;
-  }
-
-  // Signed only: a verified signature of the agents above, any user agent
-  if (log.getIn(['webbotauth', 'verified']) === true && !log.has('identity')) {
-    const signer = signedOnly.get(log.getIn(['webbotauth', 'agent']));
-    if (signer) {
-      return log.set('identity', signer);
-    }
   }
 
   // Hostname only
