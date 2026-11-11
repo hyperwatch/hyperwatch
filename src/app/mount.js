@@ -13,6 +13,10 @@ function routingKey(app, path) {
   return app.enabled('case sensitive routing') ? path : path.toLowerCase();
 }
 
+/**
+ * @param {any} app
+ * @param {MountOptions} options
+ */
 function validate(app, { server, path, middleware, fallback }) {
   if (typeof app !== 'function' || typeof app.use !== 'function') {
     throw new TypeError('mount() expects an Express app');
@@ -77,8 +81,24 @@ function isUnderPath(target, path, caseSensitive) {
  * listener and releases the server. Express can't remove routes, so the
  * HTTP routes stay mounted on the app, with their original middleware.
  */
-function mount(app, options = {}) {
-  const middlewares = validate(app, options);
+/**
+ * @typedef {object} MountOptions
+ * @property {import('http').Server} server The HTTP server of the app
+ * @property {string} path Where to mount Hyperwatch: starts with `/`, doesn't
+ *   end with it
+ * @property {Function | Function[]} [middleware] Before Hyperwatch's routes
+ *   and WebSocket upgrades, e.g. authentication
+ * @property {(req: import('http').IncomingMessage, socket: import('stream').Duplex, head: Buffer) => void} [fallback]
+ *   Receives the WebSocket upgrades outside `path`
+ */
+
+/**
+ * @param {import('express').Express} app
+ * @param {MountOptions} options
+ */
+function mount(app, options) {
+  // validate() explains what's missing, options included
+  const middlewares = validate(app, options || /** @type {any} */ ({}));
   const { server, path, fallback } = options;
 
   app.use(path, ...middlewares, api);

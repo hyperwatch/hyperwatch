@@ -29,6 +29,24 @@ function versionOf(response) {
   return /^[0-9A-Za-z.+-]{1,32}$/.test(version) ? version : undefined;
 }
 
+/**
+ * @typedef {object} WebSocketInputOptions
+ * @property {string} [name]
+ * @property {'client' | 'server'} [type] Connect to `address` (default), or
+ *   receive logs at `path`
+ * @property {string} [address] The WebSocket address to connect to
+ * @property {string} [path] The path where to listen for logs
+ * @property {string} [username] Basic authentication, with `password`
+ * @property {string} [password]
+ * @property {import('ws').ClientOptions} [options] Options of the client
+ * @property {(message: import('ws').RawData | string) => any} [parse] Parses a
+ *   message into a log
+ * @property {number} [sample] The share of logs kept, between 0 and 1
+ * @property {boolean} [reconnectOnClose]
+ * @property {number} [heartbeatInterval] Milliseconds between pings
+ */
+
+/** @param {WebSocketInputOptions} options */
 function create({
   name = 'WebSocket',
   address,

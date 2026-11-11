@@ -153,7 +153,7 @@ function start() {
     }
 
     api.get(`/history/${name}.json`, async (req, res) => {
-      const limit = parseInt(req.query.limit, 10) || 100;
+      const limit = parseInt(String(req.query.limit), 10) || 100;
 
       res.json(await forView(name, limit, req.query));
     });
@@ -172,10 +172,11 @@ function start() {
   // Auto-register future nodes
   const originalRegisterNode = pipeline.registerNode.bind(pipeline);
   pipeline.registerNode = function (name, node) {
-    originalRegisterNode(name, node);
+    const result = originalRegisterNode(name, node);
     if (!(name in buffers)) {
       registerNodeHistory(name, node);
     }
+    return result;
   };
 }
 

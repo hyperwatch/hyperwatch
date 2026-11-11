@@ -73,8 +73,15 @@ const agent = (log) => {
   return log.getIn(['request', 'headers', 'user-agent'], '');
 };
 
+/**
+ * A field of a formatted log: its value, for an output (`console`, `html`,
+ * `text`)
+ * @typedef {(log: import('../types').Log, output?: string) => any} Format
+ */
+
 class Formatter {
   constructor() {
+    /** @type {Array<[string, Format]>} */
     this.formats = [
       ['time', time],
       ['identity', identity],
@@ -130,6 +137,14 @@ class Formatter {
     return this;
   }
 
+  /**
+   * Adds a field to the formatted logs
+   * @param {string} key
+   * @param {Format} fn
+   * @param {{ after?: string, before?: string, color?: string }} [options]
+   *   Where (after or before another key), and its color
+   * @returns {this}
+   */
   insertFormat(key, fn, { after, before, color } = {}) {
     if (color) {
       this.colors[key] = color;
@@ -176,12 +191,10 @@ class Formatter {
   }
 }
 
-module.exports = {
-  Formatter,
-  colorize,
-  time,
-  address,
-  request,
-  identity,
-  executionTime,
-};
+module.exports.Formatter = Formatter;
+module.exports.colorize = colorize;
+module.exports.time = time;
+module.exports.address = address;
+module.exports.request = request;
+module.exports.identity = identity;
+module.exports.executionTime = executionTime;

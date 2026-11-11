@@ -15,7 +15,8 @@ const path = require('path');
 const repository = 'https://github.com/cloudflare/web-bot-auth.git';
 const vendorDir = path.join(__dirname, '..', 'src', 'vendor', 'web-bot-auth');
 
-// Built file → vendored file. Requires between them become relative.
+// Built file → vendored file, with its type declarations (.d.cts) next to
+// it. Requires and imports between them become relative.
 const files = [
   ['packages/web-bot-auth/dist/index.cjs', 'index.cjs'],
   ['packages/web-bot-auth/dist/crypto.cjs', 'crypto.cjs'],
@@ -70,12 +71,30 @@ function main() {
       repo
     );
 
-    fs.rmSync(vendorDir, { recursive: true, force: true });
+    // Everything but the README, which is written by hand
     fs.mkdirSync(vendorDir, { recursive: true });
-    for (const [from, to] of files) {
+    for (const name of fs.readdirSync(vendorDir)) {
+      if (name !== 'README.md') {
+        fs.rmSync(path.join(vendorDir, name), { recursive: true, force: true });
+      }
+    }
+    // web-bot-auth's declarations share a chunk (index-<hash>.d.cts)
+    const chunks = fs
+      .readdirSync(path.join(repo, 'packages/web-bot-auth/dist'))
+      .filter((name) => /^index-[\w-]+\.d\.cts$/.test(name))
+      .map((name) => [`packages/web-bot-auth/dist/${name}`, name]);
+    const declarations = files.map(([from, to]) => [
+      from.replace(/\.cjs$/, '.d.cts'),
+      to.replace(/\.cjs$/, '.d.cts'),
+    ]);
+    for (const [from, to] of [...files, ...declarations, ...chunks]) {
       let code = fs.readFileSync(path.join(repo, from), 'utf8');
       for (const [name, relative] of Object.entries(requires)) {
-        code = code.split(`require("${name}")`).join(`require("${relative}")`);
+        code = code
+          .split(`require("${name}")`)
+          .join(`require("${relative}")`)
+          .split(`from "${name}"`)
+          .join(`from "${relative}"`);
       }
       fs.writeFileSync(path.join(vendorDir, to), code);
     }

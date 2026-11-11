@@ -34,8 +34,8 @@ async function del(key) {
   return cacheProvider.del(key);
 }
 
-async function clear(key) {
-  return cacheProvider.clear(key);
+async function clear() {
+  return cacheProvider.clear();
 }
 
 module.exports = { has, get, set, del, clear, setProvider };

@@ -22,21 +22,29 @@
     "docs",
     "scripts",
     "src",
-    "start.js"
+    "start.js",
+    "types"
   ],
   "scripts": {
     "depcheck": "depcheck",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
+    "prepack": "npm run types",
     "prepare": "husky",
     "prettier": "prettier \"**/*.@(js|json|md|yml)\"",
     "prettier:check": "npm run prettier -- --list-different",
     "prettier:write": "npm run prettier -- --write",
     "start": "node start",
-    "test": "mocha --recursive"
+    "test": "mocha --recursive",
+    "type:check": "tsc -p .",
+    "types": "node -e \"require('fs').rmSync('types', { recursive: true, force: true })\" && tsc -p tsconfig.types.json",
+    "types:test": "tsc -p test/types"
   },
+  "types": "types/hyperwatch.d.ts",
   "dependencies": {
     "@hyperwatch/useragent": "^4.0.2",
+    "@types/express": "^5.0.6",
+    "@types/ws": "^8.18.2",
     "accept-language-parser": "^1.5.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
@@ -70,6 +78,14 @@
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1143.0",
     "@eslint/js": "^10.0.1",
+    "@types/accept-language-parser": "^1.5.8",
+    "@types/debug": "^4.1.13",
+    "@types/geoip-lite": "^1.4.4",
+    "@types/lodash": "^4.17.27",
+    "@types/node": "^24.19.2",
+    "@types/proxy-addr": "^2.0.3",
+    "@types/rc": "^1.2.4",
+    "@types/tail": "^2.2.3",
     "depcheck": "^1.4.7",
     "eslint": "^10.9.1",
     "eslint-plugin-import-x": "^4.17.1",
@@ -79,7 +95,8 @@
     "lint-staged": "^17.4.1",
     "mocha": "^12.0.0",
     "prettier": "^3.9.6",
-    "prettier-package-json": "^2.8.0"
+    "prettier-package-json": "^2.8.0",
+    "typescript": "^7.0.2"
   },
   "engines": {
     "node": ">=24"
@@ -89,7 +106,8 @@
   },
   "depcheck": {
     "ignores": [
-      "prettier-package-json"
+      "prettier-package-json",
+      "@types/*"
     ]
   },
   "lint-staged": {

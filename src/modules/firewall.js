@@ -15,6 +15,7 @@ const { aggregateCount, parseBoolean, parseNumber } = require('../lib/util');
 
 const RELOAD_INTERVAL = 5000;
 
+/** @type {(log: import('../types').Log) => any} */
 let matcher = () => null;
 // Whether the latest load succeeded: a sync reloads otherwise
 let listsLoaded = false;
@@ -25,8 +26,14 @@ let store = null;
 let loading = Promise.resolve(false);
 // Edits and Cloudflare syncs run one after the other: each reads, changes
 // and writes the lists
+/** @type {Promise<any>} */
 let queue = Promise.resolve();
 
+/**
+ * @template T
+ * @param {() => T | Promise<T>} fn
+ * @returns {Promise<T>}
+ */
 function enqueue(fn) {
   const run = queue.then(fn);
   queue = run.catch(() => {});
@@ -175,6 +182,12 @@ function lookup({ addresses = [], user_agents = [] } = {}) {
 
 // Add or remove one entry, then reload so matching is updated right away.
 // Reads the stored lists first, so the edit applies to their latest version.
+/**
+ * @param {any} to The store
+ * @param {string} listId
+ * @param {'add' | 'remove'} op
+ * @param {{ value?: string, reason?: string, source?: string }} [entry]
+ */
 function edit(to, listId, op, { value, reason, source } = {}) {
   const refuse = () => {
     if (stopped) {
@@ -216,6 +229,12 @@ const changes = ({ add, remove }) =>
 // Sync the stored lists with Cloudflare in each direction, in order (see
 // ../lib/firewall/sync). Logs and returns what changed or was skipped:
 // [{ direction, list, change | skipped }]
+/**
+ * @param {any} to The store
+ * @param {any} client The Cloudflare client
+ * @param {Array<'up' | 'down'>} directions
+ * @param {import('../types').Abortable} [options]
+ */
 async function syncLists(to, client, directions, { signal } = {}) {
   const results = [];
   for (const direction of directions) {
@@ -426,7 +445,7 @@ function registerRoutes() {
   // Edits change what Cloudflare blocks (with automatic sync), and
   // Hyperwatch has no authentication of its own: they're off unless
   // modules.firewall.edits is on, for instances behind authentication
-  for (const op of ['add', 'remove']) {
+  for (const op of /** @type {const} */ (['add', 'remove'])) {
     api.post(`/firewall/lists/:id/${op}`, (req, res) => {
       if (!parseBoolean((constants.modules.firewall || {}).edits)) {
         res.status(403).json({

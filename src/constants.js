@@ -109,4 +109,9 @@ const constants = {
   },
 };
 
-module.exports = rc('hyperwatch', constants);
+// The defaults above, an .hyperwatchrc file or HYPERWATCH_* variables (rc),
+// then the configuration given to init()
+module.exports =
+  /** @type {import('./types').Config & Required<Pick<import('./types').Config, 'port' | 'modules' | 'persistence'>>} */ (
+    rc('hyperwatch', constants)
+  );

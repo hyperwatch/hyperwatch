@@ -29,8 +29,13 @@ const periodSections = new Set();
 // Aggregator pages with an identity filter (see aggregatorView)
 const identityFilterSections = new Set();
 
-// position: { before: name } or { after: name }, for a section that isn't
-// in `order`
+/**
+ * A link in the navigation
+ * @param {string} name
+ * @param {string} [href]
+ * @param {{ before: string } | { after: string }} [position] For a section
+ *   that isn't in `order`
+ */
 function registerSection(name, href = name, position = { before: 'logs' }) {
   sections.set(name, href);
   // status is the home link, not a section of its own
@@ -171,6 +176,17 @@ function nav(req) {
 // The opening part of a page, up to and including the navigation
 // header: more HTML under the navigation, in the same (sticky on log
 // streams) header
+/**
+ * @typedef {object} PageOptions
+ * @property {string} [title]
+ * @property {string} [bodyClass]
+ * @property {string} [header] More HTML under the navigation
+ */
+
+/**
+ * @param {import('express').Request} req
+ * @param {PageOptions} [options]
+ */
 function head(req, { title, bodyClass, header = '' } = {}) {
   return `<!DOCTYPE html>
 <html>
@@ -185,6 +201,11 @@ function head(req, { title, bodyClass, header = '' } = {}) {
   )}${header}</header>`;
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {PageOptions} options
+ * @param {string} body
+ */
 function page(req, options, body) {
   return `${head(req, options)}${body}</body>
 </html>`;
@@ -365,6 +386,17 @@ function shortenLastSeen(rows) {
  *   the rows don't have (e.g. of an inactive module) are skipped. By
  *   default, all columns of the selected period.
  */
+/**
+ * @typedef {object} AggregatorViewOptions
+ * @property {boolean | { before: string } | { after: string }} [nav]
+ * @property {boolean} [identityFilter]
+ * @property {string[]} [columns]
+ */
+
+/**
+ * @param {string} name
+ * @param {AggregatorViewOptions} [options]
+ */
 function aggregatorView(
   name,
   { nav = false, columns, identityFilter = false } = {}
@@ -503,6 +535,10 @@ function streamFilters(req) {
 // The opening part of a log stream page, latest lines at the bottom like a
 // terminal. header: more HTML under the navigation, e.g. nodesNav(). The
 // stream container is never closed: lines keep being appended to it.
+/**
+ * @param {import('express').Request} req
+ * @param {{ title?: string, header?: string }} options
+ */
 function streamHead(req, { title, header = '' }) {
   return `${head(req, {
     title,

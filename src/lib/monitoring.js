@@ -34,8 +34,9 @@ const createMonitoringItem = ({
     let computed = Map(this);
     Object.keys(this.speeds).forEach((speedName) => {
       Object.keys(this.speeds[speedName]).forEach((speedId) => {
-        computed = computed.updateIn(['speeds', speedName, speedId], (s) =>
-          s.compute()
+        computed = computed.updateIn(
+          ['speeds', speedName, speedId],
+          (/** @type {any} */ s) => s.compute()
         );
       });
     });

@@ -12,6 +12,6 @@ module.exports = {
   formatter,
   logger,
   persistence,
-  pipeline,
+  pipeline: /** @type {import('./pipeline').Root} */ (pipeline),
   util,
 };

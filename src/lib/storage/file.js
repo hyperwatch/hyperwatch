@@ -3,11 +3,15 @@ const path = require('path');
 
 // One JSON file per document: <path>/<namespace>/<name>.json, <path> being
 // .hyperwatch-data in the current directory by default
+/** @param {import('./index').StorageConfig} [config] */
 function directory({ path: base, namespace } = {}) {
   const dir = base || path.join(process.cwd(), '.hyperwatch-data');
   return namespace ? path.join(dir, namespace) : dir;
 }
 
+/**
+ * @param {import('./index').StorageConfig} [config]
+ */
 function createFileStorage(config = {}) {
   const dir = directory(config);
   const file = (name) => path.join(dir, `${name}.json`);
@@ -16,6 +20,10 @@ function createFileStorage(config = {}) {
     name: 'file',
     dir,
 
+    /**
+     * @param {string} name
+     * @param {import('../../types').Abortable} [options]
+     */
     async read(name, { signal } = {}) {
       try {
         return await fs.promises.readFile(file(name), {
@@ -30,6 +38,11 @@ function createFileStorage(config = {}) {
       }
     },
 
+    /**
+     * @param {string} name
+     * @param {string} body
+     * @param {import('../../types').Abortable} [options]
+     */
     async write(name, body, { signal } = {}) {
       await fs.promises.mkdir(dir, { recursive: true });
       const target = file(name);

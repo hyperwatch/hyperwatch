@@ -6,29 +6,28 @@ const { fromJS } = require('immutable');
 const defaultParse = (s) => fromJS(JSON.parse(s));
 
 function createTcpServer({ status, log, port, handler }) {
-  return net
-    .createServer((socket) => {
-      socket.on('data', (data) => {
-        data
-          .toString()
-          .split('\n')
-          .forEach((line) => {
-            if (line) {
-              handler(line);
-            }
-          });
-      });
-      socket.on('error', (err) => {
-        log(err, 'error');
-      });
-    })
-    .listen(port, (err) => {
-      if (err) {
-        status(err, `Cannot start: ${err.message}`);
-      } else {
+  return (
+    net
+      .createServer((socket) => {
+        socket.on('data', (data) => {
+          data
+            .toString()
+            .split('\n')
+            .forEach((line) => {
+              if (line) {
+                handler(line);
+              }
+            });
+        });
+        socket.on('error', (err) => {
+          log(err, 'error');
+        });
+      })
+      // Listen errors are 'error' events: the callback gets none
+      .listen(port, () => {
         status(null, `Listening on TCP port ${port}.`);
-      }
-    });
+      })
+  );
 }
 
 function createUdpServer({ status, port, handler }) {
@@ -75,10 +74,10 @@ function create({
         }
       };
       if (!protocol || protocol === 'udp') {
-        udpServer = createUdpServer({ status, name, port, handler });
+        udpServer = createUdpServer({ status, port, handler });
       }
       if (!protocol || protocol === 'tcp') {
-        tcpServer = createTcpServer({ status, log, name, port, handler });
+        tcpServer = createTcpServer({ status, log, port, handler });
       }
     },
     stop: () => {

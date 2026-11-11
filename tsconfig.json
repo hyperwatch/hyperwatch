@@ -1,0 +1,18 @@
+{
+  // Type checking of the JavaScript sources (JSDoc types): `npm run type:check`
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "target": "es2023",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "lib": ["es2023"],
+    "types": ["node"],
+    "strict": false,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": ["hyperwatch.js", "start.js", "src/**/*.js"],
+  "exclude": ["src/vendor"]
+}

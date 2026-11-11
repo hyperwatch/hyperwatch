@@ -26,6 +26,10 @@ function sdk() {
   }
 }
 
+/**
+ * @param {import('./index').StorageConfig} config
+ * @param {string} name
+ */
 function key({ s3 = {}, namespace }, name) {
   const prefix = s3.prefix || '';
   return `${prefix}${namespace ? `${namespace}/` : ''}${name}.json`;
@@ -106,6 +110,10 @@ function trackSending(command) {
 // whole process, by endpoint, bucket and key
 const uncertainWrites = new Set();
 
+/**
+ * @param {import('./index').StorageConfig} [config]
+ * @param {{ client?: any }} [options] `client`: an S3Client (tests)
+ */
 function createS3Storage(config = {}, { client } = {}) {
   const s3 = config.s3 || {};
   const { GetObjectCommand, PutObjectCommand, S3Client } = sdk();
@@ -133,6 +141,10 @@ function createS3Storage(config = {}, { client } = {}) {
     name: 's3',
     client,
 
+    /**
+     * @param {string} name
+     * @param {import('../../types').Abortable} [options]
+     */
     async read(name, { signal } = {}) {
       const objectKey = key(config, name);
       if (signal) {
@@ -152,6 +164,11 @@ function createS3Storage(config = {}, { client } = {}) {
       }
     },
 
+    /**
+     * @param {string} name
+     * @param {string} body
+     * @param {import('../../types').Abortable} [options]
+     */
     async write(name, body, { signal } = {}) {
       const objectKey = key(config, name);
       // Aborted before sending: nothing lands. Aborted while sending: the

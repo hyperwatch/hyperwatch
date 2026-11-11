@@ -93,13 +93,15 @@ const defaultSorters = {
 
 class Aggregator {
   constructor() {
-    this.entries = new Map();
+    /** @type {Map<string, any>} */
+    this.entries = Map();
     // Snapshot the default formats: modules extend defaultFormatter during
     // init, aggregators are created during start, and per-aggregator
     // insertFormat calls must not leak into other aggregators.
     this.formatter = defaultFormatter.clone();
     this.enricher = defaultEnricher;
     this.identifier = defaultIdentifier;
+    /** @type {Record<string, (entry: any) => any>} */
     this.sorters = { ...defaultSorters };
     this.entryGc = null;
     this.gcSize = 1000;
@@ -158,22 +160,30 @@ class Aggregator {
         .setIn([id, 'speed', '4xx_per_hour'], new Speed(3600, 24));
     } else {
       this.entries = this.entries
-        .updateIn([id, 'speed', 'per_minute'], (speed) =>
+        .updateIn([id, 'speed', 'per_minute'], (/** @type {any} */ speed) =>
           speed.hit(undefined, executionTime)
         )
-        .updateIn([id, 'speed', 'per_hour'], (speed) =>
+        .updateIn([id, 'speed', 'per_hour'], (/** @type {any} */ speed) =>
           speed.hit(undefined, executionTime)
         );
     }
 
     if (status >= 200 && status < 300) {
       this.entries = this.entries
-        .updateIn([id, 'speed', '2xx_per_minute'], (speed) => speed.hit())
-        .updateIn([id, 'speed', '2xx_per_hour'], (speed) => speed.hit());
+        .updateIn([id, 'speed', '2xx_per_minute'], (/** @type {any} */ speed) =>
+          speed.hit()
+        )
+        .updateIn([id, 'speed', '2xx_per_hour'], (/** @type {any} */ speed) =>
+          speed.hit()
+        );
     } else if (status >= 400 && status < 500) {
       this.entries = this.entries
-        .updateIn([id, 'speed', '4xx_per_minute'], (speed) => speed.hit())
-        .updateIn([id, 'speed', '4xx_per_hour'], (speed) => speed.hit());
+        .updateIn([id, 'speed', '4xx_per_minute'], (/** @type {any} */ speed) =>
+          speed.hit()
+        )
+        .updateIn([id, 'speed', '4xx_per_hour'], (/** @type {any} */ speed) =>
+          speed.hit()
+        );
     }
 
     this.entries = this.entries.updateIn([id], (entry) =>
@@ -208,7 +218,7 @@ class Aggregator {
   }
 
   reset() {
-    this.entries = new Map();
+    this.entries = Map();
   }
 
   gc() {
@@ -220,7 +230,7 @@ class Aggregator {
       return;
     }
 
-    let keepList = new Set();
+    let keepList = Set();
     for (const sorter of Object.values(this.sorters)) {
       const keepKeys = this.entries
         .map(sorter)
@@ -240,7 +250,7 @@ class Aggregator {
         const plain = entry.toJS();
         plain.speed = entry
           .get('speed')
-          .map((speed) => speed.toJSON())
+          .map((/** @type {any} */ speed) => speed.toJSON())
           .toObject();
         return plain;
       })
@@ -301,10 +311,8 @@ class Aggregator {
   }
 }
 
-module.exports = {
-  Aggregator,
-  defaultFormatter,
-  defaultEnricher,
-  lastSeen,
-  statusCount,
-};
+module.exports.Aggregator = Aggregator;
+module.exports.defaultFormatter = defaultFormatter;
+module.exports.defaultEnricher = defaultEnricher;
+module.exports.lastSeen = lastSeen;
+module.exports.statusCount = statusCount;

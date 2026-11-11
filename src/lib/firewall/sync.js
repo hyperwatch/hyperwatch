@@ -68,6 +68,9 @@ const setSavedState = (state, id, value) =>
  * - direction: 'up' | 'down'
  * - only: optional list id to restrict the sync to
  */
+/**
+ * @param {{ data: any, state: any, ruleset: any, direction: 'up' | 'down', only?: string }} options
+ */
 function plan({ data, state, ruleset, direction, only }) {
   if (!DIRECTIONS.includes(direction)) {
     throw new Error('firewall: sync direction must be "up" or "down"');

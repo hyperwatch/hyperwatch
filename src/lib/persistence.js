@@ -196,6 +196,7 @@ class Persistence {
    * Restore every registered document found in the storage. Missing and
    * failed documents are skipped, and what was restored is kept.
    */
+  /** @param {import('../types').Abortable} [options] */
   async load({ signal } = {}) {
     const started = performance.now();
     const stats = createStats(['fetch', 'parse', 'restore']);
@@ -262,6 +263,7 @@ class Persistence {
    * Save every registered document. Dumps never overlap: a dump first waits
    * for the one in progress, within its own deadline.
    */
+  /** @param {import('../types').Abortable} [options] */
   async dump({ signal } = {}) {
     const previous = this.queue;
     let release;
@@ -280,6 +282,7 @@ class Persistence {
     }
   }
 
+  /** @param {import('../types').Abortable} [options] */
   async dumpNow({ signal } = {}) {
     const started = performance.now();
     const stats = createStats(['serialize', 'store']);
@@ -562,7 +565,8 @@ function describe(operation, result) {
 
 const persistence = new Persistence();
 
-module.exports = persistence;
-module.exports.Persistence = Persistence;
-module.exports.safeName = safeName;
-module.exports.normalize = normalize;
+module.exports = Object.assign(persistence, {
+  Persistence,
+  safeName,
+  normalize,
+});
