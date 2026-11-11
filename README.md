@@ -62,7 +62,7 @@ PORT=80 npm start config/custom
 
 ## TypeScript
 
-The package ships type declarations (`types/`), generated from the JSDoc of its JavaScript sources:
+The package ships type declarations (`types/`), generated from the JSDoc of its JavaScript sources. They use Express's types: install `@types/express` (an optional peer dependency) in a TypeScript project.
 
 ```ts
 import hyperwatch = require('@hyperwatch/hyperwatch');

@@ -43,8 +43,6 @@
   "types": "types/hyperwatch.d.ts",
   "dependencies": {
     "@hyperwatch/useragent": "^4.0.2",
-    "@types/express": "^5.0.6",
-    "@types/ws": "^8.18.2",
     "accept-language-parser": "^1.5.0",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
@@ -68,10 +66,14 @@
     "ws": "^8.21.3"
   },
   "peerDependencies": {
-    "@aws-sdk/client-s3": "^3.1143.0"
+    "@aws-sdk/client-s3": "^3.1143.0",
+    "@types/express": "^5"
   },
   "peerDependenciesMeta": {
     "@aws-sdk/client-s3": {
+      "optional": true
+    },
+    "@types/express": {
       "optional": true
     }
   },
@@ -80,12 +82,14 @@
     "@eslint/js": "^10.0.1",
     "@types/accept-language-parser": "^1.5.8",
     "@types/debug": "^4.1.13",
+    "@types/express": "^5.0.6",
     "@types/geoip-lite": "^1.4.4",
     "@types/lodash": "^4.17.27",
     "@types/node": "^24.19.2",
     "@types/proxy-addr": "^2.0.3",
     "@types/rc": "^1.2.4",
     "@types/tail": "^2.2.3",
+    "@types/ws": "^8.18.2",
     "depcheck": "^1.4.7",
     "eslint": "^10.9.1",
     "eslint-plugin-import-x": "^4.17.1",

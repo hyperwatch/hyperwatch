@@ -1,6 +1,7 @@
 // Checks the published type declarations the way a TypeScript user gets
 // them: packs Hyperwatch (prepack generates types/), installs the tarball in
-// a temporary project with its dependencies only, then type-checks
+// a temporary project with its dependencies only (and @types/express, an
+// optional peer dependency), then type-checks
 // test/types/consumer.ts and every published declaration file, strict and
 // without skipLibCheck.
 //
@@ -55,6 +56,8 @@ function main() {
         `./${tarball}`,
         `typescript@${version('typescript')}`,
         `@types/node@${version('@types/node')}`,
+        // An optional peer dependency: TypeScript users of Express have it
+        `@types/express@${version('@types/express')}`,
       ],
       tmp
     );

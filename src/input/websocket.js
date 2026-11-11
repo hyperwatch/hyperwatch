@@ -38,9 +38,11 @@ function versionOf(response) {
  * @property {string} [path] The path where to listen for logs
  * @property {string} [username] Basic authentication, with `password`
  * @property {string} [password]
- * @property {import('ws').ClientOptions} [options] Options of the client
- * @property {(message: import('ws').RawData | string) => any} [parse] Parses a
- *   message into a log
+ * @property {Record<string, any>} [options] Options of ws's WebSocket client
+ *   (`headers`, `rejectUnauthorized`…)
+ * @property {(message: Buffer | ArrayBuffer | Buffer[] | string) => any} [parse]
+ *   Parses a message into a log (ws gives a Buffer, unless configured
+ *   otherwise)
  * @property {number} [sample] The share of logs kept, between 0 and 1
  * @property {boolean} [reconnectOnClose]
  * @property {number} [heartbeatInterval] Milliseconds between pings
