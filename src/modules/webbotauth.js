@@ -18,7 +18,7 @@ const keysData = require('../data/webbotauth-keys.json');
 const { Aggregator, lastSeen } = require('../lib/aggregator');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
-const { aggregateCount } = require('../lib/util');
+const { aggregateCount, safeHtml } = require('../lib/util');
 const { KeyStore, verify } = require('../lib/webbotauth');
 
 let keyStore;
@@ -123,8 +123,24 @@ function start() {
 
   const formatter = new Formatter();
   formatter.setFormats([
-    ['agent', (entry) => entry.getIn(['webbotauth', 'agent']) || ''],
-    ['result', (entry) => entry.getIn(['webbotauth', 'reason']) || ''],
+    // Agents are https origins: the host is enough
+    [
+      'agent',
+      (entry) =>
+        (entry.getIn(['webbotauth', 'agent']) || '').replace(/^https:\/\//, ''),
+    ],
+    // In HTML, a verified signature gets the ✓ of verified hostnames
+    [
+      'result',
+      (entry, output) => {
+        const reason = entry.getIn(['webbotauth', 'reason']) || '';
+        return output === 'html' && reason === 'verified'
+          ? safeHtml(
+              '<span class="verified" title="Verified with a key the agent publishes">verified</span>'
+            )
+          : reason;
+      },
+    ],
     ['detail', (entry) => entry.getIn(['webbotauth', 'detail']) || ''],
     ['identity', (entry) => entry.get('identity') || ''],
     ['lastAgent', (entry) => entry.get('lastAgent') || ''],
@@ -139,17 +155,11 @@ function start() {
     .filter((log) => log.has('webbotauth'))
     .map((log) => aggregator.processLog(log), 'aggregator');
 
+  // `detail` (why a signature is outside the Web Bot Auth profile) is long:
+  // in JSON and CSV only (/webbotauth.json, /webbotauth.csv)
   api.registerAggregator('webbotauth', aggregator, {
     nav: true,
-    columns: [
-      'agent',
-      'result',
-      'detail',
-      'identity',
-      'lastAgent',
-      'count',
-      'lastSeen',
-    ],
+    columns: ['agent', 'result', 'identity', 'lastAgent', 'count', 'lastSeen'],
   });
 }
 
