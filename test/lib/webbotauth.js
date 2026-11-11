@@ -103,6 +103,12 @@ describe('web bot auth', () => {
       assert.deepStrictEqual([...keys.keys()], [keyid]);
     });
 
+    it('also keeps a key by its kid, when the directory gives one', () => {
+      const { jwk, keyid } = keyPair();
+      const keys = keysFromJwks([{ ...jwk, kid: 'short' }]);
+      assert.deepStrictEqual([...keys.keys()], [keyid, 'short']);
+    });
+
     it('keeps a directory for its max-age, between 5 minutes and a day', () => {
       assert.strictEqual(directoryMaxAge('max-age=3600'), 3600);
       assert.strictEqual(directoryMaxAge('public, max-age=10'), 300);
@@ -135,6 +141,23 @@ describe('web bot auth', () => {
         verified: true,
         reason: 'verified',
       });
+    });
+
+    it("verifies a signature whose keyid is the key's kid", async () => {
+      const store = new KeyStore({
+        agents: [agent],
+        committed: { [agent]: [{ ...pair.jwk, kid: 'short' }] },
+        fetchKeys: false,
+      });
+      const request = signedRequest({ ...pair, keyid: 'short' });
+      assert.deepStrictEqual(await check(request, { keyStore: store }), {
+        agent,
+        keyid: 'short',
+        verified: true,
+        reason: 'verified',
+      });
+      // Without the kid in the directory, the key is unknown
+      assert.strictEqual((await check(request)).reason, 'unknown key');
     });
 
     it('ignores requests without a Web Bot Auth signature', async () => {
@@ -312,6 +335,10 @@ describe('web bot auth', () => {
       const fetch = directoryFetch({ [agent]: [jwk] }, { maxAge: 600 });
       const { jwks, maxAge } = await fetchDirectory(agent, { fetch });
       assert.deepStrictEqual(jwks, [{ kty: jwk.kty, crv: jwk.crv, x: jwk.x }]);
+      const withKid = await fetchDirectory(agent, {
+        fetch: directoryFetch({ [agent]: [{ ...jwk, kid: 'short' }] }),
+      });
+      assert.strictEqual(withKid.jwks[0].kid, 'short');
       assert.strictEqual(maxAge, 600);
       assert.strictEqual(fetch.calls[0].options.redirect, 'error');
     });

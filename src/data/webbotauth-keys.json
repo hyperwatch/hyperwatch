@@ -1,4 +1,36 @@
 {
+  "https://agent.bot.goog": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "X53rIypL6muU_xeVU6Vm0uoGQcKKxm5FCRIFZHR0CZA",
+      "kid": "mhxuPw"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "BCEFRL2wi2rfWoqfuneHGVmh_axPFaXrXNQrfxUpZqM",
+      "kid": "cYSMkA"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "W1nRrCPqci1T40ppv1ULK6q67a14hjLScZ955FPxQQM",
+      "kid": "bUCe2A"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "0cFRtAeGOa46EsjXFVKw1o_pMPFBGq4ReeznYs_RBrs",
+      "kid": "DYiMjA"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "7ZziBznI1XsHehATtJjS5XD6QrS_LJlLD8jHml5RJVI",
+      "kid": "Ggh50g"
+    }
+  ],
   "https://ahrefs.com": [
     {
       "kty": "OKP",

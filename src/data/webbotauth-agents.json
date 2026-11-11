@@ -1,4 +1,5 @@
 [
+  { "agent": "https://agent.bot.goog", "robots": ["Google-Agent"] },
   { "agent": "https://ahrefs.com", "robots": ["AhrefsBot", "AhrefsSiteAudit"] },
   { "agent": "https://api.lyrenth.com", "robots": ["AIWebIndex"] },
   { "agent": "https://assistbot.duckduckgo.com", "robots": ["DuckAssistBot"] },

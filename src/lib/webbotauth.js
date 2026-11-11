@@ -46,13 +46,19 @@ function thumbprint(jwk) {
 const isEd25519 = (jwk) =>
   !!jwk && jwk.kty === 'OKP' && jwk.crv === 'Ed25519' && !!jwk.x;
 
-// The Ed25519 keys of a directory, by thumbprint
+// The Ed25519 keys of a directory, by thumbprint, and by `kid` when the
+// directory gives one: Web Bot Auth's keyid is the thumbprint, but some
+// agents (Google's) sign with their own `kid`
 function keysFromJwks(jwks) {
   const keys = new Map();
   for (const jwk of jwks || []) {
     if (isEd25519(jwk)) {
       const { kty, crv, x } = jwk;
-      keys.set(thumbprint(jwk), { kty, crv, x });
+      const key = { kty, crv, x };
+      keys.set(thumbprint(jwk), key);
+      if (typeof jwk.kid === 'string' && jwk.kid && !keys.has(jwk.kid)) {
+        keys.set(jwk.kid, key);
+      }
     }
   }
   return keys;
@@ -91,7 +97,9 @@ async function fetchDirectory(agent, { fetch = globalThis.fetch } = {}) {
     throw new Error('no Ed25519 key');
   }
   return {
-    jwks: jwks.map(({ kty, crv, x }) => ({ kty, crv, x })),
+    jwks: jwks.map(({ kty, crv, x, kid }) =>
+      typeof kid === 'string' && kid ? { kty, crv, x, kid } : { kty, crv, x }
+    ),
     maxAge: directoryMaxAge(response.headers.get('cache-control')),
   };
 }
@@ -169,13 +177,24 @@ class KeyStore {
   }
 }
 
-// One verifier per key, built once
+// One verifier per key, built once (by thumbprint: a `kid` is only unique
+// within its directory). The package checks that the verifier's keyid, the
+// thumbprint, is the signed one: a key found by its `kid` gets a verifier
+// with that `kid` instead
 const verifiers = new Map();
-function verifierFor(keyid, jwk) {
-  if (!verifiers.has(keyid)) {
-    verifiers.set(keyid, verifierFromJWK(jwk));
+async function verifierFor(keyid, jwk) {
+  const id = thumbprint(jwk);
+  if (!verifiers.has(id)) {
+    verifiers.set(id, verifierFromJWK(jwk));
   }
-  return verifiers.get(keyid);
+  const verifier = await verifiers.get(id);
+  return keyid === id
+    ? verifier
+    : {
+        algorithm: verifier.algorithm,
+        keyid,
+        verify: (data, signature) => verifier.verify(data, signature),
+      };
 }
 
 // --- Verification ---
