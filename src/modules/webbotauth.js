@@ -125,7 +125,7 @@ function start() {
   formatter.setFormats([
     // Agents are https origins: the host is enough
     [
-      'agent',
+      'domain',
       (entry) =>
         (entry.getIn(['webbotauth', 'agent']) || '').replace(/^https:\/\//, ''),
     ],
@@ -159,7 +159,7 @@ function start() {
   // in JSON and CSV only (/webbotauth.json, /webbotauth.csv)
   api.registerAggregator('webbotauth', aggregator, {
     nav: true,
-    columns: ['agent', 'result', 'identity', 'lastAgent', 'count', 'lastSeen'],
+    columns: ['domain', 'result', 'identity', 'lastAgent', 'count', 'lastSeen'],
   });
 }
 

@@ -176,10 +176,10 @@ describe('webbotauth module', () => {
       const rows = aggregator
         .getData({ sort: 'count15m', limit: 10, format: 'json' })
         .toJS()
-        .map(({ agent, result, count15m }) => ({ agent, result, count15m }));
+        .map(({ domain, result, count15m }) => ({ domain, result, count15m }));
       assert.deepStrictEqual(rows, [
-        { agent: 'crawler.exa.ai', result: 'verified', count15m: 2 },
-        { agent: 'crawler.exa.ai', result: 'unknown key', count15m: 1 },
+        { domain: 'crawler.exa.ai', result: 'verified', count15m: 2 },
+        { domain: 'crawler.exa.ai', result: 'unknown key', count15m: 1 },
       ]);
     });
   });
