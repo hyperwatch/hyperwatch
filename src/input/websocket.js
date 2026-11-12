@@ -3,7 +3,8 @@ const WebSocket = require('ws');
 
 const wsServer = require('../app/ws-server');
 
-const defaultParse = (s) => fromJS(JSON.parse(s));
+/** @param {Buffer | ArrayBuffer | Buffer[] | string} s */
+const defaultParse = (s) => fromJS(JSON.parse(/** @type {string} */ (s)));
 
 // A connection closed this soon after opening, before any message, was cut
 // by the server, e.g. a Hyperwatch server already streaming to this clientId
@@ -15,6 +16,10 @@ const HEALTHY_AFTER = 10 * 1000;
 
 // After a cut, retry soon, 1 more second each time up to 10s. Otherwise back
 // off from 10s, doubling up to 5 minutes.
+/**
+ * @param {number} attempts
+ * @param {boolean} cut
+ */
 function reconnectDelay(attempts, cut) {
   return cut
     ? Math.min(1000 * attempts, 10 * 1000)
@@ -24,9 +29,19 @@ function reconnectDelay(attempts, cut) {
 // The server's X-Hyperwatch-Version, when it looks like a version (5.1.0,
 // 5.1.0-beta.1+build). Statuses end up unescaped in HTML pages: anything else
 // from the server is left out.
+/**
+ * @param {import('http').IncomingMessage} response
+ * @returns {string | undefined}
+ */
 function versionOf(response) {
-  const version = response.headers['x-hyperwatch-version'];
-  return /^[0-9A-Za-z.+-]{1,32}$/.test(version) ? version : undefined;
+  // A custom header is a string, when the server sends it
+  const version = /** @type {string | undefined} */ (
+    response.headers['x-hyperwatch-version']
+  );
+  // Without one, test() reads 'undefined': undefined is returned anyway
+  return /^[0-9A-Za-z.+-]{1,32}$/.test(/** @type {string} */ (version))
+    ? version
+    : undefined;
 }
 
 /**
@@ -48,7 +63,10 @@ function versionOf(response) {
  * @property {number} [heartbeatInterval] Milliseconds between pings
  */
 
-/** @param {WebSocketInputOptions} options */
+/**
+ * @param {WebSocketInputOptions} options
+ * @returns {Input}
+ */
 function create({
   name = 'WebSocket',
   address,
@@ -62,8 +80,11 @@ function create({
   reconnectOnClose = false,
   heartbeatInterval = 30000,
 }) {
+  /** @type {WebSocket | undefined} */
   let client;
+  /** @type {NodeJS.Timeout | undefined} */
   let keepAlive;
+  /** @type {NodeJS.Timeout | undefined} */
   let reconnectTimer;
   // Each connection belongs to a generation. stop() and every new connection
   // move to the next one, so events from an obsolete socket (a late close
@@ -72,14 +93,19 @@ function create({
 
   let reconnectAttempts = 0;
 
+  /** @param {Pick<InputHandlers, 'status' | 'success' | 'reject'>} handlers */
   const setupWebSocketClient = ({ status, success, reject }) => {
     const current = ++generation;
     const isCurrent = () => current === generation;
+    /** @type {boolean | undefined} */
     let isAlive;
+    /** @type {NodeJS.Timeout | undefined} */
     let heartbeat;
+    /** @type {number | undefined} */
     let openedAt;
     let received = false;
     // The server's X-Hyperwatch-Version, when it sends one
+    /** @type {string | undefined} */
     let serverVersion;
 
     if (username && password) {
@@ -89,7 +115,8 @@ function create({
       ).toString('base64')}`;
     }
 
-    const socket = new WebSocket(address, [], options);
+    // A client has an address
+    const socket = new WebSocket(/** @type {string} */ (address), [], options);
     client = socket;
     status(null, `Waiting for connection to ${address}`);
 
@@ -166,7 +193,8 @@ function create({
           : 'Websocket connection has been closed'
       );
       if (reconnectOnClose) {
-        if (received || openFor >= HEALTHY_AFTER) {
+        // Never opened (null): not healthy
+        if (received || /** @type {number} */ (openFor) >= HEALTHY_AFTER) {
           reconnectAttempts = 0;
         }
         reconnectAttempts++;
@@ -182,8 +210,10 @@ function create({
     });
   };
 
+  /** @param {Pick<InputHandlers, 'status' | 'success' | 'reject'>} handlers */
   const setupWebSocketServer = ({ status, success, reject }) => {
-    wsServer.ws(path, (ws) => {
+    // A server has a path
+    wsServer.ws(/** @type {string} */ (path), (ws) => {
       ws.on('message', (message) => {
         if (sample !== 1 && Math.random() > sample) {
           return;
@@ -228,7 +258,7 @@ function create({
         } else if (client.readyState === WebSocket.OPEN) {
           client.close();
         }
-      } catch (err) {
+      } catch (/** @type {any} */ err) {
         console.error(
           `${name}: error while closing the Websocket:`,
           err.message
@@ -241,3 +271,6 @@ function create({
 module.exports = {
   create: create,
 };
+
+/** @typedef {import('../lib/pipeline').Input} Input */
+/** @typedef {import('../lib/pipeline').InputHandlers} InputHandlers */

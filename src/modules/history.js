@@ -10,19 +10,49 @@ const persistence = require('../lib/persistence');
 const pipeline = require('../lib/pipeline');
 const { logMatches, parseNumber } = require('../lib/util');
 
+/** @typedef {import('../types').Log} Log */
+/** @typedef {import('../lib/pipeline').Node} Node */
+/** @typedef {import('../lib/log-files').LogWriter} LogWriter */
+
+/**
+ * `modules.history.disk` (see docs/configuration.md)
+ * @typedef {object} HistoryDiskConfig
+ * @property {string} [dir] Where the nodes' directories are
+ * @property {Record<string, boolean | string>} [nodes] Names or patterns,
+ *   with true or "true"
+ * @property {(log: Log) => Log | null} [transform] What to write of a log,
+ *   or null to skip it
+ * @property {(log: Log) => Log | Promise<Log>} [restore] A log read back,
+ *   with what `transform` left out put back
+ */
+
+/**
+ * `modules.history` (see docs/configuration.md). Values set through the
+ * environment (rc) are strings
+ * @typedef {import('../types').ModuleConfig & {
+ *   capacity?: number | string,
+ *   nodes?: Record<string, number | string>,
+ *   disk?: HistoryDiskConfig,
+ * }} HistoryConfig
+ */
+
 const DEFAULT_CAPACITY = 100;
 // The longest array JavaScript allows
 const MAX_CAPACITY = 2 ** 32 - 1;
 
 // Log buffers per pipeline node, once started
+/** @type {Record<string, LogBuffer | null>} */
 const buffers = {};
 
 // Log files per pipeline node with disk history, once started, and their
 // directories
+/** @type {Record<string, LogWriter>} */
 const writers = {};
+/** @type {Record<string, string>} */
 const dirs = {};
 
 // What is read back of a log written to disk (modules.history.disk.restore)
+/** @type {HistoryDiskConfig['restore'] | null} */
 let restore = null;
 
 // At most this many reads of log files at once
@@ -33,6 +63,11 @@ const DEFAULT_DISK_DIR = path.join('.hyperwatch-data', 'logs');
 
 // A whole number of logs, 0 included, or null. Values set through the
 // environment (rc) are strings
+/**
+ * @param {unknown} value
+ * @param {string} setting Its name, for the warning
+ * @returns {number | null}
+ */
 function parseCapacity(value, setting) {
   if (value === undefined || value === null || value === '') {
     return null;
@@ -51,6 +86,11 @@ function parseCapacity(value, setting) {
 
 // The setting of `nodes` for a node: its name, else the first pattern ending
 // with `*` that matches (e.g. "input-*"), else undefined
+/**
+ * @param {string} name
+ * @param {Record<string, unknown>} [nodes]
+ * @returns {{ key: string, value: unknown } | undefined}
+ */
 function nodeSetting(name, nodes = {}) {
   if (Object.prototype.hasOwnProperty.call(nodes, name)) {
     return { key: name, value: nodes[name] };
@@ -67,6 +107,9 @@ function nodeSetting(name, nodes = {}) {
  * The number of logs kept for a pipeline node: `nodes[name]`, else the first
  * `nodes` pattern ending with `*` that matches (e.g. "input-*"), else
  * `capacity` (100 by default). 0 keeps no history for that node.
+ * @param {string} name
+ * @param {HistoryConfig} [config]
+ * @returns {number}
  */
 function capacityFor(name, config = {}) {
   const capacity = parseCapacity(config.capacity, 'modules.history.capacity');
@@ -87,6 +130,9 @@ function capacityFor(name, config = {}) {
  * set in `disk.nodes` (same patterns as `nodes`), with true or "true".
  * One directory per node in `disk.dir` (.hyperwatch-data/logs by default),
  * prefixed so that no node name leaves it.
+ * @param {string} name
+ * @param {HistoryConfig} [config]
+ * @returns {string | null}
  */
 function diskDirFor(name, config = {}) {
   const disk = config.disk;
@@ -104,6 +150,7 @@ function diskDirFor(name, config = {}) {
 }
 
 function start() {
+  /** @type {HistoryConfig} */
   const config = constants.modules.history || {};
   restore =
     config.disk && typeof config.disk.restore === 'function'
@@ -112,6 +159,7 @@ function start() {
 
   // Before the nodes' routes, so that it wins over a node named "disk"
   api.get('/history/disk.json', async (req, res) => {
+    /** @type {Record<string, Awaited<ReturnType<LogWriter['stats']>>>} */
     const stats = {};
     for (const [name, writer] of Object.entries(writers)) {
       stats[name] = await writer.stats();
@@ -119,6 +167,10 @@ function start() {
     res.json(stats);
   });
 
+  /**
+   * @param {string} name
+   * @param {Node} node
+   */
   function registerNodeHistory(name, node) {
     const capacity = capacityFor(name, config);
     // 0: no buffer, so no persistence document either, and no history in
@@ -138,7 +190,7 @@ function start() {
       : null;
     if (writer) {
       writers[name] = writer;
-      dirs[name] = dir;
+      dirs[name] = /** @type {string} */ (dir);
     }
     if (buffer || writer) {
       node.map((log) => {
@@ -160,7 +212,7 @@ function start() {
 
     if (writer) {
       api.get(`/history/${name}/disk.json`, (req, res) =>
-        readDisk(dir, req, res)
+        readDisk(/** @type {string} */ (dir), req, res)
       );
     }
   }
@@ -181,6 +233,11 @@ function start() {
 }
 
 // GET /history/<node>/disk.json?identity=|address=|signature=&limit=&cursor=
+/**
+ * @param {string} dir
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function readDisk(dir, req, res) {
   const limit =
     req.query.limit === undefined
@@ -194,7 +251,8 @@ async function readDisk(dir, req, res) {
     res.status(429).json({ error: 'Too many reads of the log files at once' });
     return;
   }
-  const { identity, address, signature } = req.query;
+  const { identity, address, signature } =
+    /** @type {Record<string, string | undefined>} */ (req.query);
   const controller = new AbortController();
   // The client left before the response: stop reading
   res.on('close', () => {
@@ -206,7 +264,7 @@ async function readDisk(dir, req, res) {
   try {
     const result = await logFiles.read(dir, {
       limit,
-      cursor: req.query.cursor,
+      cursor: /** @type {string | undefined} */ (req.query.cursor),
       filters: { identity, address, signature },
       signal: controller.signal,
     });
@@ -218,7 +276,10 @@ async function readDisk(dir, req, res) {
     if (err instanceof logFiles.CursorError) {
       res.status(400).json({ error: err.message });
     } else {
-      console.error('Error reading the log files:', err.message);
+      console.error(
+        'Error reading the log files:',
+        /** @type {Error} */ (err).message
+      );
       res.status(500).json({ error: 'Error reading the log files' });
     }
   } finally {
@@ -227,6 +288,7 @@ async function readDisk(dir, req, res) {
 }
 
 // Ends the log files, at most `timeout` ms, then forgets them
+/** @param {{ timeout?: number }} [options] */
 async function flush({ timeout = 5000 } = {}) {
   const signal = AbortSignal.timeout(timeout);
   const all = Object.values(writers);
@@ -238,10 +300,14 @@ async function flush({ timeout = 5000 } = {}) {
 
 // Logs read from disk, as logs again: restore (see the config) puts back
 // what the transform left out. A restore that fails keeps the log as read
+/**
+ * @param {Record<string, any>[]} logs As read from disk
+ * @returns {Promise<Log[]>}
+ */
 function restoreAll(logs) {
   return Promise.all(
     logs.map(async (data) => {
-      const log = fromJS(data);
+      const log = /** @type {Log} */ (fromJS(data));
       if (!restore) {
         return log;
       }
@@ -254,6 +320,7 @@ function restoreAll(logs) {
   );
 }
 
+/** @param {Record<string, any>} [filters] */
 const hasFilter = (filters = {}) =>
   ['identity', 'address', 'signature'].some((key) => filters[key]);
 
@@ -265,6 +332,10 @@ const hasFilter = (filters = {}) =>
  * received from then on follow it without a gap or a repeat. Otherwise, or
  * while 2 reads are running, or when reading fails, the latest logs in
  * memory.
+ * @param {string} name
+ * @param {number} limit
+ * @param {Record<string, any>} filters From the query string
+ * @returns {Log[] | Promise<Log[]>}
  */
 function forView(name, limit, filters) {
   const writer = writers[name];
@@ -290,7 +361,10 @@ function forView(name, limit, filters) {
       });
       return await restoreAll(logs);
     } catch (err) {
-      console.error('Error reading the log files:', err.message);
+      console.error(
+        'Error reading the log files:',
+        /** @type {Error} */ (err).message
+      );
       return fallback;
     } finally {
       diskReads--;
@@ -300,6 +374,12 @@ function forView(name, limit, filters) {
 
 // The latest logs of a pipeline node matching `filters` (see logMatches),
 // newest first, or [] without history
+/**
+ * @param {string} name
+ * @param {number} limit
+ * @param {Record<string, any>} [filters]
+ * @returns {Log[]}
+ */
 function latest(name, limit, filters) {
   if (!buffers[name]) {
     return [];

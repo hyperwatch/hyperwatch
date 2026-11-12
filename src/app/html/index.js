@@ -9,6 +9,7 @@ const path = require('path');
 
 const { escapeHtml, formatTable } = require('../../lib/util');
 
+/** @param {string} file */
 const read = (file) => fs.readFileSync(path.join(__dirname, file), 'utf8');
 
 const stylesheet = read('style.css');
@@ -44,22 +45,33 @@ function registerSection(name, href = name, position = { before: 'logs' }) {
   }
 }
 
+/** @param {string} name */
 function hasSection(name) {
   return sections.has(name);
 }
 
 // The current page, relative to <base>
+/** @param {Request} req */
 function here(req) {
   return req.path.slice(1);
 }
 
 // The address of the mount path, e.g. "https://example.org/_hyperwatch",
 // for http or ws
+/**
+ * @param {Request} req
+ * @param {string} scheme
+ */
 function baseAddress(req, scheme) {
   const secure = req.protocol === 'https' ? 's' : '';
   return `${scheme}${secure}://${req.get('host')}${req.baseUrl}`;
 }
 
+/**
+ * @param {string} href
+ * @param {string} text
+ * @param {string | null} [className]
+ */
 function link(href, text, className) {
   return `<a href="${escapeHtml(href)}"${
     className ? ` class="${className}"` : ''
@@ -69,6 +81,11 @@ function link(href, text, className) {
 // Links to the main logs kept by a filter (address, identity, signature),
 // or the plain value when logs aren't served. A class goes on the link, so
 // its underline has the same color.
+/**
+ * @param {string} filter
+ * @param {string | null} [value]
+ * @param {string} [className]
+ */
 function logsLink(filter, value, className) {
   const text = escapeHtml(value || '');
   if (!value || !sections.has('logs')) {
@@ -82,6 +99,11 @@ function logsLink(filter, value, className) {
 }
 
 // A pipeline node name, linking to its logs when they're served
+/**
+ * @param {string} name
+ * @param {string} [query]
+ * @param {string | null} [className]
+ */
 function nodeLink(name, query = '', className) {
   if (!sections.has('logs')) {
     return escapeHtml(name);
@@ -93,6 +115,10 @@ function nodeLink(name, query = '', className) {
   );
 }
 
+/**
+ * @param {string} pathname
+ * @param {string} path
+ */
 function isUnder(pathname, path) {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
@@ -109,6 +135,7 @@ function navSections() {
   let placed = true;
   while (pending.length && placed) {
     placed = false;
+    /** @type {[string, any][]} */
     const waiting = [];
     for (const [name, position] of pending) {
       const { before, after } = position;
@@ -138,6 +165,7 @@ function navSections() {
   return names.concat(pending.map(([name]) => name));
 }
 
+/** @param {Request} req */
 function nav(req) {
   const home = req.path === '/' || isUnder(req.path, '/status');
   // The home page is the status page, when the status module is active
@@ -215,6 +243,10 @@ function page(req, options, body) {
 
 // Log streams label their step "http:/logs/main" or "ws:/logs/main": shown
 // as full addresses, the HTTP one linking to the stream
+/**
+ * @param {Request} req
+ * @param {string} label
+ */
 function streamLabel(req, label) {
   const match = /^(http|ws):\/(.*)$/.exec(label);
   if (!match) {
@@ -225,6 +257,11 @@ function streamLabel(req, label) {
   return scheme === 'http' ? link(path, address) : address;
 }
 
+/**
+ * @param {Request} req
+ * @param {TreeNode} node
+ * @returns {string}
+ */
 function renderTree(req, node) {
   const label = [];
   if (node.name) {
@@ -249,6 +286,11 @@ function renderTree(req, node) {
 }
 
 // statusFor(status) fills the host of input statuses, see fillHost()
+/**
+ * @param {Request} req
+ * @param {TreeInput[] | undefined} inputs
+ * @param {(status: string) => string} statusFor
+ */
 function renderInputs(req, inputs, statusFor) {
   return (inputs || [])
     .map(
@@ -264,6 +306,11 @@ function renderInputs(req, inputs, statusFor) {
     .join('');
 }
 
+/**
+ * @param {Request} req
+ * @param {TreeNode} tree
+ * @param {(status: string) => string} statusFor
+ */
 function pipelinePage(req, tree, statusFor) {
   return page(
     req,
@@ -279,19 +326,23 @@ function pipelinePage(req, tree, statusFor) {
 // Aggregators
 
 // Aggregator pages show the last 15 minutes, or 24 hours with ?period=24h
+/** @param {Request} req */
 function periodOf(req) {
   return req.query.period === '24h' ? '24h' : '15m';
 }
 
 // Switching period keeps the query but the sort, which goes back to the
 // count of the period
+/** @param {Request} req */
 function periodLinks(req) {
   const current = periodOf(req);
   const links = ['15m', '24h'].map((period) => {
     if (period === current) {
       return `<strong>${period}</strong>`;
     }
-    const query = new URLSearchParams(req.query);
+    const query = new URLSearchParams(
+      /** @type {Record<string, string>} */ (req.query)
+    );
     query.delete('sort');
     query.delete('period');
     if (period === '24h') {
@@ -307,11 +358,17 @@ function periodLinks(req) {
 // identified or unidentified ones with ?filter=
 const identityFilters = ['all', 'identified', 'unidentified'];
 
+/**
+ * @param {Request} req
+ * @returns {string}
+ */
 function identityFilterOf(req) {
-  return identityFilters.includes(req.query.filter) ? req.query.filter : 'all';
+  const filter = /** @type {string} */ (req.query.filter);
+  return identityFilters.includes(filter) ? filter : 'all';
 }
 
 // Switching filter keeps the rest of the query (period, sort, limit)
+/** @param {Request} req */
 function identityFilterLinks(req) {
   const current = identityFilterOf(req);
   const links = identityFilters.map((filter) => {
@@ -319,7 +376,9 @@ function identityFilterLinks(req) {
     if (filter === current) {
       return `<strong>${text}</strong>`;
     }
-    const query = new URLSearchParams(req.query);
+    const query = new URLSearchParams(
+      /** @type {Record<string, string>} */ (req.query)
+    );
     query.delete('filter');
     if (filter !== 'all') {
       query.set('filter', filter);
@@ -332,6 +391,10 @@ function identityFilterLinks(req) {
 
 // The switches of an aggregator page, top right on the navigation line: the
 // identity filter (when the page has one), then the period, separated by |
+/**
+ * @param {Request} req
+ * @param {{ identityFilter: boolean }} options
+ */
 function switches(req, { identityFilter }) {
   const groups = [
     identityFilter ? identityFilterLinks(req) : null,
@@ -343,17 +406,26 @@ function switches(req, { identityFilter }) {
 }
 
 // Column sorted by a sorter of another name
+/** @type {Record<string, string>} */
 const sortKeys = { lastSeen: 'latest' };
 
 // Headings of sortable columns link to the page sorted by them, keeping the
 // other query parameters. Sorting is descending, done by the aggregator.
+/**
+ * @param {Request} req
+ * @param {Record<string, Sorter>} sorters
+ * @param {string} sort
+ * @returns {(column: string) => string}
+ */
 function sortHeading(req, sorters, sort) {
   return (column) => {
     const key = sortKeys[column] || column;
     if (!sorters || !sorters[key]) {
       return column;
     }
-    const query = new URLSearchParams(req.query);
+    const query = new URLSearchParams(
+      /** @type {Record<string, string>} */ (req.query)
+    );
     query.set('sort', key);
     const text = key === sort ? `${column} ▾` : column;
     return link(`${here(req)}?${query}`, text, key === sort ? 'sorted' : null);
@@ -362,6 +434,10 @@ function sortHeading(req, sorters, sort) {
 
 // lastSeen is "YYYY-MM-DD hh:mm:ss" (UTC) in HTML. When every row was seen
 // today, only the time is shown, like in the logs.
+/**
+ * @param {Record<string, any>[]} rows
+ * @returns {Record<string, any>[]}
+ */
 function shortenLastSeen(rows) {
   const today = new Date().toISOString().slice(0, 10);
   const allToday = rows.every(
@@ -394,8 +470,17 @@ function shortenLastSeen(rows) {
  */
 
 /**
+ * Renders an aggregator page
+ * @typedef {(
+ *   req: Request,
+ *   data: { rows: Record<string, any>[], sorters: Record<string, Sorter>, sort: string }
+ * ) => string} AggregatorView
+ */
+
+/**
  * @param {string} name
  * @param {AggregatorViewOptions} [options]
+ * @returns {AggregatorView}
  */
 function aggregatorView(
   name,
@@ -446,7 +531,21 @@ function aggregatorView(
 // Where a pipeline node is in the tree: its named ancestors and the named
 // nodes one level below it (unnamed steps, like maps and filters, are
 // skipped). Returns null when the node isn't in the tree.
+/**
+ * @typedef {{ ancestors: string[], node: TreeNode }} FoundNode
+ */
+
+/**
+ * @param {TreeNode} tree
+ * @param {string} name
+ * @returns {FoundNode | null}
+ */
 function findNode(tree, name) {
+  /**
+   * @param {TreeNode | null} node
+   * @param {string[]} ancestors
+   * @returns {FoundNode | null}
+   */
   const search = (node, ancestors) => {
     if (!node) {
       return null;
@@ -473,27 +572,47 @@ function findNode(tree, name) {
   return null;
 }
 
+/**
+ * @param {TreeNode} node
+ * @returns {string[]}
+ */
 function namedChildren(node) {
   return (node.children || []).flatMap((child) =>
     child.name ? [child.name] : namedChildren(child)
   );
 }
 
+/** @param {string} text */
 const separator = (text) => `<span class="grey"> ${text} </span>`;
 
 // The navigation between log streams: each level of the path to the
 // current node, separated by ›, then the nodes below it. Below main, a level
 // lists all its nodes (·). Nodes on the path are highlighted, the current
 // node is bold. Links keep the query (filters, grep).
+/**
+ * @param {Request} req
+ * @param {string} name
+ * @param {TreeNode} tree
+ */
 function nodesNav(req, name, tree) {
   const found = findNode(tree, name);
   if (!found) {
     return '';
   }
-  const query = new URLSearchParams(req.query).toString();
+  const query = new URLSearchParams(
+    /** @type {Record<string, string>} */ (req.query)
+  ).toString();
+  /**
+   * @param {string} node
+   * @param {string | null} [className]
+   */
   const nodeWithQuery = (node, className) =>
     nodeLink(node, query ? `?${query}` : '', className);
   const current = `<strong>${escapeHtml(name)}</strong>`;
+  /**
+   * @param {string[]} nodes
+   * @param {string} [onPath]
+   */
   const level = (nodes, onPath) =>
     nodes
       .map((node) =>
@@ -509,7 +628,12 @@ function nodesNav(req, name, tree) {
     // Up to main (or outside it), one node per level
     main === -1 || i <= main
       ? level([node], node)
-      : level(namedChildren(findNode(tree, path[i - 1]).node), node)
+      : level(
+          namedChildren(
+            /** @type {FoundNode} */ (findNode(tree, path[i - 1])).node
+          ),
+          node
+        )
   );
   const below = namedChildren(found.node);
   if (below.length > 0) {
@@ -519,6 +643,7 @@ function nodesNav(req, name, tree) {
 }
 
 // A line saying which logs a filtered stream keeps, linking to all of them
+/** @param {Request} req */
 function streamFilters(req) {
   const filters = ['identity', 'signature', 'address']
     .filter((key) => typeof req.query[key] === 'string')
@@ -547,9 +672,15 @@ function streamHead(req, { title, header = '' }) {
   })}<script>${followScript}</script><main class="stream">`;
 }
 
+/** @param {string} line */
 function streamLine(line) {
   return `<div>${line}</div>`;
 }
+
+/** @typedef {import('express').Request} Request */
+/** @typedef {import('../../lib/pipeline').TreeNode} TreeNode */
+/** @typedef {import('../../lib/pipeline').TreeInput} TreeInput */
+/** @typedef {import('../../lib/aggregator').Sorter} Sorter */
 
 module.exports = {
   aggregatorView,

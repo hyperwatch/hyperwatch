@@ -15,14 +15,39 @@ const { aggregateCount, parseBoolean, parseNumber } = require('../lib/util');
 
 const RELOAD_INTERVAL = 5000;
 
-/** @type {(log: import('../types').Log) => any} */
+/** @typedef {import('../types').Log} Log */
+/** @typedef {import('../types').Abortable} Abortable */
+/** @typedef {import('../types').ModuleConfig} ModuleConfig */
+/** @typedef {import('../lib/firewall/lists').ListsDocument} ListsDocument */
+/** @typedef {import('../lib/firewall/lists').Match} Match */
+/** @typedef {import('../lib/firewall/store').FirewallStore} FirewallStore */
+/** @typedef {import('../lib/firewall/sync').Direction} Direction */
+/** @typedef {import('../lib/firewall/sync').ValueChanges} ValueChanges */
+/** @typedef {import('../lib/cloudflare/client').CloudflareClient} CloudflareClient */
+
+/**
+ * What a sync did to a list: the change, or why it was skipped
+ * @typedef {{ direction: Direction, list: string, change?: string, skipped?: string }} SyncResult
+ */
+
+/**
+ * The automatic Cloudflare sync, while on
+ * @typedef {object} AutoSync
+ * @property {(directions: Direction[]) => Promise<void>} run
+ * @property {() => void} stop
+ * @property {() => void} scheduleUp `up` after `delay`, once for a burst
+ */
+
+/** @type {(log: Log) => Match | null} */
 let matcher = () => null;
 // Whether the latest load succeeded: a sync reloads otherwise
 let listsLoaded = false;
 
 // Where the lists are kept (see ../lib/firewall/store), set by init()
+/** @type {FirewallStore | null} */
 let store = null;
 // The first load, awaited by hyperwatch.start() before the inputs start
+/** @type {Promise<boolean>} */
 let loading = Promise.resolve(false);
 // Edits and Cloudflare syncs run one after the other: each reads, changes
 // and writes the lists
@@ -41,6 +66,7 @@ function enqueue(fn) {
 }
 
 // Automatic Cloudflare sync (modules.firewall.sync), when on
+/** @type {AutoSync | null} */
 let autoSync = null;
 // Set by stop(), so a load finishing later doesn't start syncing, and new
 // edits are refused
@@ -57,13 +83,15 @@ function resume() {
   }
 }
 
+/** @returns {FirewallStore} */
 const getStore = () => store || (store = createStore(constants));
 
 // The lists declared in modules.firewall.lists (id, type, action, optional
 // cloudflare link and entries), validated
+/** @param {ModuleConfig} [config] */
 function configuredLists(config = constants.modules.firewall || {}) {
   return lists.validate({
-    lists: (config.lists || []).map((list) => ({
+    lists: (config.lists || []).map((/** @type {object} */ list) => ({
       entries: [],
       ...list,
     })),
@@ -75,6 +103,10 @@ function configuredLists(config = constants.modules.firewall || {}) {
  * don't have (empty, so a linked list gets its entries from Cloudflare at
  * the next sync). With nothing stored yet, the configured lists alone. The
  * stored lists win: configuration only adds missing lists.
+ * @param {FirewallStore} from
+ * @param {Abortable} [options]
+ * @param {ListsDocument} [defaults]
+ * @returns {Promise<ListsDocument>}
  */
 async function current(from, options, defaults = configuredLists()) {
   const stored = await from.readLists(options);
@@ -98,6 +130,12 @@ async function current(from, options, defaults = configuredLists()) {
 // `opened`: the open() generation that started the load. A load from an
 // earlier one (still running after a stop() and a new start()) is dropped
 // rather than replacing the current lists
+/**
+ * @param {FirewallStore} [from]
+ * @param {Abortable} [options]
+ * @param {number} [opened]
+ * @returns {Promise<boolean>}
+ */
 async function load(from = getStore(), options, opened) {
   try {
     const data = await current(from, options);
@@ -108,7 +146,7 @@ async function load(from = getStore(), options, opened) {
     listsLoaded = true;
     debug(`Loaded ${data.lists.length} list(s) from ${from.where}`);
     return true;
-  } catch (err) {
+  } catch (/** @type {any} */ err) {
     listsLoaded = false;
     console.warn(
       `firewall: keeping previous lists, ${from.where}: ${err.message}`
@@ -117,6 +155,10 @@ async function load(from = getStore(), options, opened) {
   }
 }
 
+/**
+ * @param {Log} log
+ * @returns {Log}
+ */
 function augment(log) {
   const match = matcher(log);
   return match ? log.set('firewall', Map(match)) : log;
@@ -125,6 +167,7 @@ function augment(log) {
 // Lists with their entries. Linked lists also get `pending`: the values
 // added and removed locally since the last Cloudflare sync, or null when the
 // list was never synced.
+/** @param {FirewallStore} [from] */
 async function summary(from = getStore()) {
   const data = await current(from);
   const state = await from.readState();
@@ -153,6 +196,11 @@ async function summary(from = getStore()) {
 // Which list, if any, each IP address and user agent falls into
 // Results keyed by the values asked for, as own properties: a user agent
 // "__proto__" would otherwise set the prototype
+/**
+ * @param {Record<string, Match | null>} target
+ * @param {string} key
+ * @param {Log} log
+ */
 const setResult = (target, key, log) =>
   Object.defineProperty(target, key, {
     value: log.has('firewall') ? log.get('firewall').toJS() : null,
@@ -161,7 +209,11 @@ const setResult = (target, key, log) =>
     configurable: true,
   });
 
+/**
+ * @param {{ addresses?: string[], user_agents?: string[] }} [query]
+ */
 function lookup({ addresses = [], user_agents = [] } = {}) {
+  /** @type {{ addresses: Record<string, Match | null>, user_agents: Record<string, Match | null> }} */
   const result = { addresses: {}, user_agents: {} };
   for (const address of addresses) {
     setResult(
@@ -183,7 +235,7 @@ function lookup({ addresses = [], user_agents = [] } = {}) {
 // Add or remove one entry, then reload so matching is updated right away.
 // Reads the stored lists first, so the edit applies to their latest version.
 /**
- * @param {any} to The store
+ * @param {FirewallStore} to The store
  * @param {string} listId
  * @param {'add' | 'remove'} op
  * @param {{ value?: string, reason?: string, source?: string }} [entry]
@@ -223,6 +275,7 @@ function edit(to, listId, op, { value, reason, source } = {}) {
   });
 }
 
+/** @param {ValueChanges} changes */
 const changes = ({ add, remove }) =>
   [...add.map((v) => `+${v}`), ...remove.map((v) => `-${v}`)].join(' ');
 
@@ -230,12 +283,14 @@ const changes = ({ add, remove }) =>
 // ../lib/firewall/sync). Logs and returns what changed or was skipped:
 // [{ direction, list, change | skipped }]
 /**
- * @param {any} to The store
- * @param {any} client The Cloudflare client
+ * @param {FirewallStore} to The store
+ * @param {CloudflareClient} client The Cloudflare client
  * @param {Array<'up' | 'down'>} directions
  * @param {import('../types').Abortable} [options]
+ * @returns {Promise<SyncResult[]>}
  */
 async function syncLists(to, client, directions, { signal } = {}) {
+  /** @type {SyncResult[]} */
   const results = [];
   for (const direction of directions) {
     if (signal) {
@@ -297,8 +352,14 @@ async function syncLists(to, client, directions, { signal } = {}) {
 }
 
 // The "firewall sync" entry of /status: the latest sync and what it did
+/** @type {import('../lib/monitoring').MonitoringItem | null} */
 let syncMonitor = null;
 
+/**
+ * @param {Direction[]} directions
+ * @param {SyncResult[] | null} results null when the sync failed
+ * @param {Error} [error]
+ */
 function reportSync(directions, results, error) {
   if (!syncMonitor) {
     syncMonitor = monitoring.register({
@@ -311,7 +372,7 @@ function reportSync(directions, results, error) {
   const at = new Date().toISOString();
   const what = error
     ? `failed: ${error.message}`
-    : results
+    : /** @type {SyncResult[]} */ (results)
         .map(
           (r) =>
             `${r.direction} ${r.list} ${r.change || `skipped: ${r.skipped}`}`
@@ -329,8 +390,14 @@ function reportSync(directions, results, error) {
 const MAX_SECONDS = (2 ** 31 - 1) / 1000;
 
 // modules.firewall.sync: { auto, delay, interval }, with defaults
+/** @param {ModuleConfig} [config] */
 function syncSettings(config = {}) {
   const settings = config.sync || {};
+  /**
+   * @param {string} key
+   * @param {number} fallback
+   * @returns {number}
+   */
   const seconds = (key, fallback) => {
     if (settings[key] === undefined || settings[key] === null) {
       return fallback;
@@ -356,16 +423,23 @@ function syncSettings(config = {}) {
  * (`delay`) after each edit, a burst of edits going out as one sync, and a
  * full sync (`down` then `up`) after start and every `interval` seconds (0:
  * never). Syncs wait for the edits and syncs before them.
+ * @param {FirewallStore} to The store
+ * @param {CloudflareClient} client
+ * @param {{ delay: number, interval: number }} settings Seconds
+ * @returns {AutoSync}
  */
 function startAutoSync(to, client, { delay, interval }) {
   stopAutoSync();
+  /** @type {NodeJS.Timeout | null} */
   let upTimer = null;
+  /** @type {NodeJS.Timeout[]} */
   const timers = [];
   // Set by stop(): syncs still queued don't run
   let cancelled = false;
   // A full sync waiting or running: periodic ticks meanwhile are dropped,
   // instead of queueing up when a sync takes longer than the interval
   let fullPending = false;
+  /** @param {Direction[]} directions */
   const run = (directions) =>
     enqueue(() =>
       cancelled
@@ -408,7 +482,7 @@ function startAutoSync(to, client, { delay, interval }) {
     stop() {
       cancelled = true;
       timers.forEach(clearTimeout);
-      clearTimeout(upTimer);
+      clearTimeout(/** @type {NodeJS.Timeout | undefined} */ (upTimer));
     },
     scheduleUp() {
       if (upTimer || cancelled) {
@@ -432,10 +506,14 @@ function stopAutoSync() {
 }
 
 function registerRoutes() {
+  /**
+   * @param {import('express').Response} res
+   * @param {() => unknown} fn
+   */
   const send = async (res, fn) => {
     try {
       res.json((await fn()) || { ok: true });
-    } catch (err) {
+    } catch (/** @type {any} */ err) {
       res.status(400).json({ error: err.message });
     }
   };
@@ -484,7 +562,10 @@ function open() {
     },
     opened
   );
-  store.watch(() => load(store, undefined, opened), RELOAD_INTERVAL);
+  store.watch(
+    () => load(/** @type {FirewallStore} */ (store), undefined, opened),
+    RELOAD_INTERVAL
+  );
 }
 
 // Start the automatic sync, when configured, once the lists are loaded:
@@ -497,11 +578,11 @@ function activateAutoSync() {
   let client;
   try {
     client = createClient();
-  } catch (err) {
+  } catch (/** @type {any} */ err) {
     console.warn(`firewall: automatic Cloudflare sync is off: ${err.message}`);
     return;
   }
-  const to = store;
+  const to = /** @type {FirewallStore} */ (store);
   const opened = generation;
   loading.then(() => {
     if (!stopped && opened === generation) {

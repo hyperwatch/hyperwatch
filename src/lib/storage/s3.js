@@ -9,13 +9,26 @@
  */
 const SDK = '@aws-sdk/client-s3';
 
+/**
+ * The body of a GetObject response (the SDK's StreamingBlobPayloadOutputTypes),
+ * declared here as the SDK is an optional peer dependency
+ * @typedef {object} S3Body
+ * @property {(encoding?: string) => Promise<string>} transformToString
+ * @property {(error?: Error) => void} [destroy]
+ */
+
 // Establishing a connection; requests are bounded by persistence deadlines
 const CONNECTION_TIMEOUT = 10000;
 
+/**
+ * The AWS SDK, loaded only when this backend is used: untyped here, since it
+ * is an optional peer dependency
+ * @returns {any}
+ */
 function sdk() {
   try {
     return require(SDK);
-  } catch (err) {
+  } catch (/** @type {any} */ err) {
     if (err.code === 'MODULE_NOT_FOUND') {
       throw new Error(
         `The s3 persistence backend needs ${SDK}: npm install ${SDK}`,
@@ -36,6 +49,12 @@ function key({ s3 = {}, namespace }, name) {
 }
 
 // Errors carry the key and the S3 error name only, never a body
+/**
+ * @param {string} operation
+ * @param {string} objectKey
+ * @param {any} err An error thrown by the AWS SDK or the network
+ * @returns {Error}
+ */
 function describe(operation, objectKey, err) {
   if (err.name === 'AbortError') {
     return err;
@@ -58,6 +77,11 @@ function describe(operation, objectKey, err) {
 // The abort signal only bounds send(), which resolves with the headers:
 // destroy the body when it aborts, so a slow download doesn't carry on in
 // the background
+/**
+ * @param {S3Body} body
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<string>}
+ */
 async function readBody(body, signal) {
   if (!signal) {
     return body.transformToString('utf-8');
@@ -83,19 +107,25 @@ async function readBody(body, signal) {
 // earlier, e.g. resolving credentials or signing, can't have reached S3.
 // The last middleware before the HTTP handler marks it sent. Clients that
 // don't run the middleware stack count as possibly sent.
+/**
+ * @param {any} command An SDK command
+ * @returns {{ failedBeforeSending: () => boolean }}
+ */
 function trackSending(command) {
   let started = false;
   let sent = false;
   if (command.middlewareStack) {
     command.middlewareStack.add(
-      (next) => (args) => {
+      /** @param {(args: unknown) => unknown} next */
+      (next) => (/** @type {unknown} */ args) => {
         started = true;
         return next(args);
       },
       { step: 'initialize', priority: 'high', name: 'hyperwatchRequestStarted' }
     );
     command.middlewareStack.add(
-      (next) => (args) => {
+      /** @param {(args: unknown) => unknown} next */
+      (next) => (/** @type {unknown} */ args) => {
         sent = true;
         return next(args);
       },
@@ -108,6 +138,7 @@ function trackSending(command) {
 // A failed request may still commit remotely: never send a newer upload to
 // that object while the outcome of the older one is unknown. Kept for the
 // whole process, by endpoint, bucket and key
+/** @type {Set<string>} */
 const uncertainWrites = new Set();
 
 /**
@@ -120,6 +151,7 @@ function createS3Storage(config = {}, { client } = {}) {
   // Uploads with an unknown outcome are tracked for the whole process (see
   // uncertainWrites above), so a storage created later for the same object,
   // e.g. after a restart, still refuses to overwrite them
+  /** @param {string} objectKey */
   const target = (objectKey) =>
     `${s3.endpoint || 'aws'}/${s3.bucket}/${objectKey}`;
 
@@ -156,7 +188,7 @@ function createS3Storage(config = {}, { client } = {}) {
           { abortSignal: signal }
         );
         return await readBody(response.Body, signal);
-      } catch (err) {
+      } catch (/** @type {any} */ err) {
         if (err.name === 'NoSuchKey') {
           return null;
         }
@@ -196,7 +228,7 @@ function createS3Storage(config = {}, { client } = {}) {
       try {
         await client.send(command, { abortSignal: signal });
         uncertainWrites.delete(uploaded);
-      } catch (err) {
+      } catch (/** @type {any} */ err) {
         const status = err.$metadata && err.$metadata.httpStatusCode;
         // Explicit client errors (e.g. AccessDenied) are definitive failures,
         // and so is a failure before the request was sent (e.g. credentials).
@@ -219,6 +251,7 @@ function createS3Storage(config = {}, { client } = {}) {
 }
 
 // Checked at init, so a misconfiguration fails before anything starts
+/** @param {import('./index').StorageConfig} config */
 createS3Storage.validate = (config) => {
   const s3 = config.s3 || {};
   if (!s3.bucket) {

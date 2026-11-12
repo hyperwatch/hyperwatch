@@ -16,6 +16,8 @@ const DEFAULT_FIELDS = ['country', 'region', 'city'];
  * fields (e.g. ["country", "region", "city", "timezone", "ll"]), or "all"
  * for the whole lookup (also with ll, range, metro, area, eu, timezone).
  * Null means all.
+ * @param {ModuleConfig} [config]
+ * @returns {string[] | null}
  */
 function fieldsFor(config = {}) {
   const { fields } = config;
@@ -36,6 +38,7 @@ function fieldsFor(config = {}) {
   return DEFAULT_FIELDS;
 }
 
+/** @type {string[] | null} */
 let fields = DEFAULT_FIELDS;
 
 /**
@@ -61,10 +64,15 @@ function lookup(ip) {
   return geoip.lookup(ip);
 }
 
+/**
+ * @param {Record<string, unknown>} entry
+ * @returns {Record<string, unknown>}
+ */
 function pick(entry) {
   if (!fields) {
     return entry;
   }
+  /** @type {Record<string, unknown>} */
   const picked = {};
   for (const field of fields) {
     if (entry[field] !== undefined) {
@@ -74,11 +82,12 @@ function pick(entry) {
   return picked;
 }
 
+/** @param {Log} log */
 function augment(log) {
   const ip =
     log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
 
-  const entry = lookup(ip);
+  const entry = lookup(/** @type {string} */ (ip));
 
   if (entry) {
     log = log.set('geoip', fromJS(pick(entry)));
@@ -87,12 +96,16 @@ function augment(log) {
   return log;
 }
 
+/** @type {Format} */
 const city = (log) => {
   return log.getIn(['geoip', 'city']);
 };
 
+/** @type {Format} */
 const country = (log, output) => {
-  const cc = log.getIn(['geoip', 'country']);
+  const cc = /** @type {string | undefined} */ (
+    log.getIn(['geoip', 'country'])
+  );
   if (cc) {
     return output === 'html' ? `${flag(cc)} ${cc}` : cc;
   }
@@ -123,3 +136,7 @@ module.exports = {
   augment,
   fieldsFor,
 };
+
+/** @typedef {import('../types').Log} Log */
+/** @typedef {import('../types').ModuleConfig} ModuleConfig */
+/** @typedef {import('../lib/formatter').Format} Format */

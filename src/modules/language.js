@@ -4,10 +4,13 @@ const { fromJS } = require('immutable');
 const aggregator = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
 
+/** @param {Log} log */
 function augment(log) {
   if (log.hasIn(['request', 'headers', 'accept-language'])) {
     const language = acceptLanguageParser.parse(
-      log.getIn(['request', 'headers', 'accept-language'])
+      /** @type {string} */ (
+        log.getIn(['request', 'headers', 'accept-language'])
+      )
     );
     if (language) {
       log = log.set('language', fromJS(language));
@@ -17,10 +20,15 @@ function augment(log) {
   return log;
 }
 
+/** @type {Format} */
 const language = (log) => {
-  const code = log.getIn(['language', 0, 'code']);
+  const code = /** @type {string | undefined} */ (
+    log.getIn(['language', 0, 'code'])
+  );
   if (code) {
-    const region = log.getIn(['language', 0, 'region']);
+    const region = /** @type {string | undefined} */ (
+      log.getIn(['language', 0, 'region'])
+    );
     if (region) {
       return `${code.toLowerCase()} ${region.toUpperCase()}`;
     } else {
@@ -42,3 +50,6 @@ module.exports = {
   augment,
   init,
 };
+
+/** @typedef {import('../types').Log} Log */
+/** @typedef {import('../lib/formatter').Format} Format */

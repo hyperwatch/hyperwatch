@@ -23,6 +23,10 @@ addFormats(validator);
 
 const validate = validator.compile(schema);
 
+/**
+ * @param {unknown} log
+ * @param {Severity} [severity]
+ */
 function errorLog(log, severity = 'warn') {
   console[severity](log);
   if (severity === 'error') {
@@ -32,6 +36,8 @@ function errorLog(log, severity = 'warn') {
 
 /**
  * Forward an event to a stream.
+ * @param {Stream} stream
+ * @param {Event} event
  */
 function forward(stream, event) {
   try {
@@ -43,6 +49,7 @@ function forward(stream, event) {
 
 /**
  * Identity stream transformer.
+ * @returns {Transformer}
  */
 function identity() {
   return (stream) => stream;
@@ -52,6 +59,8 @@ function identity() {
  * Applies `f` to each event.
  *
  * `f` can return an event or a Promise of an event.
+ * @param {(log: Log) => any} f
+ * @returns {Transformer}
  */
 function map(f) {
   return (stream) => {
@@ -59,8 +68,10 @@ function map(f) {
       const res = f(event.get('data'));
       if (res && res.then) {
         res
-          .then((value) => forward(stream, event.set('data', value)))
-          .catch((reason) => errorLog(reason, 'warn'));
+          .then((/** @type {unknown} */ value) =>
+            forward(stream, event.set('data', value))
+          )
+          .catch((/** @type {unknown} */ reason) => errorLog(reason, 'warn'));
       } else {
         forward(stream, event.set('data', res));
       }
@@ -70,6 +81,8 @@ function map(f) {
 
 /**
  * Forward events if `pred(event)` returns true.
+ * @param {(log: Log) => unknown} pred
+ * @returns {Transformer}
  */
 function filter(pred) {
   return (stream) => {
@@ -83,6 +96,8 @@ function filter(pred) {
 
 /**
  * Compose stream transformers sequentially.
+ * @param {Transformer[]} xfes
+ * @returns {Transformer}
  */
 function comp(xfes) {
   const xfes_ = xfes.slice().reverse();
@@ -93,6 +108,8 @@ function comp(xfes) {
 
 /**
  * Compose stream transformers in parallel.
+ * @param {Transformer[]} xfes
+ * @returns {Transformer}
  */
 function multiplex(xfes) {
   return (stream) => {
@@ -107,6 +124,8 @@ function multiplex(xfes) {
  * Logically split the stream for each unique value of `f(event)`.
  *
  * Ignore `undefined` values.
+ * @param {(log: Log) => unknown} f
+ * @returns {Transformer}
  */
 function by(f) {
   return (stream) => {
@@ -124,19 +143,32 @@ function by(f) {
  * and `by()` add a child node and return it.
  */
 class Builder {
+  /**
+   * @param {Transformer} xf
+   * @param {Pipeline | null} [pipeline] The root (null for the root itself,
+   *   which sets it after)
+   */
   constructor(xf, pipeline = null) {
     this.xf = xf;
+    /** @type {Builder[]} */
     this.children = [];
+    /** @type {string | null} */
     this.name = null;
     this.pipeline = pipeline;
+    /** @type {Builder | null} */
     this.parent = null;
+    /** @type {string | null} `map`, `filter`, `split-true`… */
     this.op = null;
+    /** @type {string | null} The module that added the node */
     this.module = null;
+    /** @type {string | null} */
     this.fnName = null;
+    /** @type {string | null} */
     this._label = null;
     // Lightweight per-node counter for throughput tracking
     this.counter = 0;
     // Fixed one-second buckets keep rate tracking bounded and O(1) per event.
+    /** @type {Array<{ second: number | null, count: number }>} */
     this.rateBuckets = Array.from({ length: 10 }, () => ({
       second: null,
       count: 0,
@@ -144,8 +176,8 @@ class Builder {
   }
 
   /**
-   * @param {(stream: Function) => Function} xf
-   * @param {{ op?: string, fnName?: string, label?: string }} [options]
+   * @param {Transformer} xf
+   * @param {{ op?: string | null, fnName?: string | null, label?: string | null }} [options]
    * @returns {Builder}
    */
   add(xf, { op = null, fnName = null, label = null } = {}) {
@@ -209,8 +241,13 @@ class Builder {
     return this.add(by(f), { op: 'by', fnName: f.name, label });
   }
 
+  /**
+   * The stream transformer of this node and its children
+   * @returns {Transformer}
+   */
   create() {
     const self = this;
+    /** @type {Transformer} */
     const countXf = (stream) => (event) => {
       self.counter++;
       const second = Math.floor(Date.now() / 1000);
@@ -241,7 +278,7 @@ class Builder {
    * @returns {this}
    */
   registerNode(name, { monitor = false } = {}) {
-    this.pipeline.setNode(name, this);
+    /** @type {Pipeline} */ (this.pipeline).setNode(name, this);
     this.name = name;
     if (monitor) {
       this.monitorNode();
@@ -249,6 +286,10 @@ class Builder {
     return this;
   }
 
+  /**
+   * Shows this node's throughput on the status page
+   * @returns {this}
+   */
   monitorNode() {
     const monitor = monitoring.register({
       name: `Pipeline node (${this.name})`,
@@ -256,7 +297,7 @@ class Builder {
       speeds: ['processed'],
       type: 'node',
     });
-    this.pipeline.monitors.push(monitor);
+    /** @type {Pipeline} */ (this.pipeline).monitors.push(monitor);
     this.map(() => monitor.hit());
     return this;
   }
@@ -267,8 +308,9 @@ class Pipeline extends Builder {
     super(identity());
     /** @type {Input[]} */
     this.inputs = [];
-    /** @type {any[]} */
+    /** @type {MonitoringItem[]} */
     this.monitors = [];
+    /** @type {Stream | null} */
     this.stream = null;
     // Once stopping, logs from any input are dropped: many inputs (HTTP,
     // syslog, file) have no stop(), and the final snapshot must be final
@@ -280,6 +322,7 @@ class Pipeline extends Builder {
     };
     this.pipeline = this;
     this.name = 'raw';
+    /** @type {string | null} The module being loaded, see Builder#module */
     this.currentModule = null;
     this.op = 'identity';
   }
@@ -305,13 +348,17 @@ class Pipeline extends Builder {
     input._tap = tap;
   }
 
+  /** Builds the streams and starts the inputs */
   start() {
     this.stopped = false;
     const stream = super.create()(() => {});
 
     this.inputs.map((input) => {
-      const monitor = this.monitors.find(
-        (monitor) => monitor.type === 'input' && monitor.name === input.name
+      // registerInput() registered it
+      const monitor = /** @type {MonitoringItem} */ (
+        this.monitors.find(
+          (monitor) => monitor.type === 'input' && monitor.name === input.name
+        )
       );
       // Build the tap stream so it can forward logs to WebSocket clients
       const tapStream = input._tap ? input._tap.create()(() => {}) : null;
@@ -322,14 +369,16 @@ class Pipeline extends Builder {
           }
           const valid = validate(log.toJS());
           if (valid) {
-            const event = Map({
-              time: Math.floor(
-                new Date(
-                  /** @type {string} */ (log.getIn(['request', 'time']))
-                ).getTime() / 1000
-              ),
-              data: log,
-            });
+            const event = /** @type {Event} */ (
+              Map({
+                time: Math.floor(
+                  new Date(
+                    /** @type {string} */ (log.getIn(['request', 'time']))
+                  ).getTime() / 1000
+                ),
+                data: log,
+              })
+            );
             monitor.hit('accepted');
             if (tapStream) {
               forward(tapStream, event);
@@ -366,7 +415,11 @@ class Pipeline extends Builder {
     const results = await Promise.allSettled(
       this.inputs
         .filter((input) => input.stop)
-        .map((input) => Promise.resolve().then(() => input.stop()))
+        .map((input) =>
+          Promise.resolve().then(() =>
+            /** @type {Required<Input>} */ (input).stop()
+          )
+        )
     );
     const errors = results
       .filter((result) => result.status === 'rejected')
@@ -425,18 +478,21 @@ class Pipeline extends Builder {
   /**
    * The pipeline's nodes from `node`, with their counts and rates
    * @param {Builder} [node]
-   * @returns {Record<string, any>}
+   * @returns {TreeNode}
    */
   getTree(node = this) {
     const second = Math.floor(Date.now() / 1000);
     const windowStart = second - node.rateBuckets.length + 1;
     const rateCount = node.rateBuckets.reduce(
       (count, bucket) =>
-        bucket.second >= windowStart && bucket.second <= second
+        // null (an unused bucket) compares as 0: never in the window
+        /** @type {number} */ (bucket.second) >= windowStart &&
+        /** @type {number} */ (bucket.second) <= second
           ? count + bucket.count
           : count,
       0
     );
+    /** @type {TreeNode} */
     const obj = {
       name: node.name || null,
       op: node.op || null,
@@ -498,11 +554,60 @@ class Pipeline extends Builder {
 /**
  * @typedef {object} InputHandlers
  * @property {(log: Log) => void} success
- * @property {(reason: any) => void} reject
- * @property {(err: any, message?: string) => void} status
- * @property {(message: any, severity?: string) => void} log
+ * @property {(reason: unknown) => void} reject
+ * @property {(err: unknown, message: string) => void} status
+ * @property {(message: unknown, severity?: Severity) => void} log
  */
 
+/**
+ * A console method
+ * @typedef {'error' | 'warn' | 'info' | 'log' | 'debug'} Severity
+ */
+
+/**
+ * An event: an Immutable Map with `time` (seconds since the epoch), `data`
+ * (the log) and an optional `key` (see `by()`)
+ * @typedef {import('immutable').Map<string, any>} Event
+ */
+
+/**
+ * Receives the events of a node
+ * @typedef {(event: Event) => void} Stream
+ */
+
+/**
+ * A stream transformer: given the stream of the next nodes, the stream of
+ * this one
+ * @typedef {(stream: Stream) => Stream} Transformer
+ */
+
+/**
+ * A node of the pipeline tree (getTree()), with its count and rate per
+ * second over the last 10 seconds
+ * @typedef {object} TreeNode
+ * @property {string | null} name
+ * @property {string | null} op
+ * @property {string | null} module
+ * @property {string | null} fnName
+ * @property {string | null} label
+ * @property {number} count
+ * @property {number} rate
+ * @property {TreeNode[]} children
+ * @property {TreeInput[]} [inputs] At the root only
+ */
+
+/**
+ * An input in the pipeline tree, with its counts over the last 15 minutes
+ * @typedef {object} TreeInput
+ * @property {string} name
+ * @property {string | null} node
+ * @property {TreeNode | null} tree
+ * @property {string | null} status
+ * @property {number} accepted
+ * @property {number} rejected
+ */
+
+/** @typedef {import('./monitoring').MonitoringItem} MonitoringItem */
 /** @typedef {import('../types').Log} Log */
 
 module.exports = new Pipeline();

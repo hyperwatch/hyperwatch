@@ -39,6 +39,8 @@ const trusted = ['loopback', 'linklocal', 'uniquelocal'].concat(
 
 /**
  * Detect the actual IP address, ignoring the proxies.
+ * @param {string} remoteAddress
+ * @param {import('immutable').Map<string, string>} headers The request headers
  */
 function detectAddress(remoteAddress, headers) {
   let address = remoteAddress;

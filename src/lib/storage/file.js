@@ -14,6 +14,7 @@ function directory({ path: base, namespace } = {}) {
  */
 function createFileStorage(config = {}) {
   const dir = directory(config);
+  /** @param {string} name */
   const file = (name) => path.join(dir, `${name}.json`);
 
   return {
@@ -31,7 +32,7 @@ function createFileStorage(config = {}) {
           signal,
         });
       } catch (err) {
-        if (err.code === 'ENOENT') {
+        if (/** @type {NodeJS.ErrnoException} */ (err).code === 'ENOENT') {
           return null;
         }
         throw err;
