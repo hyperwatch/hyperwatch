@@ -493,6 +493,25 @@ describe('persistence lifecycle', () => {
       assert.strictEqual(persistence.snapshots, false);
     });
 
+    it('use the default deadline of a phase left out', async () => {
+      const storage = createMemoryStorage();
+      storage.documents.set('doc', '[1]');
+      const persistence = new Persistence();
+      persistence.setStorage(storage);
+      const loaded = doc([2]);
+      persistence.register('doc', loaded);
+
+      // Without normalize(): no dump deadline, an invalid load deadline
+      await persistence.start({
+        interval: 0.02,
+        deadlines: { load: 'abc', stop: 5 },
+      });
+      assert.deepStrictEqual(loaded.loaded, [1]);
+      await sleep(60);
+      persistence.stopSnapshots();
+      assert.strictEqual(storage.documents.get('doc'), '[2]');
+    });
+
     it('are off without an interval', async () => {
       const persistence = new Persistence();
       persistence.setStorage(createMemoryStorage());
