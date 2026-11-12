@@ -2,6 +2,26 @@
 
 Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases). Versions before 5.0.0 have no entry: see the git history.
 
+## 5.6.0 (2026-11-12)
+
+### Features
+
+- TypeScript declarations are published with the package (`types/hyperwatch.d.ts`), generated from the JSDoc of the JavaScript sources, which `tsc` now checks: `init()`, the pipeline nodes, inputs, `app.mount()` and `app.api` are typed. ([#701](https://github.com/hyperwatch/hyperwatch/pull/701))
+- `webbotauth` verifies signatures as [draft-ietf-webbotauth-httpsig-protocol-01](https://datatracker.ietf.org/doc/draft-ietf-webbotauth-httpsig-protocol/) defines them: `alg` is optional and a nonce can have any length (the npm version of Cloudflare's `web-bot-auth` required both; it is now vendored at a protocol-01 commit, see `src/vendor/web-bot-auth/README.md`). A `Signature-Agent` sent as a bare URL (`https://ibou.io`) instead of a quoted string is read as that string. ([#699](https://github.com/hyperwatch/hyperwatch/pull/699), [#704](https://github.com/hyperwatch/hyperwatch/pull/704))
+- `webbotauth` finds keys by their `kid` when the directory gives one: Google signs with its own `kid`, not the key's thumbprint. ([#698](https://github.com/hyperwatch/hyperwatch/pull/698))
+- The `/webbotauth` table shows each signer by its host in a `domain` column (was `agent`, with the origin), marks `verified` with ✓ in HTML, and keeps `detail` for JSON and CSV only. Logs keep `webbotauth.agent` as the origin. ([#697](https://github.com/hyperwatch/hyperwatch/pull/697), [#706](https://github.com/hyperwatch/hyperwatch/pull/706))
+
+### Identities
+
+- A verified Web Bot Auth signature of ChatGPT Agent (`https://chatgpt.com`), Google Agent (`https://agent.bot.goog`), ExaUser, DuckDuckBot, Octen, Ison, PostHog, Substack or Parallel's Shap-User identifies the request whatever its user agent. New identities: **ChatGPT Agent**, **Octen**, **Ison**, **PostHog**, **Substack**. ([#696](https://github.com/hyperwatch/hyperwatch/pull/696), [#698](https://github.com/hyperwatch/hyperwatch/pull/698), [#705](https://github.com/hyperwatch/hyperwatch/pull/705))
+- A verified signature of `https://ibou.io` is one more proof for Babbar (Barkrowler) and ibou (ibou-search). ([#704](https://github.com/hyperwatch/hyperwatch/pull/704))
+- Rules check hostname, then signature, then address ranges, the cheapest first; results are unchanged. ([#696](https://github.com/hyperwatch/hyperwatch/pull/696))
+- Published ranges and keys refreshed: GitHub (12 ranges added, 5 removed) and a second Naver key. ([#707](https://github.com/hyperwatch/hyperwatch/pull/707))
+
+### Dependencies & tooling
+
+- `web-bot-auth` is no longer a dependency (vendored); dependabot bumps of `structured-headers`, `ws` and `eslint-plugin-import-x`. A CI job checks the published declarations (`npm run types:test`). ([#695](https://github.com/hyperwatch/hyperwatch/pull/695), [#702](https://github.com/hyperwatch/hyperwatch/pull/702), [#680](https://github.com/hyperwatch/hyperwatch/pull/680), [#701](https://github.com/hyperwatch/hyperwatch/pull/701))
+
 ## 5.5.0 (2026-11-10)
 
 ### Features
