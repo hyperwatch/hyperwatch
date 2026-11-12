@@ -31,6 +31,44 @@ const requires = {
   'jsonwebkey-thumbprint': './jsonwebkey-thumbprint.cjs',
 };
 
+// Hyperwatch's changes to the built files, applied after the requires are
+// rewritten (see src/vendor/web-bot-auth/README.md). Each `find` must occur
+// exactly once, or the script stops: check the patch against the new commit.
+const patches = {
+  'index.cjs': [
+    {
+      // Some robots (Babbar's) send their legacy Signature-Agent as a bare
+      // URL instead of a structured-field string: https://ibou.io rather than
+      // "https://ibou.io". Accept it as that string. The signature still
+      // covers the header as sent.
+      find: '\t\ttry {\n\t\t\tconst [uri, params] = (0, structured_headers.parseItem)(header);',
+      replace:
+        '\t\tif (/^https:\\/\\/[^\\s"(),;<>\\\\]+$/.test(header)) try {\n' +
+        '\t\t\tvalidateDiscoveryURI(header);\n' +
+        '\t\t\treturn {\n' +
+        '\t\t\t\tkind: "legacy",\n' +
+        '\t\t\t\tentries: [{\n' +
+        '\t\t\t\t\tlabel: "",\n' +
+        '\t\t\t\t\turi: header\n' +
+        '\t\t\t\t}]\n' +
+        '\t\t\t};\n' +
+        '\t\t} catch {}\n' +
+        '\t\ttry {\n\t\t\tconst [uri, params] = (0, structured_headers.parseItem)(header);',
+    },
+  ],
+};
+
+function applyPatches(name, code) {
+  for (const { find, replace } of patches[name] || []) {
+    const count = code.split(find).length - 1;
+    if (count !== 1) {
+      throw new Error(`Patch for ${name} found ${count} times instead of once`);
+    }
+    code = code.replace(find, () => replace);
+  }
+  return code;
+}
+
 function run(command, args, cwd) {
   return execFileSync(command, args, {
     cwd,
@@ -96,7 +134,7 @@ function main() {
           .split(`from "${name}"`)
           .join(`from "${relative}"`);
       }
-      fs.writeFileSync(path.join(vendorDir, to), code);
+      fs.writeFileSync(path.join(vendorDir, to), applyPatches(to, code));
     }
     fs.copyFileSync(
       path.join(repo, 'LICENSE'),

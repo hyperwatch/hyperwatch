@@ -543,8 +543,9 @@ function augment(log) {
         ? log.set('identity', 'Shenma')
         : log;
     case 'Barkrowler':
-      // https://babbar.tech/
+      // https://babbar.tech/, signing as https://ibou.io
       return hostnameMatches(verifiedHostname, 'c*.babbar.eu') ||
+        signedBy(log, 'https://ibou.io') ||
         (address && barkrowlerCidrs(address))
         ? log.set('identity', 'Babbar')
         : log;

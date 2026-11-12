@@ -104,6 +104,14 @@
       "x": "UBcHds6G9U6NdwxowlyGODfY12d2BDihT5pbPmfZOc8"
     }
   ],
+  "https://ibou.io": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "jbJm-w9yk_-E92aQTc6H9mpIgwwakFO3sFZeGTRgfJo",
+      "kid": "Dx8uGw1Um6z46pxcPQvlaj2_uLPeBvkeYPzV2Pbhmck"
+    }
+  ],
   "https://images.crawler.exa.ai": [
     {
       "kty": "OKP",
