@@ -904,6 +904,7 @@ describe('identity', () => {
       ['https://us.posthog.com', 'PostHog'],
       ['https://substack.com', 'Substack'],
       ['https://agent.bot.goog', 'Google Agent'],
+      ['https://shap-user.parallel.ai', 'Parallel'],
     ]) {
       it(`should identify any user agent by a verified signature of ${agent}`, () => {
         for (const family of ['Chrome', 'curl', undefined]) {

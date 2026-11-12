@@ -154,6 +154,20 @@
       "x": "t_iaNPu2RFGwTpzVDF4WQssq3hI8JSWL8q_TKih0LpE"
     }
   ],
+  "https://shap-user.parallel.ai": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "x_gQl0oFhGHOy7yMocVHBGPYm5SW0ZOfpV6_QNOrrFw",
+      "kid": "9kBKG6CAwGclu7-NuEWz99RHbeGBntAxP_M_XXzGHcA"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "nAVXgP7w9zKGPK6SDsf1bGxRgESEFKsESf_J16SUBFg",
+      "kid": "FWZGVYQijQwFWV_SbrP8ln24S_KTNmqnmhZA6Na6hr0"
+    }
+  ],
   "https://shapbot.parallel.ai": [
     {
       "kty": "OKP",
