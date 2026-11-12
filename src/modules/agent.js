@@ -1,4 +1,3 @@
-// @ts-expect-error -- @hyperwatch/useragent ships no types: any
 const useragent = require('@hyperwatch/useragent');
 const { fromJS } = require('immutable');
 
@@ -9,17 +8,9 @@ const pipeline = require('../lib/pipeline');
 const { safeHtml } = require('../lib/util');
 
 /**
- * A user agent parsed by @hyperwatch/useragent, as `agent` in logs (declared
- * here: the package has no types)
- * @typedef {object} Agent
- * @property {string | null} family `Other` when unknown
- * @property {string | null} major
- * @property {string | null} minor
- * @property {string | null} patch
- * @property {string | null} patch_minor
- * @property {string} [type]
- * @property {{ family: string | null, major: string | null, minor: string | null, patch: string | null, patch_minor: string | null }} [os]
- * @property {{ family: string | null, brand: string | null, model: string | null }} [device]
+ * A user agent parsed by @hyperwatch/useragent, in its JSON form, as `agent`
+ * in logs (`family` is `Other` when unknown)
+ * @typedef {import('@hyperwatch/useragent').AgentJSON} Agent
  */
 
 /**

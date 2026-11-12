@@ -25,7 +25,7 @@ Identities are checked against the address lists operators publish (`src/data/*-
 
 ## Types
 
-The sources are JavaScript with JSDoc types, checked by TypeScript (`checkJs`, `strict`): `npm run type:check` must pass, as in CI. Every parameter needs a type; `any` only for genuinely dynamic values (Immutable `getIn` values, parsed JSON, untyped packages), `catch (/** @type {any} */ err)` where the error's fields are read. `@hyperwatch/useragent` ships no types yet: its `require` in `src/modules/agent.js` has a `@ts-expect-error`, to remove once it does.
+The sources are JavaScript with JSDoc types, checked by TypeScript (`checkJs`, `strict`): `npm run type:check` must pass, as in CI. Every parameter needs a type; `any` only for genuinely dynamic values (Immutable `getIn` values, parsed JSON, untyped packages), `catch (/** @type {any} */ err)` where the error's fields are read.
 
 - Type options objects and anything public with JSDoc (`@param`, `@returns`, `@typedef`). Shared types (`Log`, `Config`, `ModuleConfig`, `Abortable`) are in `src/types.js`.
 - `npm run types` generates the declarations the package publishes (`types/`, not committed; `prepack` runs it). `npm run types:test` packs the package, installs it in a temporary project with its dependencies only, and type-checks `test/types/consumer.ts` and every published declaration, strict and without `skipLibCheck`: add a line to `consumer.ts` when the public API changes, and an `@ts-expect-error` for what must be rejected.
