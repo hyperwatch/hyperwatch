@@ -16,10 +16,12 @@ function ignoreError() {
 
 // Compare addresses in canonical form: DNS and logs may write the same IPv6
 // address differently (zero compression, case)
+/** @param {string} ip */
 function canonical(ip) {
   return net.isIPv6(ip) ? new URL(`http://[${ip}]`).hostname : ip;
 }
 
+/** @param {string | undefined} hostname */
 function isValid(hostname) {
   return (
     hostname &&

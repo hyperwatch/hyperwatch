@@ -70,6 +70,7 @@ app.get('/nodes{.:format}', (req, res) => {
 // The pipeline tree: inputs, nodes and what runs on them
 html.registerSection('pipeline');
 app.get('/pipeline', (req, res) => {
+  /** @param {string} status */
   const statusFor = (status) =>
     fillHost(status, (scheme) => escapeHtml(html.baseAddress(req, scheme)));
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -106,8 +107,11 @@ function streamToHttp(
     header,
   } = {}
 ) {
+  // [req, res, queue] by request id, see below
+  /** @type {Record<string, [Request, Response, Log[] | null]>} */
   const requests = {};
 
+  /** @type {import('../lib/monitoring').MonitoringItem | undefined} */
   let monitor;
   if (monitoringEnabled) {
     monitor = monitoring.register({
@@ -134,11 +138,16 @@ function streamToHttp(
 
   // ?identity=, ?signature=, ?address= keep matching logs, ?grep= lines
   // including the given text
+  /**
+   * @param {Request} req
+   * @param {Response} res
+   * @param {Log} log
+   */
   const writeLog = (req, res, log) => {
     if (!logMatches(log, req.query)) {
       return;
     }
-    const grep = req.query.grep;
+    const grep = /** @type {string | undefined} */ (req.query.grep);
     const line = formatter.format(log, 'html');
     if (!grep || line.includes(grep)) {
       res.write(html.streamLine(line));
@@ -173,6 +182,7 @@ function streamToHttp(
       const limit = parseInt(String(req.query.history), 10);
       const logs = history(limit >= 0 ? limit : 100, req.query);
       if (isPromise(logs)) {
+        /** @type {Log[]} */
         const queue = [];
         requests[requestId][2] = queue;
         logs
@@ -218,6 +228,7 @@ function streamToHttp(
 
 // ?filter=identified or ?filter=unidentified, on aggregators registered with
 // identityFilter (their entries have an identity)
+/** @type {Map<string, (entry: import('../lib/aggregator').Entry) => boolean>} */
 const identityFilters = new Map([
   ['identified', (entry) => !!entry.get('identity')],
   ['unidentified', (entry) => !entry.get('identity')],
@@ -259,7 +270,8 @@ function registerAggregator(name, aggregator, htmlOptions = {}) {
 
     const data = aggregator.getData({
       sort,
-      limit,
+      // The query's value as is (a string when given)
+      limit: /** @type {number} */ (limit),
       format: format === 'csv' ? 'json' : format,
       raw,
       filter: htmlOptions.identityFilter
@@ -314,5 +326,7 @@ function isPromise(value) {
 }
 
 /** @typedef {import('../types').Log} Log */
+/** @typedef {import('express').Request} Request */
+/** @typedef {import('express').Response} Response */
 
 module.exports = Object.assign(app, { streamToHttp, registerAggregator });

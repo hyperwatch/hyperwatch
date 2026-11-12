@@ -11,15 +11,60 @@ const {
   networkAddress,
 } = require('../cidr');
 
+/** @typedef {import('../../types').Log} Log */
+
+/** @typedef {'ip' | 'user_agent'} ListType */
+/** @typedef {'block' | 'challenge' | 'monitor'} ListAction */
+
+/**
+ * An entry of a list: `value` (an IP, CIDR or user agent, in canonical form
+ * once validated), then free-form metadata.
+ * @typedef {object} ListEntry
+ * @property {string} value
+ * @property {string} [reason]
+ * @property {string} [added] The day it was added (YYYY-MM-DD)
+ * @property {string} [source]
+ */
+
+/**
+ * A firewall list (see docs/firewall.md)
+ * @typedef {object} List
+ * @property {string} id
+ * @property {ListType} type
+ * @property {ListAction} action
+ * @property {'eq' | 'contains'} [match] user_agent lists only (default eq)
+ * @property {string} [description]
+ * @property {{ rule_id: string }} [cloudflare] The custom rule it owns
+ * @property {ListEntry[]} entries
+ */
+
+/**
+ * The lists document (firewall.json): `lists`, and whatever else it holds
+ * @typedef {{ lists: List[], [key: string]: unknown }} ListsDocument
+ */
+
+/**
+ * What a log matched: the first matching list, its action and the value
+ * @typedef {{ list: string, action: ListAction, value: string }} Match
+ */
+
+/** @type {unknown[]} */
 const TYPES = ['ip', 'user_agent'];
+/** @type {unknown[]} */
 const ACTIONS = ['block', 'challenge', 'monitor'];
+/** @type {unknown[]} */
 const UA_MATCHES = ['eq', 'contains'];
 
 // Cloudflare action for each list action; monitor has no edge equivalent on
 // the Pro plan (no `log` action), so monitor lists stay local-only.
+/** @type {Partial<Record<ListAction, string>>} */
 const CLOUDFLARE_ACTIONS = { block: 'block', challenge: 'managed_challenge' };
 
 // RFC 5952 form for IPv6 (lowercase, zeros compressed); IPv4 unchanged
+/**
+ * @param {string} address
+ * @returns {string}
+ */
 function canonicalAddress(address) {
   if (!address.includes(':')) {
     return address;
@@ -29,6 +74,10 @@ function canonicalAddress(address) {
 
 // The address a client really has: an IPv4 client seen through a dual-stack
 // socket (::ffff:192.0.2.1) is that IPv4 address
+/**
+ * @param {string} address
+ * @returns {string}
+ */
 function clientAddress(address) {
   const canonical = canonicalAddress(address);
   const mapped = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(canonical);
@@ -41,6 +90,10 @@ function clientAddress(address) {
 
 // Canonical form of an IP or CIDR, so the same value written differently
 // locally and in Cloudflare compares equal. Throws on invalid input.
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
 function canonicalIp(value) {
   if (typeof value !== 'string' || value.trim() !== value || !value) {
     throw new Error(`invalid IP "${value}"`);
@@ -77,6 +130,10 @@ function canonicalIp(value) {
   return `${network}/${prefix}`;
 }
 
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
 function canonicalUserAgent(value) {
   // eslint-disable-next-line no-control-regex
   if (typeof value !== 'string' || !value || /[\x00-\x1f\x7f]/.test(value)) {
@@ -85,12 +142,19 @@ function canonicalUserAgent(value) {
   return value;
 }
 
+/**
+ * @param {ListType} type
+ * @param {unknown} value
+ * @returns {string}
+ */
 const canonicalValue = (type, value) =>
   type === 'ip' ? canonicalIp(value) : canonicalUserAgent(value);
 
 /**
  * Validate a parsed firewall.json and return it with every entry value in
  * canonical form. Throws with a message naming the offending list/entry.
+ * @param {any} data Parsed JSON, not validated yet
+ * @returns {ListsDocument}
  */
 function validate(data) {
   if (!data || typeof data !== 'object' || !Array.isArray(data.lists)) {
@@ -100,88 +164,102 @@ function validate(data) {
   // Cloudflare rule id -> the list linked to it: one list per rule, or each
   // list's sync would overwrite the other's changes to the rule
   const rules = new Map();
-  const lists = data.lists.map((list, i) => {
-    const where = `firewall: list ${list && list.id ? `"${list.id}"` : `#${i}`}`;
-    if (!list || typeof list !== 'object') {
-      throw new Error(`${where}: expected an object`);
-    }
-    if (typeof list.id !== 'string' || !list.id) {
-      throw new Error(`${where}: missing "id"`);
-    }
-    if (ids.has(list.id)) {
-      throw new Error(`${where}: duplicate id`);
-    }
-    ids.add(list.id);
-    if (!TYPES.includes(list.type)) {
-      throw new Error(`${where}: "type" must be one of ${TYPES.join(', ')}`);
-    }
-    if (!ACTIONS.includes(list.action)) {
-      throw new Error(
-        `${where}: "action" must be one of ${ACTIONS.join(', ')}`
-      );
-    }
-    if (list.type === 'user_agent' && list.match !== undefined) {
-      if (!UA_MATCHES.includes(list.match)) {
+  const lists = data.lists.map(
+    (/** @type {any} */ list, /** @type {number} */ i) => {
+      const where = `firewall: list ${list && list.id ? `"${list.id}"` : `#${i}`}`;
+      if (!list || typeof list !== 'object') {
+        throw new Error(`${where}: expected an object`);
+      }
+      if (typeof list.id !== 'string' || !list.id) {
+        throw new Error(`${where}: missing "id"`);
+      }
+      if (ids.has(list.id)) {
+        throw new Error(`${where}: duplicate id`);
+      }
+      ids.add(list.id);
+      if (!TYPES.includes(list.type)) {
+        throw new Error(`${where}: "type" must be one of ${TYPES.join(', ')}`);
+      }
+      if (!ACTIONS.includes(list.action)) {
         throw new Error(
-          `${where}: "match" must be one of ${UA_MATCHES.join(', ')}`
+          `${where}: "action" must be one of ${ACTIONS.join(', ')}`
         );
       }
+      if (list.type === 'user_agent' && list.match !== undefined) {
+        if (!UA_MATCHES.includes(list.match)) {
+          throw new Error(
+            `${where}: "match" must be one of ${UA_MATCHES.join(', ')}`
+          );
+        }
+      }
+      if (list.cloudflare !== undefined) {
+        if (
+          !list.cloudflare ||
+          typeof list.cloudflare.rule_id !== 'string' ||
+          !list.cloudflare.rule_id
+        ) {
+          throw new Error(`${where}: "cloudflare.rule_id" is required`);
+        }
+        if (!CLOUDFLARE_ACTIONS[/** @type {ListAction} */ (list.action)]) {
+          throw new Error(
+            `${where}: "${list.action}" lists can't be linked to Cloudflare`
+          );
+        }
+        if (rules.has(list.cloudflare.rule_id)) {
+          throw new Error(
+            `${where}: Cloudflare rule "${list.cloudflare.rule_id}" is already linked to list "${rules.get(list.cloudflare.rule_id)}"`
+          );
+        }
+        rules.set(list.cloudflare.rule_id, list.id);
+      }
+      if (!Array.isArray(list.entries)) {
+        throw new Error(`${where}: "entries" must be an array`);
+      }
+      const seen = new Set();
+      const entries = list.entries.map((/** @type {any} */ entry) => {
+        if (!entry || typeof entry !== 'object') {
+          throw new Error(`${where}: entries must be objects with a "value"`);
+        }
+        let value;
+        try {
+          value = canonicalValue(list.type, entry.value);
+        } catch (/** @type {any} */ err) {
+          throw new Error(`${where}: ${err.message}`, { cause: err });
+        }
+        if (seen.has(value)) {
+          throw new Error(`${where}: duplicate entry "${value}"`);
+        }
+        seen.add(value);
+        return { ...entry, value };
+      });
+      return { ...list, entries };
     }
-    if (list.cloudflare !== undefined) {
-      if (
-        !list.cloudflare ||
-        typeof list.cloudflare.rule_id !== 'string' ||
-        !list.cloudflare.rule_id
-      ) {
-        throw new Error(`${where}: "cloudflare.rule_id" is required`);
-      }
-      if (!CLOUDFLARE_ACTIONS[list.action]) {
-        throw new Error(
-          `${where}: "${list.action}" lists can't be linked to Cloudflare`
-        );
-      }
-      if (rules.has(list.cloudflare.rule_id)) {
-        throw new Error(
-          `${where}: Cloudflare rule "${list.cloudflare.rule_id}" is already linked to list "${rules.get(list.cloudflare.rule_id)}"`
-        );
-      }
-      rules.set(list.cloudflare.rule_id, list.id);
-    }
-    if (!Array.isArray(list.entries)) {
-      throw new Error(`${where}: "entries" must be an array`);
-    }
-    const seen = new Set();
-    const entries = list.entries.map((entry) => {
-      if (!entry || typeof entry !== 'object') {
-        throw new Error(`${where}: entries must be objects with a "value"`);
-      }
-      let value;
-      try {
-        value = canonicalValue(list.type, entry.value);
-      } catch (err) {
-        throw new Error(`${where}: ${err.message}`, { cause: err });
-      }
-      if (seen.has(value)) {
-        throw new Error(`${where}: duplicate entry "${value}"`);
-      }
-      seen.add(value);
-      return { ...entry, value };
-    });
-    return { ...list, entries };
-  });
+  );
   return { ...data, lists };
 }
 
 // Validated lists from a firewall.json document
+/**
+ * @param {string} body
+ * @returns {ListsDocument}
+ */
 function parse(body) {
   return validate(JSON.parse(body));
 }
 
+/**
+ * @param {string} path
+ * @returns {ListsDocument}
+ */
 function load(path) {
   return parse(fs.readFileSync(path, 'utf8'));
 }
 
 // Stable output: entries sorted by value so diffs stay readable
+/**
+ * @param {ListsDocument} data
+ * @returns {string}
+ */
 function serialize(data) {
   const lists = data.lists.map((list) => ({
     ...list,
@@ -193,12 +271,20 @@ function serialize(data) {
 }
 
 // Atomic write: a reader (or fs.watchFile) never sees a partial file
+/**
+ * @param {string} path
+ * @param {ListsDocument} data
+ */
 function save(path, data) {
   const tmp = `${path}.tmp`;
   fs.writeFileSync(tmp, serialize(validate(data)));
   fs.renameSync(tmp, path);
 }
 
+/**
+ * @param {List} list
+ * @returns {(log: Log) => string | null}
+ */
 function compileList(list) {
   if (list.type === 'ip') {
     const values = list.entries.map((entry) => entry.value);
@@ -209,8 +295,9 @@ function compileList(list) {
       values.filter((value) => value.includes('/'))
     );
     return (log) => {
-      const address =
-        log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
+      const address = /** @type {string | undefined} */ (
+        log.getIn(['address', 'value']) || log.getIn(['request', 'address'])
+      );
       if (!address || !isValidAddress(address)) {
         return null;
       }
@@ -236,8 +323,15 @@ function compileList(list) {
   };
 }
 
+/**
+ * @param {Log} log
+ * @returns {string | null | undefined}
+ */
 function userAgent(log) {
-  const headers = log.getIn(['request', 'headers']);
+  const headers =
+    /** @type {import('immutable').Map<string, string> | undefined} */ (
+      log.getIn(['request', 'headers'])
+    );
   if (!headers) {
     return null;
   }
@@ -252,6 +346,8 @@ function userAgent(log) {
 /**
  * Compile validated lists into a single matcher. Returns
  * `(log) => { list, action, value } | null`, first matching list wins.
+ * @param {ListsDocument} data
+ * @returns {(log: Log) => Match | null}
  */
 function compile(data) {
   const matchers = data.lists.map((list) => ({
@@ -269,6 +365,11 @@ function compile(data) {
   };
 }
 
+/**
+ * @param {ListsDocument} data
+ * @param {string} listId
+ * @returns {List}
+ */
 function findList(data, listId) {
   const list = data.lists.find((l) => l.id === listId);
   if (!list) {
@@ -282,6 +383,10 @@ const today = () => new Date().toISOString().slice(0, 10);
 /**
  * Return a copy of `data` with `value` added to `listId`. Adding a value
  * that is already present is a no-op.
+ * @param {ListsDocument} data
+ * @param {string} listId
+ * @param {{ value?: unknown, reason?: string, source?: string }} entry
+ * @returns {ListsDocument}
  */
 function addEntry(data, listId, { value, reason, source }) {
   const list = findList(data, listId);
@@ -289,6 +394,7 @@ function addEntry(data, listId, { value, reason, source }) {
   if (list.entries.some((entry) => entry.value === canonical)) {
     return data;
   }
+  /** @type {ListEntry} */
   const entry = { value: canonical, added: today() };
   if (reason) {
     entry.reason = reason;
@@ -300,6 +406,12 @@ function addEntry(data, listId, { value, reason, source }) {
 }
 
 // Return a copy of `data` without `value` in `listId`
+/**
+ * @param {ListsDocument} data
+ * @param {string} listId
+ * @param {unknown} value
+ * @returns {ListsDocument}
+ */
 function removeEntry(data, listId, value) {
   const list = findList(data, listId);
   const canonical = canonicalValue(list.type, value);
@@ -309,6 +421,11 @@ function removeEntry(data, listId, value) {
   });
 }
 
+/**
+ * @param {ListsDocument} data
+ * @param {List} list
+ * @returns {ListsDocument}
+ */
 function replaceList(data, list) {
   return {
     ...data,

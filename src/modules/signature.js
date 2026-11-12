@@ -16,6 +16,7 @@ const {
 
 const { agentFormat } = require('./agent');
 
+/** @type {Record<string, string>} */
 const identityHeaders = {
   accept: 'Accept',
   'accept-charset': 'Accept-Charset',
@@ -26,12 +27,18 @@ const identityHeaders = {
   'user-agent': 'User-Agent',
 };
 
+/**
+ * @param {Record<string, string>} headers
+ * @returns {Record<string, string>}
+ */
 function normalisedIdentityHeader(headers) {
+  /** @type {Record<string, string>} */
   const lowerCaseHeaders = {};
   Object.keys(headers).forEach((key) => {
     lowerCaseHeaders[key.toLowerCase()] = headers[key];
   });
 
+  /** @type {Record<string, string>} */
   const obj = {};
   Object.keys(identityHeaders).forEach((key) => {
     if (Object.prototype.hasOwnProperty.call(lowerCaseHeaders, key)) {
@@ -43,10 +50,13 @@ function normalisedIdentityHeader(headers) {
   return obj;
 }
 
+/** @type {Sorter} */
 const addressCount15m = (entry) => countRecent(entry.get('addresses'), 15 * 60);
+/** @type {Sorter} */
 const addressCount24h = (entry) => countRecent(entry.get('addresses'));
 
 // Addresses and headers come from requests: escaped in HTML
+/** @type {Format} */
 const addressesFormat = (entry, output) => {
   if (!entry.has('addresses')) {
     return '';
@@ -55,11 +65,14 @@ const addressesFormat = (entry, output) => {
     .get('addresses')
     .keySeq()
     .slice(0, 10)
-    .map((address) => (output === 'html' ? escapeHtml(address) : address))
+    .map((/** @type {string} */ address) =>
+      output === 'html' ? escapeHtml(address) : address
+    )
     .join('<br>');
   return output === 'html' ? safeHtml(addresses) : addresses;
 };
 
+/** @type {Format} */
 const headersFormat = (entry, output) => {
   const headers = Object.entries(entry.getIn(['signature', 'headers']) || {})
     .map((header) => header.join(':'))
@@ -68,6 +81,7 @@ const headersFormat = (entry, output) => {
   return output === 'html' ? safeHtml(headers) : headers;
 };
 
+/** @param {Record<string, string>} headers */
 function computeSignature(headers) {
   const string = Object.keys(headers)
     .map((key) => [key, headers[key]].join(':'))
@@ -78,13 +92,18 @@ function computeSignature(headers) {
 
 // The headers a signature is computed from (Accept, User-Agent…), as a plain
 // object
+/** @param {Log} log */
 function signatureHeaders(log) {
-  const headers = log.getIn(['request', 'headers']);
+  const headers =
+    /** @type {import('immutable').Map<string, string> | undefined} */ (
+      log.getIn(['request', 'headers'])
+    );
   return normalisedIdentityHeader(headers ? headers.toJS() : {});
 }
 
 // Logs only carry the signature id: its headers are in request.headers, and
 // the signatures aggregator keeps them once per signature
+/** @param {Log} log */
 function augment(log) {
   return log.setIn(
     ['signature', 'id'],
@@ -96,6 +115,7 @@ function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 }
 
+/** @type {Aggregator | undefined} */
 let _aggregator;
 
 function start() {
@@ -148,6 +168,7 @@ function start() {
 
   aggregator.setFormatter(signatureFormatter);
 
+  /** @type {Enricher} */
   const enricher = (entry, log) => {
     for (const field of ['identity', 'agent']) {
       if (log.has(field) && !is(log.get(field), entry.get(field))) {
@@ -175,7 +196,10 @@ function start() {
     // and 24h counts
     const value = address && address.get('value');
     if (value) {
-      entry = entry.update('addresses', (map) => touch(map, value));
+      entry = entry.update(
+        'addresses',
+        (/** @type {RecentMap | undefined} */ map) => touch(map, value)
+      );
     }
 
     return entry;
@@ -218,3 +242,9 @@ module.exports = {
     return _aggregator;
   },
 };
+
+/** @typedef {import('../types').Log} Log */
+/** @typedef {import('../lib/aggregator').Enricher} Enricher */
+/** @typedef {import('../lib/aggregator').Sorter} Sorter */
+/** @typedef {import('../lib/formatter').Format} Format */
+/** @typedef {import('../lib/recent-map').RecentMap} RecentMap */

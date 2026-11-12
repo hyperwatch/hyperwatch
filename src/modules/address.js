@@ -7,14 +7,19 @@ const pipeline = require('../lib/pipeline');
 const { touch, prune, countRecent } = require('../lib/recent-map');
 const { safeHtml, toHtml } = require('../lib/util');
 
+/** @type {Identifier} */
 const identifier = (log) => log.getIn(['address', 'value']);
 
+/** @type {Sorter} */
 const signatureCount15m = (entry) =>
   countRecent(entry.get('signatures'), 15 * 60);
+/** @type {Sorter} */
 const signatureCount24h = (entry) => countRecent(entry.get('signatures'));
 
+/** @type {Aggregator | undefined} */
 let aggregator;
 
+/** @param {Log} log */
 function fill(log) {
   if (!log.hasIn(['address', 'value'])) {
     log = log.setIn(['address', 'value'], log.getIn(['request', 'address']));
@@ -31,6 +36,7 @@ function start() {
 
   aggregator.setIdentifier(identifier);
 
+  /** @type {Enricher} */
   const enricher = (entry, log) => {
     for (const field of [
       'address',
@@ -50,9 +56,14 @@ function start() {
 
     // Distinct signature IDs with last-seen time, pruned to 24h; backs both
     // the 15m and 24h counts
-    const signatureId = log.getIn(['signature', 'id']);
+    const signatureId = /** @type {string | undefined} */ (
+      log.getIn(['signature', 'id'])
+    );
     if (signatureId) {
-      entry = entry.update('signatures', (map) => touch(map, signatureId));
+      entry = entry.update(
+        'signatures',
+        (/** @type {RecentMap | undefined} */ map) => touch(map, signatureId)
+      );
     }
 
     return entry;
@@ -95,7 +106,9 @@ function start() {
 
   // In HTML, addresses link to their logs
   formatter.replaceFormat('address', (entry, output) => {
-    const address = entry.getIn(['address', 'value']) || '';
+    const address = /** @type {string} */ (
+      entry.getIn(['address', 'value']) || ''
+    );
     return output === 'html'
       ? safeHtml(html.logsLink('address', address))
       : address;
@@ -113,7 +126,10 @@ function start() {
 
   pipeline
     .getNode('main')
-    .map((log) => aggregator.processLog(log), 'aggregator');
+    .map(
+      (log) => /** @type {Aggregator} */ (aggregator).processLog(log),
+      'aggregator'
+    );
 
   api.registerAggregator('addresses', aggregator, {
     nav: true,
@@ -137,3 +153,9 @@ module.exports = {
     return aggregator;
   },
 };
+
+/** @typedef {import('../types').Log} Log */
+/** @typedef {import('../lib/aggregator').Enricher} Enricher */
+/** @typedef {import('../lib/aggregator').Identifier} Identifier */
+/** @typedef {import('../lib/aggregator').Sorter} Sorter */
+/** @typedef {import('../lib/recent-map').RecentMap} RecentMap */

@@ -2,6 +2,14 @@ const { fromJS } = require('immutable');
 
 const app = require('../app/api');
 
+/**
+ * @param {object} options
+ * @param {string} [options.name]
+ * @param {string} options.path The path where to listen for logs
+ * @param {(message: any) => Log} [options.parse] Parses a message of the
+ *   request's body (parsed JSON) into a log
+ * @returns {Input}
+ */
 function create({ name = 'HTTP server', path, parse = fromJS }) {
   return {
     name: name,
@@ -31,3 +39,6 @@ function create({ name = 'HTTP server', path, parse = fromJS }) {
 module.exports = {
   create: create,
 };
+
+/** @typedef {import('../types').Log} Log */
+/** @typedef {import('../lib/pipeline').Input} Input */

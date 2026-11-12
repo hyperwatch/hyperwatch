@@ -5,6 +5,23 @@ const pipeline = require('../lib/pipeline');
 
 const debugModules = debug('hyperwatch:modules');
 
+/**
+ * A module, as the modules below export it: what it registers in the pipeline
+ * at `init()`, what it starts at `start()`, what it loads asynchronously
+ * (`ready()`) and stops (`stop()`), and `augment()`, which adds its data to
+ * a log (`fast`: with what it has in cache only). All optional.
+ * @typedef {object} Module
+ * @property {() => void} [init]
+ * @property {() => void} [start]
+ * @property {() => Promise<unknown>} [ready]
+ * @property {() => unknown} [stop]
+ * @property {(log: Log, options?: { fast?: boolean }) => Log | Promise<Log>} [augment]
+ */
+
+/**
+ * @param {string} module The name of a module
+ * @returns {Module | undefined}
+ */
 function get(module) {
   switch (module) {
     case 'address':
@@ -42,16 +59,21 @@ function get(module) {
 }
 
 function activeModulesWithKeys() {
+  // Every module has a priority in the defaults (src/constants.js)
   return Object.keys(constants.modules)
     .map((key) => Object.assign({ key }, constants.modules[key]))
-    .sort((a, b) => a.priority - b.priority)
+    .sort(
+      (a, b) =>
+        /** @type {number} */ (a.priority) - /** @type {number} */ (b.priority)
+    )
     .filter((m) => m.active === true)
     .map((m) => ({ key: m.key, module: get(m.key) }))
     .filter((m) => m.module);
 }
 
 function activeModules() {
-  return activeModulesWithKeys().map((m) => m.module);
+  // Filtered by activeModulesWithKeys()
+  return activeModulesWithKeys().map((m) => /** @type {Module} */ (m.module));
 }
 
 function init() {
@@ -80,7 +102,9 @@ function ready() {
   return Promise.all(
     activeModules()
       .filter((module) => module.ready)
-      .map((module) => module.ready())
+      .map((module) =>
+        /** @type {NonNullable<Module['ready']>} */ (module.ready)()
+      )
   );
 }
 
@@ -90,12 +114,14 @@ async function stop() {
     if (module.stop) {
       try {
         await module.stop();
-      } catch (err) {
+      } catch (/** @type {any} */ err) {
         console.error('Error stopping a module:', err.message);
       }
     }
   }
 }
+
+/** @typedef {import('../types').Log} Log */
 
 module.exports = {
   get,

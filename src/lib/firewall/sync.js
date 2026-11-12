@@ -10,13 +10,74 @@ const expression = require('../cloudflare/expression');
 
 const { CLOUDFLARE_ACTIONS, canonicalValue, today } = require('./lists');
 
-const LOCAL_ACTIONS = Object.fromEntries(
-  Object.entries(CLOUDFLARE_ACTIONS).map(([local, remote]) => [remote, local])
+/** @typedef {import('./lists').List} List */
+/** @typedef {import('./lists').ListAction} ListAction */
+/** @typedef {import('./lists').ListsDocument} ListsDocument */
+/** @typedef {import('../cloudflare/client').CloudflareClient} CloudflareClient */
+/** @typedef {import('../cloudflare/client').CloudflareRule} CloudflareRule */
+/** @typedef {import('../cloudflare/client').CloudflareRuleset} CloudflareRuleset */
+/** @typedef {import('../cloudflare/client').RulePatch} RulePatch */
+
+/** @typedef {'up' | 'down'} Direction */
+
+/**
+ * A list linked to a Cloudflare custom rule
+ * @typedef {List & { cloudflare: { rule_id: string } }} LinkedList
+ */
+
+/**
+ * What both sides agreed on for a list at its last sync
+ * @typedef {object} ListSyncState
+ * @property {string} rule_id
+ * @property {string} [version] The rule's version
+ * @property {string[]} values
+ * @property {string} [synced_at]
+ */
+
+/**
+ * The sync state (firewall.sync.json), by list id
+ * @typedef {{ lists: Record<string, ListSyncState> }} SyncState
+ */
+
+/** @typedef {{ add: string[], remove: string[] }} ValueChanges */
+
+/**
+ * What a sync does to one list, then (apply) what it did
+ * @typedef {object} PlanItem
+ * @property {string} listId
+ * @property {string} ruleId
+ * @property {Direction} direction
+ * @property {string[]} errors
+ * @property {string[]} warnings
+ * @property {{ field: 'action' | 'description', local: string, remote: string | undefined }[]} conflicts
+ * @property {ValueChanges} toRemote Values to add to / remove from the rule (up)
+ * @property {ValueChanges} toLocal Values to add to / remove from the list (down)
+ * @property {string} [ruleVersion]
+ * @property {string} [ruleDescription]
+ * @property {List} [list] The list as `down` writes it
+ * @property {boolean} [localChanged]
+ * @property {string[]} [values] The new base
+ * @property {RulePatch} [patch] The rule as `up` writes it
+ * @property {string} [skipped]
+ * @property {boolean} [applied]
+ * @property {string} [newVersion]
+ */
+
+// Cloudflare action -> list action
+const LOCAL_ACTIONS = /** @type {Record<string, ListAction | undefined>} */ (
+  Object.fromEntries(
+    Object.entries(CLOUDFLARE_ACTIONS).map(([local, remote]) => [remote, local])
+  )
 );
 
 // Default sync state file: firewall.json -> firewall.sync.json
+/** @param {string} file */
 const defaultStatePath = (file) => `${file.replace(/\.json$/, '')}.sync.json`;
 
+/**
+ * @param {string} path
+ * @returns {SyncState}
+ */
 function loadState(path) {
   if (!fs.existsSync(path)) {
     return { lists: {} };
@@ -25,21 +86,36 @@ function loadState(path) {
   return state && state.lists ? state : { lists: {} };
 }
 
+/**
+ * @param {string} path
+ * @param {SyncState} state
+ */
 function saveState(path, state) {
   const tmp = `${path}.tmp`;
   fs.writeFileSync(tmp, `${JSON.stringify(state, null, 2)}\n`);
   fs.renameSync(tmp, path);
 }
 
+/** @type {unknown[]} */
 const DIRECTIONS = ['up', 'down'];
 
 // The saved state of a list, read and written as own properties: a list
 // named "__proto__" would otherwise set the prototype instead
+/**
+ * @param {SyncState} state
+ * @param {string} id
+ * @returns {ListSyncState | undefined}
+ */
 const savedState = (state, id) =>
   Object.prototype.hasOwnProperty.call(state.lists, id)
     ? state.lists[id]
     : undefined;
 
+/**
+ * @param {SyncState} state
+ * @param {string} id
+ * @param {ListSyncState} value
+ */
 const setSavedState = (state, id, value) =>
   Object.defineProperty(state.lists, id, {
     value,
@@ -69,15 +145,16 @@ const setSavedState = (state, id, value) =>
  * - only: optional list id to restrict the sync to
  */
 /**
- * @param {{ data: any, state: any, ruleset: any, direction: 'up' | 'down', only?: string }} options
+ * @param {{ data: ListsDocument, state: SyncState, ruleset: CloudflareRuleset, direction: Direction, only?: string }} options
+ * @returns {PlanItem[]}
  */
 function plan({ data, state, ruleset, direction, only }) {
   if (!DIRECTIONS.includes(direction)) {
     throw new Error('firewall: sync direction must be "up" or "down"');
   }
   const rules = new Map((ruleset.rules || []).map((rule) => [rule.id, rule]));
-  const lists = data.lists.filter(
-    (list) => list.cloudflare && (!only || list.id === only)
+  const lists = /** @type {LinkedList[]} */ (
+    data.lists.filter((list) => list.cloudflare && (!only || list.id === only))
   );
   if (only && lists.length === 0) {
     throw new Error(`firewall: no Cloudflare-linked list "${only}"`);
@@ -87,7 +164,15 @@ function plan({ data, state, ruleset, direction, only }) {
   );
 }
 
+/**
+ * @param {LinkedList} list
+ * @param {CloudflareRule | undefined} rule
+ * @param {SyncState} state
+ * @param {Direction} direction
+ * @returns {PlanItem}
+ */
 function planList(list, rule, state, direction) {
+  /** @type {PlanItem} */
   const item = {
     listId: list.id,
     ruleId: list.cloudflare.rule_id,
@@ -117,7 +202,7 @@ function planList(list, rule, state, direction) {
   let remote;
   try {
     remote = new Set(parsed.values.map((v) => canonicalValue(list.type, v)));
-  } catch (err) {
+  } catch (/** @type {any} */ err) {
     item.errors.push(`Cloudflare rule has an ${err.message}`);
     return item;
   }
@@ -157,13 +242,24 @@ function planList(list, rule, state, direction) {
     : planUp(item, list, rule, { local, remote, base });
 }
 
+/**
+ * @typedef {{ local: Set<string>, remote: Set<string>, base: Set<string> }} ValueSets
+ */
+
+/**
+ * @param {PlanItem} item
+ * @param {List} list
+ * @param {CloudflareRule} rule
+ * @param {ValueSets} values
+ * @returns {PlanItem}
+ */
 function planDown(item, list, rule, { local, remote, base }) {
   item.toLocal = {
     add: [...remote].filter((v) => !base.has(v) && !local.has(v)).sort(),
     remove: [...local].filter((v) => base.has(v) && !remote.has(v)).sort(),
   };
 
-  const action = LOCAL_ACTIONS[rule.action];
+  const action = LOCAL_ACTIONS[/** @type {string} */ (rule.action)];
   if (!action) {
     item.errors.push(
       `Cloudflare action "${rule.action}" has no firewall list equivalent`
@@ -194,6 +290,13 @@ function planDown(item, list, rule, { local, remote, base }) {
   return item;
 }
 
+/**
+ * @param {PlanItem} item
+ * @param {List} list
+ * @param {CloudflareRule} rule
+ * @param {ValueSets} values
+ * @returns {PlanItem}
+ */
 function planUp(item, list, rule, { local, remote, base }) {
   item.toRemote = {
     add: [...local].filter((v) => !base.has(v) && !remote.has(v)).sort(),
@@ -241,7 +344,7 @@ function planUp(item, list, rule, { local, remote, base }) {
       if (rule.ref) {
         item.patch.ref = rule.ref;
       }
-    } catch (err) {
+    } catch (/** @type {any} */ err) {
       item.errors.push(err.message);
       return item;
     }
@@ -250,6 +353,7 @@ function planUp(item, list, rule, { local, remote, base }) {
   return item;
 }
 
+/** @param {PlanItem} item */
 const hasChanges = (item) => !!(item.patch || item.localChanged);
 
 /**
@@ -263,6 +367,16 @@ const hasChanges = (item) => !!(item.patch || item.localChanged);
  * - state: sync state, updated in place with the new base of each list synced
  *
  * Returns the plan items annotated with `applied` / `skipped` reasons.
+ * @param {PlanItem[]} items
+ * @param {{
+ *   client: Pick<CloudflareClient, 'getEntrypoint' | 'patchRule'>,
+ *   originalData: ListsDocument,
+ *   readData: () => ListsDocument | Promise<ListsDocument>,
+ *   writeData: (data: ListsDocument) => unknown,
+ *   state: SyncState,
+ *   signal?: AbortSignal,
+ * }} options
+ * @returns {Promise<{ items: PlanItem[], localWritten: boolean, state: SyncState }>}
  */
 async function apply(
   items,
@@ -298,7 +412,7 @@ async function apply(
         result = await client.patchRule(rulesetId, item.ruleId, item.patch, {
           signal,
         });
-      } catch (err) {
+      } catch (/** @type {any} */ err) {
         // Stopping: nothing more. Otherwise this rule fails alone, and the
         // updates already made are still recorded
         check();
@@ -355,7 +469,7 @@ async function apply(
     setSavedState(state, item.listId, {
       rule_id: item.ruleId,
       version: item.newVersion || item.ruleVersion,
-      values: item.values,
+      values: /** @type {string[]} */ (item.values),
       synced_at: new Date().toISOString(),
     });
   }

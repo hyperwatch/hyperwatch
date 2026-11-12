@@ -25,6 +25,7 @@ hyperwatch.start().catch((err) => {
 
 // Handle Shutdown
 
+/** @type {boolean | undefined} */
 let shutdownInProgress;
 
 function shutdown() {

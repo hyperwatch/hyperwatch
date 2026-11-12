@@ -5,6 +5,8 @@ const strptime = require('micro-strptime').strptime;
  * Compile an Apache log format into a log parser.
  *
  * Return a function that parses a line of log into an immutable Map.
+ * @param {string} format
+ * @returns {(line: string) => Map<string, string>}
  */
 function compileLineParser(format) {
   const parts = format.split(/(%[^ "]+)/);
@@ -63,6 +65,8 @@ function parseRequest(request) {
 
 /**
  * Parse a Time formatted in CLF format - between brackets
+ * @param {string} value
+ * @returns {string}
  */
 function parseTime(value) {
   value = value.substring(1, value.length - 1); // remove '[' and ']'
@@ -78,9 +82,15 @@ const transformers = {
     log.update('request', (request) => parseRequest(value).merge(request)),
 };
 
+/**
+ * @param {Log} log
+ * @param {string} name
+ * @param {string} value
+ * @returns {Log}
+ */
 function addHeader(log, name, value) {
   log = log.updateIn(['request', 'captured_headers'], List(), (list) =>
-    list.push(name)
+    /** @type {List<string>} */ (list).push(name)
   );
   if (value !== '-') {
     log = log.setIn(['request', 'headers', name], value);
@@ -88,6 +98,12 @@ function addHeader(log, name, value) {
   return log;
 }
 
+/**
+ * @param {Log} log
+ * @param {string} value
+ * @param {string} key
+ * @returns {Log}
+ */
 function reducer(log, value, key) {
   const transform = transformers[key];
   if (transform) {
@@ -101,8 +117,12 @@ function reducer(log, value, key) {
   return log;
 }
 
+/**
+ * @param {{ format: string }} options The log format (see `formats`)
+ * @returns {(line: string) => Log}
+ */
 function parser({ format }) {
-  const baseLog = fromJS({ request: { headers: {} } });
+  const baseLog = /** @type {Log} */ (fromJS({ request: { headers: {} } }));
   const lineParser = compileLineParser(format);
   return (line) => lineParser(line).reduce(reducer, baseLog);
 }
@@ -117,3 +137,5 @@ module.exports = {
   formats: formats,
   parser: parser,
 };
+
+/** @typedef {import('../types').Log} Log */
