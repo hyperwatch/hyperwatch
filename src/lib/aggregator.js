@@ -128,6 +128,9 @@ class Aggregator {
     return this;
   }
 
+  // fn(log): the key of the log's entry, a string. Logs it returns
+  // undefined or null for (a field missing on that log) are left out, like
+  // by() does in the pipeline
   setIdentifier(fn) {
     this.identifier = fn;
 
@@ -136,6 +139,9 @@ class Aggregator {
 
   processLog(log) {
     const identifier = this.identifier(log);
+    if (identifier === undefined || identifier === null) {
+      return log;
+    }
     const id = md5(identifier);
     const rawExecTime = Number(log.get('executionTime'));
     const executionTime = Number.isFinite(rawExecTime) ? rawExecTime : 0;
