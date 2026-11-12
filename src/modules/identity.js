@@ -197,6 +197,9 @@ const signedOnly = new Map([
   ['https://substack.com', 'Substack'],
   ['https://agent.bot.goog', 'Google Agent'],
   ['https://shap-user.parallel.ai', 'Parallel'],
+  ['https://www.aidealio.com', 'Aidealio'],
+  ['https://truvon.ai', 'Truvon'],
+  ['https://threadsearch.app', 'threadsearch'],
 ]);
 
 // A Web Bot Auth signature of `agent` verified by the webbotauth module

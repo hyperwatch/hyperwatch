@@ -209,11 +209,39 @@
       "x": "o5kcuyjl063DgfCQaCuOG5Dsij1bec7rSOG10gRAT98"
     }
   ],
+  "https://threadsearch.app": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "YN2Y_IkwpweouORK3yXjujqYKl2u188-E1pTZ_M0Emg"
+    }
+  ],
+  "https://truvon.ai": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "li5oj3UNakwJc-YqYXDPjgp5PeuvmXzaOM5-9w05ssY",
+      "kid": "sMhfrZsmS4Yhw4P0SQ0bLHoX1cKw3KGYiGtx-w4paOk"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "8xPm2BG20id1JAR0oYV_j2U9lPXfjTkNIKFwdMxnvFM",
+      "kid": "ri_0I_Il3Knizjj4oMo2RePBcdthHMzKv9qEHpiRvBg"
+    }
+  ],
   "https://us.posthog.com": [
     {
       "kty": "OKP",
       "crv": "Ed25519",
       "x": "76D-hlwWEoulJApAhK_LOYg-l_DZRqxgfwgwz74JlnM"
+    }
+  ],
+  "https://www.aidealio.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "WWdOaIRWmSREGfiEHqaBPuy6xN41uFIeFsykuM8Mem4"
     }
   ],
   "https://you.com": [
