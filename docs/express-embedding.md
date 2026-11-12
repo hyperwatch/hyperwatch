@@ -107,6 +107,8 @@ app.use((req, res, next) => {
 
 A proxy outside these ranges (on another machine of your network with a public address) isn't trusted: `detectAddress` returns its address. Use `trust proxy` then.
 
+Behind Cloudflare, the `cloudflare` module is another way: `modules: { cloudflare: { active: true } }` takes the client's address from the `cf-connecting-ip` header (and its country from `cf-ipcountry`, the data center from `cf-ray`), with no code in the app. It trusts that header whatever sent the request, so use it only when the origin can't be reached without Cloudflare (Cloudflare Tunnel, a firewall allowing only Cloudflare's ranges, or authenticated origin pulls): a client reaching the origin directly could set any address. `detectAddress` doesn't have that limit, since it only follows `X-Forwarded-For` through trusted addresses.
+
 ### Without Express
 
 A server that isn't Express (a plain `http` server, Vite's Connect server) has no `req.ip`. Register an input of your own and send it the logs of finished responses, built with `hyperwatch.util.createLog`:
