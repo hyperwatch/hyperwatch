@@ -31,7 +31,7 @@
     "lint:fix": "eslint --fix",
     "prepack": "npm run types",
     "prepare": "husky",
-    "prettier": "prettier \"**/*.@(js|json|md|yml)\"",
+    "prettier": "prettier \"**/*.@(js|cjs|ts|cts|json|md|yml)\"",
     "prettier:check": "npm run prettier -- --list-different",
     "prettier:write": "npm run prettier -- --write",
     "start": "node start",
@@ -118,7 +118,7 @@
     ]
   },
   "lint-staged": {
-    "*.{js,json,md,yml}": [
+    "*.{js,cjs,ts,cts,json,md,yml}": [
       "prettier --write"
     ],
     "package.json": [
