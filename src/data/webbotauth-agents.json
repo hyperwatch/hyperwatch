@@ -9,7 +9,7 @@
   { "agent": "https://crawler.exa.ai", "robots": ["ExaSearchBot"] },
   { "agent": "https://crawler.octen.ai", "robots": ["OctenSearchBot"] },
   { "agent": "https://exauser.crawler.exa.ai", "robots": ["ExaUser"] },
-  { "agent": "https://ibou.io", "robots": ["Barkrowler"] },
+  { "agent": "https://ibou.io", "robots": ["Barkrowler", "ibou-search"] },
   {
     "agent": "https://images.crawler.exa.ai",
     "robots": ["ExaSearchBot-Images"]
