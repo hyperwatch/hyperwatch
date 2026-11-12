@@ -301,6 +301,22 @@ describe('web bot auth', () => {
       }
     });
 
+    it('accepts a Signature-Agent sent as a bare URL, as that string', async () => {
+      // Signed as sent: https://bot.example, not "https://bot.example"
+      const bare = signedRequest(pair, { signatureAgent: agent });
+      const result = await check(bare);
+      assert.strictEqual(result.reason, 'verified');
+      assert.strictEqual(result.agent, agent);
+      // Still covered by the signature
+      bare.headers['signature-agent'] = `${agent}/`;
+      assert.notStrictEqual((await check(bare)).reason, 'verified');
+      // Only https URLs, nothing else unquoted
+      for (const value of ['http://bot.example', 'bot.example', `${agent} x`]) {
+        const other = signedRequest(pair, { signatureAgent: value });
+        assert.notStrictEqual((await check(other)).reason, 'verified');
+      }
+    });
+
     it('rejects components that are not strings, without throwing', async () => {
       const request = signedRequest(pair);
       request.headers['signature-input'] =

@@ -860,6 +860,8 @@ describe('identity', () => {
       ['Yeti', 'https://bot.naver.com', 'Naver'],
       ['ShapBot', 'https://shapbot.parallel.ai', 'Parallel'],
       ['DuckDuckBot', 'https://bot.duckduckgo.com', 'DuckDuckGo'],
+      ['Barkrowler', 'https://ibou.io', 'Babbar'],
+      ['ibou-search', 'https://ibou.io', 'ibou'],
     ]) {
       it(`should identify ${family} by a verified signature of ${agent}`, () => {
         assert.strictEqual(signed(family, agent).get('identity'), expected);

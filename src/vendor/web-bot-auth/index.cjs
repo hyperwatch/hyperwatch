@@ -78,6 +78,16 @@ function parseSignatureAgentHeader(header) {
 			entries
 		};
 	} catch (dictionaryError) {
+		if (/^https:\/\/[^\s"(),;<>\\]+$/.test(header)) try {
+			validateDiscoveryURI(header);
+			return {
+				kind: "legacy",
+				entries: [{
+					label: "",
+					uri: header
+				}]
+			};
+		} catch {}
 		try {
 			const [uri, params] = (0, structured_headers.parseItem)(header);
 			if (typeof uri !== "string") throw new Error("legacy Signature-Agent must be a string", { cause: dictionaryError });
