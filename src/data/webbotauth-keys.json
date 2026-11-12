@@ -35,73 +35,90 @@
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "0g1xFRWdVlSOm1h92tZ4VFl7FWGtvRnTZ0PwuBdJuDU"
+      "x": "0g1xFRWdVlSOm1h92tZ4VFl7FWGtvRnTZ0PwuBdJuDU",
+      "kid": "e3vpiy0B6M1Wdxnizw3dqRSgpqS6SXM2qiQ6HtUwZ5g"
     },
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "v02owuOay4qEWYA4r-BZzdwy7ySHU8o1FESfuY4ICro"
+      "x": "v02owuOay4qEWYA4r-BZzdwy7ySHU8o1FESfuY4ICro",
+      "kid": "0227KWFT1389RBnlR8TLhbMaA_Of2MbNPhmlNICS7eI"
     }
   ],
   "https://api.lyrenth.com": [
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "i5y-kdYWmMyODuzYKkCBZfLEip8s8RU96JPPM5nsCeQ"
+      "x": "i5y-kdYWmMyODuzYKkCBZfLEip8s8RU96JPPM5nsCeQ",
+      "kid": "fklKy4PQxv4fvWmHtz8oaNxWcYTklIP_kdN2cYE9Vg4"
     }
   ],
   "https://assistbot.duckduckgo.com": [
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "upEckfyLMLFHfYMsv4nV--WJRMj6QDO94DNQ1nbywhM"
+      "x": "upEckfyLMLFHfYMsv4nV--WJRMj6QDO94DNQ1nbywhM",
+      "kid": "Ov3HDsa8JQ39dPEYFvFFN-cUpnz9yNI8LDvr-5LeiBM"
     }
   ],
   "https://bot.duckduckgo.com": [
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "pVqc2ohmGpL_H1OJGq7mIGkxAk65mm5JkY7qSdJachE"
+      "x": "pVqc2ohmGpL_H1OJGq7mIGkxAk65mm5JkY7qSdJachE",
+      "kid": "5HvpfNA946z6lcCXEIOOpzlN5l0mdZE42jdqimEwPf8"
     }
   ],
   "https://bot.naver.com": [
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "r6qADsF5QmSJPh7Wuz1yPDYpE9Mq0uQEzo4uzgBoJZM"
+      "x": "r6qADsF5QmSJPh7Wuz1yPDYpE9Mq0uQEzo4uzgBoJZM",
+      "kid": "EnWFk9nJ3eitGqJI49eP2_60yo_1EIy4KFDaVcPO7NU"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "VNAP-1jxn_JA4u2iTeAx8lB2DRGnsNaZdkQ-V0UFcWo",
+      "kid": "2-UzETUKVGia8VK9tPHyzDVDawEDt5KZfUZ39b0Hbms"
     }
   ],
   "https://chatgpt.com": [
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "P_1c4SX6fCavDcq6FRegWcVvaOKsp_aXHPEN1FcKDIA"
+      "x": "P_1c4SX6fCavDcq6FRegWcVvaOKsp_aXHPEN1FcKDIA",
+      "kid": "ArwjqcCqtA5oxEWkzXGC-To_0A9whHmajCHtfe8I9aY"
     }
   ],
   "https://crawler.exa.ai": [
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "f1UrAERwBTuaxqbngzcny0_rm7JycUzgbb0bUUvh0yw"
+      "x": "f1UrAERwBTuaxqbngzcny0_rm7JycUzgbb0bUUvh0yw",
+      "kid": "sDCpsJpgItYcmF_KhZozOUGIGL6a49yxE3f0yQR5SIA"
     }
   ],
   "https://crawler.octen.ai": [
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "v-4T8q70IWXRZpgDNMx4T6E4m-2NEsJ9C0km1YvDpfU"
+      "x": "v-4T8q70IWXRZpgDNMx4T6E4m-2NEsJ9C0km1YvDpfU",
+      "kid": "ysZrPy1GEauWGWKGEKMl1AGIQfbtIUpUBTqFAqHf2qg"
     },
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "DDKRSLoodM_wpY3nc5ujvsukdh9Y8nuF0BfqsHJGS_M"
+      "x": "DDKRSLoodM_wpY3nc5ujvsukdh9Y8nuF0BfqsHJGS_M",
+      "kid": "AjwLTTlHogb4A-SM76Tc0YmQy5lrUsRXqjsgiaRTmWc"
     }
   ],
   "https://exauser.crawler.exa.ai": [
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "UBcHds6G9U6NdwxowlyGODfY12d2BDihT5pbPmfZOc8"
+      "x": "UBcHds6G9U6NdwxowlyGODfY12d2BDihT5pbPmfZOc8",
+      "kid": "fEcp7SI5JcfvpiZ1M638-CDmUFO6m0fTqc8_Outh7U4"
     }
   ],
   "https://ibou.io": [
@@ -116,7 +133,8 @@
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "QJRhKmjgcHrQvrPQ0j_M2ktTo1oKOH7byhUpUvKkPM4"
+      "x": "QJRhKmjgcHrQvrPQ0j_M2ktTo1oKOH7byhUpUvKkPM4",
+      "kid": "6gcbrikhXI96DC5iSR1Dv-RZD14EQx_qGSKC8L6Zaj8"
     }
   ],
   "https://keenable-user.keenable.ai": [
@@ -137,14 +155,16 @@
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "UGZ0GaqIziEOz4taOkvgT6P4P_ZI_md8KR420J_Y6HU"
+      "x": "UGZ0GaqIziEOz4taOkvgT6P4P_ZI_md8KR420J_Y6HU",
+      "kid": "pWuM_zskP4S6UuG3D5vyaawuhZjxIV1sZS6WgfOtP6k"
     }
   ],
   "https://rootcrawl.org": [
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "rsQbUaoDW0sh1kf91h-oOTEbxbnByD_9qBPkUM5fM3o"
+      "x": "rsQbUaoDW0sh1kf91h-oOTEbxbnByD_9qBPkUM5fM3o",
+      "kid": "IkXmhDbJmDVtmvSawe59edaeKKH35uTlnhYWWCHPqcE"
     }
   ],
   "https://search.isonai.com": [
@@ -172,12 +192,14 @@
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "54rZhEAwc3RdneODJpsevo9DpL18CblYxEt-h1vbs9U"
+      "x": "54rZhEAwc3RdneODJpsevo9DpL18CblYxEt-h1vbs9U",
+      "kid": "tJSb9woOPrEJY9k_t6rmmW026ioVkoUtQddihFJ5fi4"
     },
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "C4_bB1JuoVMO8RNa_Z9i75_7H5ulmJmXpoR_o-M7E_w"
+      "x": "C4_bB1JuoVMO8RNa_Z9i75_7H5ulmJmXpoR_o-M7E_w",
+      "kid": "wld1jLLbaJVtELqE7grF9QemKkmD9RGt-_CCF-qg6I8"
     }
   ],
   "https://substack.com": [
