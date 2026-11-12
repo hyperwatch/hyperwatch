@@ -14,12 +14,22 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 
 function run(command, args, cwd) {
-  return execFileSync(command, args, {
-    cwd,
-    stdio: ['ignore', 'pipe', 'inherit'],
-  })
-    .toString()
-    .trim();
+  try {
+    return execFileSync(command, args, {
+      cwd,
+      stdio: ['ignore', 'pipe', 'inherit'],
+    })
+      .toString()
+      .trim();
+  } catch (err) {
+    // What the command printed (tsc reports errors on stdout), then which
+    // step failed
+    if (err.stdout && err.stdout.length) {
+      process.stderr.write(err.stdout);
+    }
+    console.error(`\`${command} ${args.join(' ')}\` failed`);
+    throw err;
+  }
 }
 
 // The versions Hyperwatch is developed with
@@ -88,10 +98,10 @@ function main() {
         2
       )}\n`
     );
-    execFileSync(
+    run(
       path.join(tmp, 'node_modules', '.bin', 'tsc'),
       ['-p', '.', '--pretty', 'false'],
-      { cwd: tmp, stdio: 'inherit' }
+      tmp
     );
     console.log('The published declarations type-check.');
   } catch (err) {

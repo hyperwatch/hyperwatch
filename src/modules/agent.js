@@ -12,9 +12,7 @@ async function lookup(ua) {
     return cache.get(ua);
   }
 
-  let result = useragent.parse(ua);
-
-  result = result.toJSON();
+  const result = useragent.parse(ua).toJSON();
 
   cache.set(ua, result);
 
