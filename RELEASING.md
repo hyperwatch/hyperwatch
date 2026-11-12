@@ -70,7 +70,7 @@ Fix anything that fails on `main` first, through a normal PR.
 npm pack --dry-run
 ```
 
-The file list should only contain what the `files` whitelist in `package.json` allows (`bin`, `config`, `docs`, `scripts`, `src`, `start.js`, and `types`, the declarations `prepack` generates), plus the files npm always adds (`hyperwatch.js`, `LICENSE`, `README.md`, `package.json`). Make sure no local files or secrets slipped in.
+The file list should only contain what the `files` whitelist in `package.json` allows (`bin`, `config`, `docs`, `src`, `start.js`, and `types`, the declarations `prepack` generates; `scripts/` holds maintainer tools and doesn't ship), plus the files npm always adds (`hyperwatch.js`, `LICENSE`, `README.md`, `package.json`). Make sure no local files or secrets slipped in.
 
 ## 4. Write the release notes and pick the version
 
