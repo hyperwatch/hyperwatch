@@ -6,7 +6,12 @@ const express = require('express');
 const monitoring = require('../lib/monitoring');
 const persistence = require('../lib/persistence');
 const pipeline = require('../lib/pipeline');
-const { escapeHtml, fillHost, logMatches } = require('../lib/util');
+const {
+  escapeHtml,
+  fillHost,
+  logMatches,
+  parseNumber,
+} = require('../lib/util');
 const version = require('../version');
 
 const html = require('./html');
@@ -231,7 +236,13 @@ function registerAggregator(name, aggregator, htmlOptions = {}) {
   app.get(`/${name}{.:format}`, (req, res) => {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
-    const limit = req.query.limit || 100;
+    // A whole number from 1, else the default (?limit=abc used to return
+    // nothing, ?limit=-5 all but the last 5)
+    const parsedLimit = parseNumber(req.query.limit, {
+      integer: true,
+      min: 1,
+    });
+    const limit = parsedLimit === null ? 100 : parsedLimit;
     // Unknown sorts fall back to the count of the period (?period=24h for
     // the last 24 hours, 15 minutes by default)
     const sort =

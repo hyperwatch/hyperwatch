@@ -462,6 +462,10 @@ describe('API identity filter', () => {
       identityFilter: true,
     });
     register('no-filter-test', { columns: ['name', 'count'] });
+    api.registerAggregator('empty-filter-test', aggregator, {
+      columns: ['name', 'count'],
+      identityFilter: true,
+    });
 
     server = http.createServer(api);
     const port = await listen(server);
@@ -530,7 +534,7 @@ describe('API identity filter', () => {
 
   it('keeps the filters when no entry matches', async () => {
     const body = await (
-      await fetch(`${baseUrl}/filter-test?filter=identified&limit=0`)
+      await fetch(`${baseUrl}/empty-filter-test?filter=identified`)
     ).text();
     assert.match(body, /<strong>Identified<\/strong>/);
     assert.match(body, /No matching entries/);
@@ -740,5 +744,47 @@ describe('API lastSeen', () => {
     const body = await (await fetch(`${baseUrl}/dates-test`)).text();
     assert.match(body, new RegExp(`<td>${today}&nbsp;12:51:07</td>`));
     assert.match(body, /<td>2020-01-01&nbsp;08:00:00<\/td>/);
+  });
+});
+
+describe('API aggregator limit', () => {
+  let server;
+  let baseUrl;
+  let limits;
+
+  before(async () => {
+    api.registerAggregator('limit-test', {
+      ...aggregator,
+      getData: ({ limit }) => {
+        limits.push(limit);
+        return List();
+      },
+    });
+    server = http.createServer(api);
+    const port = await listen(server);
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  beforeEach(() => {
+    limits = [];
+  });
+
+  after(async () => {
+    await close(server);
+  });
+
+  it('passes ?limit= as a number', async () => {
+    await fetch(`${baseUrl}/limit-test.json?limit=20`);
+    await fetch(`${baseUrl}/limit-test.csv?limit=1000`);
+    assert.deepStrictEqual(limits, [20, 1000]);
+  });
+
+  it('falls back to 100 without a whole number from 1', async () => {
+    for (const query of ['', '?limit=abc', '?limit=0', '?limit=-5']) {
+      await fetch(`${baseUrl}/limit-test.json${query}`);
+    }
+    await fetch(`${baseUrl}/limit-test.json?limit=1.5`);
+    await fetch(`${baseUrl}/limit-test.json?limit=1&limit=2`);
+    assert.deepStrictEqual(limits, [100, 100, 100, 100, 100, 100]);
   });
 });
