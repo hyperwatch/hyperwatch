@@ -2,7 +2,7 @@ const api = require('./api');
 const wsServer = require('./ws-server');
 
 // Servers where Hyperwatch handles WebSocket upgrades, with their listener
-/** @type {WeakMap<import('http').Server, UpgradeListener>} */
+/** @type {WeakMap<Server, UpgradeListener>} */
 const upgradeListeners = new WeakMap();
 
 // Paths where Hyperwatch is mounted, per app. Express can't remove routes, so
@@ -95,9 +95,12 @@ function isUnderPath(target, path, caseSensitive) {
  * listener and releases the server. Express can't remove routes, so the
  * HTTP routes stay mounted on the app, with their original middleware.
  */
+/** @typedef {import('http').Server | import('http2').Http2SecureServer} Server */
+
 /**
  * @typedef {object} MountOptions
- * @property {import('http').Server} server The HTTP server of the app
+ * @property {Server} server The HTTP server of the app (an HTTP/2 server
+ *   with HTTP/1 fallback too, e.g. Vite's)
  * @property {string} path Where to mount Hyperwatch: starts with `/`, doesn't
  *   end with it
  * @property {Function | Function[]} [middleware] Before Hyperwatch's routes

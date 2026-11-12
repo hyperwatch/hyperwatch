@@ -62,9 +62,10 @@ exports.complement = (f) => {
 };
 
 /**
- * Create a log from Express req/res
- * @param {import('express').Request} req
- * @param {import('express').Response} res
+ * Create a log from a request and its response: Express, Connect or plain
+ * Node (`ip` and `originalUrl` are read when present, as Express sets them)
+ * @param {import('http').IncomingMessage & { ip?: string, originalUrl?: string }} req
+ * @param {{ statusCode: number }} res
  * @returns {Log}
  */
 exports.createLog = (req, res) => {
