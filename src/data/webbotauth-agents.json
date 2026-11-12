@@ -18,6 +18,7 @@
   { "agent": "https://river.ai", "robots": ["RiverBot"] },
   { "agent": "https://rootcrawl.org", "robots": ["RootCrawl"] },
   { "agent": "https://search.isonai.com", "robots": ["IsonSearchBot"] },
+  { "agent": "https://shap-user.parallel.ai", "robots": ["Shap-User"] },
   { "agent": "https://shapbot.parallel.ai", "robots": ["ShapBot"] },
   { "agent": "https://substack.com", "robots": ["SubstackContentFetch"] },
   { "agent": "https://us.posthog.com", "robots": ["PostHogImageFetcherBot"] },
