@@ -23,8 +23,10 @@ function mapper(entry, format) {
 }
 
 function handler(req, res) {
-  const raw = req.query.raw ? true : false;
-  const format = req.params.format || (raw ? 'json' : null);
+  const format = req.params.format || (req.query.raw ? 'json' : null);
+  // The monitoring entries as they are, in JSON only: the HTML table can't
+  // show Immutable Maps (?raw=1 alone defaults to JSON)
+  const raw = req.query.raw && format === 'json' ? true : false;
 
   if (format && !['json', 'txt'].includes(format)) {
     res.sendStatus(404);
