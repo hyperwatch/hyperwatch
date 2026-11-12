@@ -103,6 +103,17 @@ function normalize(config) {
 const deadline = (seconds) =>
   seconds ? AbortSignal.timeout(toMs(seconds)) : undefined;
 
+// The deadline of each phase, the default for a missing or invalid one:
+// start() and stop() may get deadlines that normalize() didn't fill
+const deadlinesOf = (config) => {
+  const given = config.deadlines || {};
+  const deadlines = {};
+  for (const [phase, fallback] of Object.entries(DEFAULT_DEADLINES)) {
+    deadlines[phase] = positive(given[phase]) || fallback;
+  }
+  return deadlines;
+};
+
 // Settles with `promise`, or rejects as soon as `signal` aborts, so a stalled
 // operation can't hold a phase past its deadline
 function bounded(promise, signal) {
@@ -354,7 +365,8 @@ class Persistence {
    * Restore, then take periodic snapshots when `interval` is set.
    */
   async start(config = {}) {
-    const { interval, deadlines = DEFAULT_DEADLINES } = config;
+    const { interval } = config;
+    const deadlines = deadlinesOf(config);
     this.stopping = false;
     this.loaded = false;
     if (!this.storage) {
@@ -433,7 +445,7 @@ class Persistence {
    * storage, even when dumping failed. Both within the stop deadline.
    */
   async stop(config = {}) {
-    const { deadlines = DEFAULT_DEADLINES } = config;
+    const deadlines = deadlinesOf(config);
     this.stopSnapshots();
     if (!this.storage) {
       return;
