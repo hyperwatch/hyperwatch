@@ -15,7 +15,9 @@ function storageContract(name, factory, { cleanup } = {}) {
     });
 
     afterEach(async () => {
-      await storage.close();
+      if (storage.close) {
+        await storage.close();
+      }
       if (cleanup) {
         await cleanup(storage);
       }
@@ -63,8 +65,10 @@ function storageContract(name, factory, { cleanup } = {}) {
       assert.strictEqual(await storage.read('doc'), '[1]');
     });
 
-    it('closes', async () => {
-      await storage.close();
+    it('closes, when it has close()', async () => {
+      if (storage.close) {
+        await storage.close();
+      }
     });
   });
 }

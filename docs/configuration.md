@@ -167,7 +167,7 @@ Each registered aggregator and history buffer is one plain JSON document, not co
 - **One writer per namespace:** an instance writes complete snapshots and only reads them at start. Two instances on the same namespace (including the old and new processes during a rolling deployment) overwrite each other: give independent instances their own namespace.
 - **Metrics:** every load and dump is logged, e.g. `Persistence (file) loaded 26 documents (213 MB) in 2.3s: fetch 0.27s, parse 0.52s, restore 1.5s`, and the latest ones are on `/status` (all the figures in `/status.json?raw=1`). Stage times are summed over the documents, the total is wall-clock time.
 
-A custom storage can replace the backend with `hyperwatch.lib.persistence.setStorage(storage)`, before `hyperwatch.start()`. It has async `read(name, { signal })` (the document, or `null` when missing), `write(name, body, { signal })` and `close()`. An aborted write must not overwrite a newer snapshot: prevent it from committing, or reject further writes to that document when a remote commit cannot be ruled out. `test/lib/storage/contract.js` has the tests a storage should pass.
+A custom storage can replace the backend with `hyperwatch.lib.persistence.setStorage(storage)`, before `hyperwatch.start()`. It has async `read(name, { signal })` (the document, or `null` when missing), `write(name, body, { signal })`, and optionally `close()` (called at stop, to release connections). An aborted write must not overwrite a newer snapshot: prevent it from committing, or reject further writes to that document when a remote commit cannot be ruled out. `test/lib/storage/contract.js` has the tests a storage should pass.
 
 ### S3
 
