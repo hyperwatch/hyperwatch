@@ -1,0 +1,2 @@
+export declare const jwkThumbprintPreCompute: (jwk: JsonWebKey) => Uint8Array;
+export declare const jwkThumbprint: (jwk: JsonWebKey, hash: (b: BufferSource) => Promise<ArrayBuffer>, decode: (s: ArrayBuffer) => string) => Promise<string>;

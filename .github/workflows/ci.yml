@@ -85,3 +85,17 @@ jobs:
           node-version: 24.x
       - run: npm ci
       - run: npm run depcheck
+
+  types:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - run: npm ci
+      # The sources (JSDoc), then the declarations the package publishes,
+      # installed from the packed package with its dependencies only
+      - run: npm run type:check
+      - run: npm run types:test

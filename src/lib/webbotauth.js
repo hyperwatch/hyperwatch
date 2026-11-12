@@ -111,6 +111,14 @@ async function fetchDirectory(agent, { fetch = globalThis.fetch } = {}) {
 // from their directories, which replace them (a key the operator removed may
 // have leaked). Only known agents are ever fetched.
 class KeyStore {
+  /**
+   * @param {object} [options]
+   * @param {string[]} [options.agents] Agents whose directories may be fetched
+   * @param {Record<string, object[]>} [options.committed] Keys per agent
+   * @param {boolean} [options.fetchKeys] Fetch the directories
+   * @param {typeof globalThis.fetch} [options.fetch]
+   * @param {() => number} [options.now] Seconds since the epoch
+   */
   constructor({
     agents = [],
     committed = {},

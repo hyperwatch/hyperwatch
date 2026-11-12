@@ -120,7 +120,8 @@ function by(f) {
 }
 
 /**
- * Pipeline builder
+ * Pipeline builder: a node of the pipeline. `map()`, `filter()`, `split()`
+ * and `by()` add a child node and return it.
  */
 class Builder {
   constructor(xf, pipeline = null) {
@@ -142,6 +143,11 @@ class Builder {
     }));
   }
 
+  /**
+   * @param {(stream: Function) => Function} xf
+   * @param {{ op?: string, fnName?: string, label?: string }} [options]
+   * @returns {Builder}
+   */
   add(xf, { op = null, fnName = null, label = null } = {}) {
     const child = new Builder(xf, this.pipeline);
     child.parent = this;
@@ -153,14 +159,32 @@ class Builder {
     return child;
   }
 
+  /**
+   * A child node with the result of `f` for each log (or a promise of it)
+   * @param {(log: Log) => any} f
+   * @param {string} [label] Shown in the pipeline tree
+   * @returns {Builder}
+   */
   map(f, label) {
     return this.add(map(f), { op: 'map', fnName: f.name, label });
   }
 
+  /**
+   * A child node with the logs for which `pred` is true
+   * @param {(log: Log) => any} pred
+   * @param {string} [label] Shown in the pipeline tree
+   * @returns {Builder}
+   */
   filter(pred, label) {
     return this.add(filter(pred), { op: 'filter', fnName: pred.name, label });
   }
 
+  /**
+   * Two child nodes: the logs for which `pred` is true, and the others
+   * @param {(log: Log) => any} pred
+   * @param {[string, string]} [labels] Shown in the pipeline tree
+   * @returns {[Builder, Builder]}
+   */
   split(pred, labels) {
     return [
       this.add(filter(pred), {
@@ -176,6 +200,11 @@ class Builder {
     ];
   }
 
+  /**
+   * @param {(log: Log) => any} f
+   * @param {string} [label] Shown in the pipeline tree
+   * @returns {Builder}
+   */
   by(f, label) {
     return this.add(by(f), { op: 'by', fnName: f.name, label });
   }
@@ -205,6 +234,12 @@ class Builder {
 
   // Helpers
 
+  /**
+   * Names this node: `pipeline.getNode(name)`, `/logs/<name>`
+   * @param {string} name
+   * @param {{ monitor?: boolean }} [options] `monitor`: on the status page
+   * @returns {this}
+   */
   registerNode(name, { monitor = false } = {}) {
     this.pipeline.registerNode(name, this);
     this.name = name;
@@ -230,12 +265,15 @@ class Builder {
 class Pipeline extends Builder {
   constructor() {
     super(identity());
+    /** @type {Input[]} */
     this.inputs = [];
+    /** @type {any[]} */
     this.monitors = [];
     this.stream = null;
     // Once stopping, logs from any input are dropped: many inputs (HTTP,
     // syslog, file) have no stop(), and the final snapshot must be final
     this.stopped = false;
+    /** @type {Record<string, Builder>} */
     this.nodes = {
       raw: this,
       main: this,
@@ -246,6 +284,7 @@ class Pipeline extends Builder {
     this.op = 'identity';
   }
 
+  /** @param {Input} input */
   registerInput(input) {
     this.inputs.push(input);
     const monitor = monitoring.register({
@@ -285,7 +324,9 @@ class Pipeline extends Builder {
           if (valid) {
             const event = Map({
               time: Math.floor(
-                new Date(log.getIn(['request', 'time'])).getTime() / 1000
+                new Date(
+                  /** @type {string} */ (log.getIn(['request', 'time']))
+                ).getTime() / 1000
               ),
               data: log,
             });
@@ -340,18 +381,35 @@ class Pipeline extends Builder {
     }
   }
 
+  /**
+   * Names a node of the pipeline (see Builder#registerNode)
+   * @override
+   * @param {string} name
+   * @param {any} [node] The node (a Builder)
+   * @returns {this}
+   */
   registerNode(name, node) {
     const previous = this.nodes[name];
     if (previous && previous !== node && previous.name === name) {
       previous.name = null;
     }
     this.nodes[name] = node;
+    return this;
   }
 
+  /**
+   * @param {string} name
+   * @returns {Builder}
+   */
   getNode(name) {
     return this.nodes[name];
   }
 
+  /**
+   * The pipeline's nodes from `node`, with their counts and rates
+   * @param {Builder} [node]
+   * @returns {Record<string, any>}
+   */
   getTree(node = this) {
     const second = Math.floor(Date.now() / 1000);
     const windowStart = second - node.rateBuckets.length + 1;
@@ -397,5 +455,37 @@ class Pipeline extends Builder {
     return obj;
   }
 }
+
+/**
+ * A node of the pipeline
+ * @typedef {Builder} Node
+ */
+
+/**
+ * The pipeline: its root node (`raw`, also `main` unless replaced), its
+ * inputs and its named nodes
+ * @typedef {Pipeline} Root
+ */
+
+/**
+ * An input: `start()` receives the handlers to call for each log
+ * (`success(log)`), invalid line (`reject(reason)`) and status change
+ * (`status(err, message)`).
+ * @typedef {object} Input
+ * @property {string} name
+ * @property {(handlers: InputHandlers) => void} start
+ * @property {() => any} [stop]
+ * @property {Builder} [_tap]
+ */
+
+/**
+ * @typedef {object} InputHandlers
+ * @property {(log: Log) => void} success
+ * @property {(reason: any) => void} reject
+ * @property {(err: any, message?: string) => void} status
+ * @property {(message: any, severity?: string) => void} log
+ */
+
+/** @typedef {import('../types').Log} Log */
 
 module.exports = new Pipeline();

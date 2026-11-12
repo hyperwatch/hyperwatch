@@ -9,6 +9,11 @@ const strptime = require('micro-strptime').strptime;
 function compileLineParser(format) {
   const parts = format.split(/\$([A-Za-z0-9_]+)/);
 
+  /**
+   * @param {string[]} parts
+   * @param {string} text
+   * @returns {Map<string, string>}
+   */
   const matchString = ([head, ...tail], text) => {
     if (!text.startsWith(head)) {
       throw new Error(
@@ -21,6 +26,11 @@ function compileLineParser(format) {
     return matchVariable(tail, text.substring(head.length));
   };
 
+  /**
+   * @param {string[]} parts
+   * @param {string} text
+   * @returns {Map<string, string>}
+   */
   const matchVariable = ([head, ...tail], text) => {
     const len = text.indexOf(tail[0]);
     if (len === -1) {
@@ -38,6 +48,10 @@ function compileLineParser(format) {
 /**
  * Parse a HTTP request header line.
  */
+/**
+ * @param {string} request
+ * @returns {Map<string, string>}
+ */
 function parseRequest(request) {
   const res = /([^ ]+)\s+([^ ]+)\s+([^ ]+)/.exec(request);
   if (!res) {
@@ -54,6 +68,7 @@ function parseTime(value) {
   return strptime(value, '%d/%B/%Y:%H:%M:%S %z').toISOString();
 }
 
+/** @type {Record<string, (log: Map<string, any>, value: string) => Map<string, any>>} */
 const transformers = {
   remote_addr: (log, value) => log.setIn(['request', 'address'], value),
   time_local: (log, value) => log.setIn(['request', 'time'], parseTime(value)),

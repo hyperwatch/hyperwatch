@@ -1,0 +1,14 @@
+{
+  // Type declarations for the npm package (types/), from the JSDoc of the
+  // sources: `npm run types`, run before packing
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": false,
+    "outDir": "types"
+  },
+  "include": ["hyperwatch.js", "src/**/*.js"],
+  "exclude": ["src/vendor", "src/app/html/scripts"]
+}

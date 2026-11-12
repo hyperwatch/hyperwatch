@@ -1,6 +1,10 @@
 const { createLog } = require('../lib/util');
 const modules = require('../modules');
 
+/**
+ * @param {{ name?: string, app?: import('express').Express }} [options]
+ *   `app`: add the middleware to it when starting
+ */
 function create({ name = 'Express Middleware', app } = {}) {
   return {
     name: name,
@@ -19,7 +23,9 @@ function create({ name = 'Express Middleware', app } = {}) {
         req.hyperwatch.rawLog = createLog(req, res);
         req.hyperwatch.startedAt = new Date();
 
-        req.hyperwatch.getAugmentedLog = async ({ fast = false } = {}) => {
+        req.hyperwatch.getAugmentedLog = async (
+          /** @type {{ fast?: boolean }} */ { fast = false } = {}
+        ) => {
           let log = req.hyperwatch.rawLog;
           for (const module of modules.activeModules()) {
             if (module && module.augment) {
@@ -32,7 +38,8 @@ function create({ name = 'Express Middleware', app } = {}) {
         res.on('finish', () => {
           const { success, reject } = this;
           try {
-            const executionTime = new Date() - req.hyperwatch.startedAt;
+            const executionTime =
+              Date.now() - req.hyperwatch.startedAt.getTime();
             req.hyperwatch.rawLog = req.hyperwatch.rawLog
               .setIn(['response', 'status'], res.statusCode)
               .set('executionTime', executionTime);

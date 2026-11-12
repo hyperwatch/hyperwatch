@@ -84,6 +84,7 @@ exports.formatDuration = (ms) => {
     return `${totalSeconds.toFixed(1)}s`;
   }
   const rounded = Math.round(totalSeconds);
+  /** @type {Array<[number, string]>} */
   const units = [
     [Math.floor(rounded / 3600), 'h'],
     [Math.floor((rounded % 3600) / 60), 'm'],
@@ -105,6 +106,10 @@ const formatCell = (value) =>
 
 // heading(key) renders the content of a column heading, the key by default.
 // rowClass(entry) gives an optional class to a row.
+/**
+ * @param {Record<string, any>[]} data
+ * @param {{ heading?: (key: string) => string, rowClass?: (entry: Record<string, any>) => string | null }} [options]
+ */
 exports.formatTable = (
   data,
   { heading = (key) => key, rowClass = () => null } = {}
@@ -143,6 +148,10 @@ exports.identityKey = identityKey;
 
 // Whether a log matches the given filters, e.g. from a query string. The
 // identity filter takes an identity key, so it also finds unnamed ones.
+/**
+ * @param {import('../types').Log} log
+ * @param {{ identity?: any, signature?: any, address?: any }} [filters]
+ */
 exports.logMatches = (log, { identity, signature, address } = {}) =>
   (!identity || identityKey(log) === identity) &&
   (!signature || log.getIn(['signature', 'id']) === signature) &&

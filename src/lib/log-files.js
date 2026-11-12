@@ -275,14 +275,16 @@ class LogWriter {
     }
     const pending = [...this.closing].map(
       (stream) =>
-        new Promise((resolve) => {
-          if (!this.closing.has(stream)) {
-            resolve();
-            return;
-          }
-          stream.once('close', resolve);
-          stream.once('error', resolve);
-        })
+        /** @type {Promise<void>} */ (
+          new Promise((resolve) => {
+            if (!this.closing.has(stream)) {
+              resolve();
+              return;
+            }
+            stream.once('close', resolve);
+            stream.once('error', resolve);
+          })
+        )
     );
     if (!pending.length) {
       return;
@@ -291,25 +293,27 @@ class LogWriter {
       await Promise.all(pending);
       return;
     }
-    await new Promise((resolve) => {
-      const onAbort = () => {
-        for (const stream of this.closing) {
-          stream.destroy();
-          this.files.delete(stream);
+    await /** @type {Promise<void>} */ (
+      new Promise((resolve) => {
+        const onAbort = () => {
+          for (const stream of this.closing) {
+            stream.destroy();
+            this.files.delete(stream);
+          }
+          this.closing.clear();
+          resolve();
+        };
+        if (signal.aborted) {
+          onAbort();
+          return;
         }
-        this.closing.clear();
-        resolve();
-      };
-      if (signal.aborted) {
-        onAbort();
-        return;
-      }
-      signal.addEventListener('abort', onAbort, { once: true });
-      Promise.all(pending).then(() => {
-        signal.removeEventListener('abort', onAbort);
-        resolve();
-      });
-    });
+        signal.addEventListener('abort', onAbort, { once: true });
+        Promise.all(pending).then(() => {
+          signal.removeEventListener('abort', onAbort);
+          resolve();
+        });
+      })
+    );
   }
 
   async stats() {
@@ -428,6 +432,20 @@ function parseLine(line) {
  * With a `snapshot` (LogWriter.snapshot()), reads what the files held when it
  * was taken, logs not written yet included, and nothing newer: in one call,
  * without a cursor.
+ */
+/**
+ * @typedef {object} ReadOptions
+ * @property {number} [limit] Logs at most (default 100)
+ * @property {string} [cursor] Where to resume, from an earlier read
+ * @property {{ identity?: string, address?: string, signature?: string }} [filters]
+ * @property {AbortSignal} [signal]
+ * @property {Partial<typeof DEFAULT_BOUNDS>} [bounds] Bytes and time per read
+ * @property {any} [snapshot] From LogWriter#snapshot()
+ */
+
+/**
+ * @param {string} dir
+ * @param {ReadOptions} [options]
  */
 async function read(
   dir,

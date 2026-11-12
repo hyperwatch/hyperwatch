@@ -28,11 +28,22 @@ function isValid(hostname) {
   );
 }
 
+/**
+ * @typedef {{ value: string | null, verified?: boolean }} HostnameEntry
+ */
+
+/**
+ * The hostname of an address, cached
+ * @param {string} ip
+ * @param {{ fast?: boolean }} [options] `fast`: only from the cache
+ * @returns {Promise<HostnameEntry>}
+ */
 async function lookup(ip, { fast = false } = {}) {
   if (await cache.has(ip)) {
-    return cache.get(ip);
+    return /** @type {HostnameEntry} */ (await cache.get(ip));
   }
 
+  /** @type {HostnameEntry} */
   const entry = { value: null };
 
   if (fast) {
@@ -68,11 +79,15 @@ async function lookup(ip, { fast = false } = {}) {
   return entry;
 }
 
+/**
+ * @param {import('../types').Log} log
+ * @param {{ fast?: boolean }} [options]
+ */
 async function augment(log, { fast = false } = {}) {
   const ip =
     log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
 
-  const entry = await lookup(ip, { fast });
+  const entry = await lookup(/** @type {string} */ (ip), { fast });
 
   if (entry.value) {
     log = log.setIn(['hostname', 'value'], entry.value);

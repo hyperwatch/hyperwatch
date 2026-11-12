@@ -239,14 +239,20 @@ function hostnameMatches(hostname, ...patterns) {
 // Forward-confirmed hostnames identified whatever the user agent: names of a
 // robot's own servers, which also send requests under other user agents
 // (renderers in headless Chrome, unknown fetchers)
-const hostnameOnly = [
+const hostnameOnly = /** @type {Array<[string, string[]]>} */ ([
   ['You.com', ['youbot-*.search.you.com']],
   ['Stripe', ['crawl.stripe.com', '*.crawl.stripe.com', 'ip-*.stripe.com']],
   ['Lyrenth', ['crawler-*.lyrenth.com', 'render-*.lyrenth.com']],
   ['Yandex', ['*.spider.yandex.com']],
   ['Coc Coc', ['bot-*.coccoc.com']],
   ['Naver', ['crawl.*.web.naver.com']],
-].map(([identity, patterns]) => [identity, patterns.map(hostnamePattern)]);
+]).map(
+  ([identity, patterns]) =>
+    /** @type {[string, Array<(hostname: string) => boolean>]} */ ([
+      identity,
+      patterns.map(hostnamePattern),
+    ])
+);
 
 // Google's crawlers and fetchers other than its common crawlers (Googlebot),
 // by the address pool they come from, whatever the user agent:

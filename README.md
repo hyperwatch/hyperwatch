@@ -60,6 +60,22 @@ You can change that using an environment variable:
 PORT=80 npm start config/custom
 ```
 
+## TypeScript
+
+The package ships type declarations (`types/`), generated from the JSDoc of its JavaScript sources. They use Express's types: install `@types/express` (an optional peer dependency) in a TypeScript project.
+
+```ts
+import hyperwatch = require('@hyperwatch/hyperwatch');
+
+hyperwatch.init({ modules: { geoip: { active: true } } });
+hyperwatch.pipeline
+  .getNode('main')
+  .filter((log) => log.getIn(['request', 'method']) === 'GET')
+  .registerNode('get');
+```
+
+A log is an Immutable `Map` (see [Log](./docs/log.md)). In JavaScript, editors use the same types.
+
 ## Tutorials
 
 - [Monitor web traffic with syslog input from Apache](./docs/tutorials/apache_input.md)

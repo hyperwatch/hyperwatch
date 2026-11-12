@@ -15,6 +15,11 @@ const { cache, logger, persistence, pipeline, util } = lib;
 let initialized = false;
 let stopping = false;
 
+/**
+ * Merges `config` into the configuration and loads the active modules.
+ * Call once, before start().
+ * @param {import('./types').Config} [config] See docs/configuration.md
+ */
 function init(config = {}) {
   if (initialized) {
     console.warn(`Can't init, Hyperwatch was already initialized.`);
@@ -26,6 +31,10 @@ function init(config = {}) {
   initialized = true;
 }
 
+/**
+ * Starts the modules, restores the persistence when enabled, then the inputs
+ * and the API.
+ */
 async function start() {
   if (!initialized) {
     console.warn(`Can't start, Hyperwatch was not initialized.`);
@@ -84,7 +93,7 @@ module.exports = {
   lib,
   logger,
   modules,
-  pipeline,
+  pipeline: /** @type {import('./lib/pipeline').Root} */ (pipeline),
   plugins,
   init,
   start,

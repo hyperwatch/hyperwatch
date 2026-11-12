@@ -23,6 +23,15 @@ Identities are checked against the address lists operators publish (`src/data/*-
 - A new operator list: if it is structured, add a source to `ip-list-sources.json`; otherwise copy it by hand, add it to the RELEASING.md list and to `handCopied` in `test/scripts/published-ips.js`.
 - Before a release, refresh both kinds ([RELEASING.md](RELEASING.md), "Before you start: refresh the published ranges").
 
+## Types
+
+The sources are JavaScript with JSDoc types, checked by TypeScript (`checkJs`, not `strict` yet): `npm run type:check` must pass, as in CI.
+
+- Type options objects and anything public with JSDoc (`@param`, `@returns`, `@typedef`). Shared types (`Log`, `Config`, `ModuleConfig`, `Abortable`) are in `src/types.js`.
+- `npm run types` generates the declarations the package publishes (`types/`, not committed; `prepack` runs it). `npm run types:test` packs the package, installs it in a temporary project with its dependencies only, and type-checks `test/types/consumer.ts` and every published declaration, strict and without `skipLibCheck`: add a line to `consumer.ts` when the public API changes, and an `@ts-expect-error` for what must be rejected.
+- A class used as a type in another module must be exported by name (`module.exports.X = X`, or a `@typedef` next to `module.exports = { … }`): `import('./x').X` doesn't see classes in an object literal. A module exporting an instance (`pipeline.js`) exports its class's type with a `@typedef` (`Root`), and modules re-exporting it cast to that type, so the declarations refer to it instead of copying it.
+- The published declarations may only refer to dependencies that ship their own types, Node's modules, and `@types/express`, an optional peer dependency (TypeScript users of Express have it). Nobody installs other `@types` because of Hyperwatch: declare the type in JSDoc instead (as `GeoipLookup` for geoip-lite, or the WebSocket input's `options` and `parse`). `types:test` fails when a declaration needs anything else.
+
 ## Web Bot Auth agents
 
 The `webbotauth` module only fetches the key directories of the agents in `src/data/webbotauth-agents.json`. To add one, check that its directory answers with Ed25519 keys and that real signed requests verify, add it to the file, run `node scripts/fetch-webbotauth-keys.js <agent>`, and accept its verified signature in the robot's `identity` rule (`signedBy`).

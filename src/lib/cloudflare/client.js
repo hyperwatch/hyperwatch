@@ -11,6 +11,10 @@ const PHASE = 'http_request_firewall_custom';
 const REQUEST_TIMEOUT = 30000;
 
 class CloudflareError extends Error {
+  /**
+   * @param {string} message
+   * @param {{ status?: number, errors?: any[], cause?: any }} [details]
+   */
   constructor(message, { status, errors, cause } = {}) {
     super(message, { cause });
     this.name = 'CloudflareError';
@@ -64,6 +68,7 @@ function createClient({
   }
 
   // The zone's custom rules ruleset: { id, version, rules: [...] }
+  /** @param {import('../../types').Abortable} [options] */
   const getEntrypoint = ({ signal } = {}) =>
     request(
       'GET',
@@ -74,6 +79,12 @@ function createClient({
 
   // Update one rule. Every field is sent: omitted fields are reset, so the
   // plan carries the rule's other settings (action_parameters, logging)
+  /**
+   * @param {string} rulesetId
+   * @param {string} ruleId
+   * @param {Record<string, any>} rule
+   * @param {import('../../types').Abortable} [options]
+   */
   const patchRule = (rulesetId, ruleId, rule, { signal } = {}) =>
     request(
       'PATCH',

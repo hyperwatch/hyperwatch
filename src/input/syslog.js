@@ -15,7 +15,7 @@ function create({
 }) {
   return {
     name: name,
-    start: ({ success, reject, status }) => {
+    start: ({ success, reject, status, log }) => {
       const handler = (message) => {
         if (sample !== 1 && Math.random() > sample) {
           return;
@@ -31,10 +31,10 @@ function create({
         }
       };
       if (!protocol || protocol === 'udp') {
-        socket.createUdpServer({ status, name, port, handler });
+        socket.createUdpServer({ status, port, handler });
       }
       if (!protocol || protocol === 'tcp') {
-        socket.createTcpServer({ status, name, port, handler });
+        socket.createTcpServer({ status, log, port, handler });
       }
     },
   };

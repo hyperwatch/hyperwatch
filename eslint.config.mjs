@@ -55,7 +55,8 @@ export default [
 
       // require at least one whitespace after comments( // and /*)
       // https://eslint.org/docs/rules/spaced-comment
-      "spaced-comment": ["warn", "always"],
+      // `///` for TypeScript's triple-slash directives
+      "spaced-comment": ["warn", "always", { markers: ["/"] }],
       // Require Following Curly Brace Conventions
       // https://eslint.org/docs/rules/curly
       curly: ["warn", "all"],

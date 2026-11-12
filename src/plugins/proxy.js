@@ -45,10 +45,11 @@ function detectAddress(remoteAddress, headers) {
 
   if (headers.has('x-forwarded-for')) {
     address = proxyaddr(
-      {
+      // What proxy-addr reads of a request
+      /** @type {any} */ ({
         headers: headers.toJS(),
         connection: { remoteAddress: remoteAddress },
-      },
+      }),
       trusted
     );
   }

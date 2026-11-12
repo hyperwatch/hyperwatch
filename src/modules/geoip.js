@@ -38,6 +38,25 @@ function fieldsFor(config = {}) {
 
 let fields = DEFAULT_FIELDS;
 
+/**
+ * What geoip-lite knows of an address (declared here, so the published types
+ * don't need geoip-lite's)
+ * @typedef {object} GeoipLookup
+ * @property {string} country Two letters (ISO 3166-1)
+ * @property {string} region
+ * @property {string} city
+ * @property {string} timezone
+ * @property {[number, number]} ll Latitude and longitude
+ * @property {[number, number]} range
+ * @property {string} eu `'1'` in the European Union
+ * @property {number} metro
+ * @property {number} area Accuracy radius, in kilometers
+ */
+
+/**
+ * @param {string} ip
+ * @returns {GeoipLookup | null}
+ */
 function lookup(ip) {
   return geoip.lookup(ip);
 }

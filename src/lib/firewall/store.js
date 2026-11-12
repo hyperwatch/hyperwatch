@@ -31,6 +31,12 @@ const STATE = 'firewall-lists.sync';
 
 const emptyState = () => ({ lists: {} });
 
+/** @typedef {import('../../types').Abortable} Abortable */
+
+/**
+ * @param {{ file?: string, state?: string }} [paths] The lists (default
+ *   firewall.json in the current directory) and their sync state
+ */
 function createFileStore({ file, state } = {}) {
   const listsPath = file || path.join(process.cwd(), 'firewall.json');
   const statePath = state || sync.defaultStatePath(listsPath);
@@ -100,6 +106,10 @@ function settle(promise, signal) {
 }
 
 // On a persistence storage (see ../storage): read(), write() and close()
+/**
+ * @param {import('../storage').Storage} storage
+ * @param {{ timeout?: number }} [options]
+ */
 function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
   const bounded = (signal) =>
     signal
@@ -109,16 +119,22 @@ function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
     name: storage.name,
     where: `the ${storage.name} document "${LISTS}"`,
     stateWhere: `the ${storage.name} document "${STATE}"`,
+    /** @param {Abortable} [options] */
     async readLists({ signal } = {}) {
       const bound = bounded(signal);
       const body = await settle(storage.read(LISTS, { signal: bound }), bound);
       return body === null ? null : lists.parse(body);
     },
+    /**
+     * @param {object} data
+     * @param {Abortable} [options]
+     */
     async writeLists(data, { signal } = {}) {
       const bound = bounded(signal);
       const body = lists.serialize(lists.validate(data));
       await settle(storage.write(LISTS, body, { signal: bound }), bound);
     },
+    /** @param {Abortable} [options] */
     async readState({ signal } = {}) {
       const bound = bounded(signal);
       const body = await settle(storage.read(STATE, { signal: bound }), bound);
@@ -128,6 +144,10 @@ function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
       const value = JSON.parse(body);
       return value && value.lists ? value : emptyState();
     },
+    /**
+     * @param {object} value
+     * @param {Abortable} [options]
+     */
     async writeState(value, { signal } = {}) {
       const bound = bounded(signal);
       const body = `${JSON.stringify(value, null, 2)}\n`;

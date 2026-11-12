@@ -12,6 +12,7 @@ const version = require('../version');
 const html = require('./html');
 const wsServer = require('./ws-server');
 
+/** @type {import('express').Express} */
 const app = express();
 
 // Live logs kept per HTTP stream while its history is read
@@ -70,20 +71,36 @@ app.get('/pipeline', (req, res) => {
   res.send(html.pipelinePage(req, pipeline.getTree(), statusFor));
 });
 
-app.streamToHttp = (
+/**
+ * Options of streamToHttp()
+ * @typedef {object} StreamOptions
+ * @property {string} [name] Its name on the status page
+ * @property {boolean} [monitoringEnabled] Show it on the status page
+ * @property {(limit: number, filters: Record<string, any>) => Log[] | Promise<Log[]>} [history]
+ *   The latest logs matching the filters, newest first, shown before live
+ *   ones
+ * @property {(req: import('express').Request) => string} [header] More HTML
+ *   under the navigation of the stream page
+ */
+
+/**
+ * Serves a stream of logs as an HTML page at `endpoint`, live.
+ * @param {string} endpoint
+ * @param {import('../lib/pipeline').Node} stream
+ * @param {import('../lib/formatter').Formatter} formatter
+ * @param {StreamOptions} [options]
+ */
+function streamToHttp(
   endpoint,
   stream,
   formatter,
   {
     name = `HTTP: ${endpoint}`,
     monitoringEnabled = false,
-    // history(limit, filters): the latest logs matching the filters, newest
-    // first, shown before live ones
     history,
-    // header(req): more HTML under the navigation of the stream page
     header,
   } = {}
-) => {
+) {
   const requests = {};
 
   let monitor;
@@ -148,9 +165,9 @@ app.streamToHttp = (
     // The latest logs first, oldest first like live ones: ?history=<n>
     // (default 100), ?history=0 to only show live logs
     if (history) {
-      const limit = parseInt(req.query.history, 10);
+      const limit = parseInt(String(req.query.history), 10);
       const logs = history(limit >= 0 ? limit : 100, req.query);
-      if (typeof logs.then === 'function') {
+      if (isPromise(logs)) {
         const queue = [];
         requests[requestId][2] = queue;
         logs
@@ -192,7 +209,7 @@ app.streamToHttp = (
       }
     });
   }, `http:${endpoint}`);
-};
+}
 
 // ?filter=identified or ?filter=unidentified, on aggregators registered with
 // identityFilter (their entries have an identity)
@@ -201,8 +218,14 @@ const identityFilters = new Map([
   ['unidentified', (entry) => !entry.get('identity')],
 ]);
 
-// htmlOptions: see html.aggregatorView() (nav, columns, identityFilter)
-app.registerAggregator = (name, aggregator, htmlOptions = {}) => {
+/**
+ * Serves an aggregator at `/<name>` (HTML, `.json`, `.csv`), and saves it
+ * with the persistence.
+ * @param {string} name
+ * @param {import('../lib/aggregator').Aggregator} aggregator
+ * @param {import('./html').AggregatorViewOptions} [htmlOptions]
+ */
+function registerAggregator(name, aggregator, htmlOptions = {}) {
   const htmlView = html.aggregatorView(name, htmlOptions);
   persistence.register(name, aggregator);
   app.get(`/${name}{.:format}`, (req, res) => {
@@ -212,8 +235,8 @@ app.registerAggregator = (name, aggregator, htmlOptions = {}) => {
     // Unknown sorts fall back to the count of the period (?period=24h for
     // the last 24 hours, 15 minutes by default)
     const sort =
-      aggregator.sorters && aggregator.sorters[req.query.sort]
-        ? req.query.sort
+      aggregator.sorters && aggregator.sorters[String(req.query.sort)]
+        ? String(req.query.sort)
         : req.query.period === '24h'
           ? 'count24h'
           : 'count15m';
@@ -229,7 +252,7 @@ app.registerAggregator = (name, aggregator, htmlOptions = {}) => {
       format: format === 'csv' ? 'json' : format,
       raw,
       filter: htmlOptions.identityFilter
-        ? identityFilters.get(req.query.filter)
+        ? identityFilters.get(String(req.query.filter))
         : undefined,
     });
 
@@ -268,6 +291,17 @@ app.registerAggregator = (name, aggregator, htmlOptions = {}) => {
       res.send(entry.toJSON());
     }
   });
-};
+}
 
-module.exports = app;
+/**
+ * @template T
+ * @param {T | Promise<T>} value
+ * @returns {value is Promise<T>}
+ */
+function isPromise(value) {
+  return typeof (/** @type {any} */ (value).then) === 'function';
+}
+
+/** @typedef {import('../types').Log} Log */
+
+module.exports = Object.assign(app, { streamToHttp, registerAggregator });
