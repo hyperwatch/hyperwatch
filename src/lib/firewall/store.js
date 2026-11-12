@@ -105,7 +105,8 @@ function settle(promise, signal) {
   });
 }
 
-// On a persistence storage (see ../storage): read(), write() and close()
+// On a persistence storage (see ../storage): read(), write() and close(),
+// when the storage has one
 /**
  * @param {import('../storage').Storage} storage
  * @param {{ timeout?: number }} [options]
@@ -154,7 +155,11 @@ function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
       await settle(storage.write(STATE, body, { signal: bound }), bound);
     },
     watch() {},
-    close: () => storage.close(),
+    close: async () => {
+      if (storage.close) {
+        await storage.close();
+      }
+    },
   };
 }
 

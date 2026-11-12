@@ -6,7 +6,7 @@
  *   After `signal` aborts, the write must not overwrite a newer snapshot:
  *   prevent it from committing, or reject further writes to that document
  *   when a remote commit cannot be ruled out
- * - close() → releases connections, if any
+ * - close(), optional → releases connections, if any
  *
  * Names match /^[A-Za-z0-9._-]+$/. Documents are plain JSON, not compressed,
  * the same for every backend.

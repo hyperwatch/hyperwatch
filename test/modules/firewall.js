@@ -215,6 +215,12 @@ describe('firewall lists in a persistence storage', () => {
     console.warn = warn;
   });
 
+  it('closes a storage without close()', async () => {
+    const storage = createMemoryStorage();
+    delete storage.close;
+    await createStorageStore(storage).close();
+  });
+
   it('loads, edits and summarizes the documents "firewall-lists" and "firewall-lists.sync"', async () => {
     const storage = createMemoryStorage();
     const store = createStorageStore(storage);

@@ -464,7 +464,10 @@ class Persistence {
     }
     try {
       await bounded(
-        Promise.resolve().then(() => this.storage.close()),
+        // close() is optional: a storage may have nothing to release
+        Promise.resolve().then(
+          () => this.storage.close && this.storage.close()
+        ),
         signal
       );
     } catch (err) {

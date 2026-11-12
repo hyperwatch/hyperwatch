@@ -322,6 +322,18 @@ describe('persistence lifecycle', () => {
       assert.match(logs[0], /dumped 0 documents .*1 failed/);
     });
 
+    it('stops a storage without close()', async () => {
+      const storage = createMemoryStorage();
+      delete storage.close;
+      const persistence = new Persistence();
+      persistence.setStorage(storage);
+      persistence.register('doc', doc([1]));
+
+      await persistence.stop({});
+      assert.strictEqual(storage.documents.get('doc'), '[1]');
+      assert.deepStrictEqual(errors, []);
+    });
+
     it('waits for the restore in progress before dumping', async () => {
       const storage = createMemoryStorage();
       storage.documents.set('doc', '["stored"]');
