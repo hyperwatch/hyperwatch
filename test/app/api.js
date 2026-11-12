@@ -46,6 +46,20 @@ describe('API format routes', () => {
     await close(server);
   });
 
+  it('serves raw status entries in JSON only', async () => {
+    monitoring.register({
+      name: 'raw-test',
+      type: 'input',
+      speeds: ['accepted'],
+      status: 'Connected',
+    });
+    const json = await (await fetch(`${baseUrl}/status?raw=1`)).json();
+    assert.ok(json.every((entry) => 'speeds' in entry));
+    const body = await (await fetch(`${baseUrl}/status.txt?raw=1`)).text();
+    assert.match(body, /<td>raw-test<\/td>/);
+    assert.doesNotMatch(body, /_root|__ownerID/);
+  });
+
   for (const path of ['/nodes.xml', '/format-test.xml', '/status.csv']) {
     it(`rejects the unsupported format in ${path}`, async () => {
       const response = await fetch(`${baseUrl}${path}`);
