@@ -156,3 +156,58 @@ describe('Pipeline stop', () => {
     }
   });
 });
+
+describe('Pipeline node registry', () => {
+  /** @type {Record<string, any>} */
+  let nodes;
+  let name;
+  let monitors;
+  let children;
+
+  beforeEach(() => {
+    children = [...pipeline.children];
+    nodes = { ...pipeline.nodes };
+    name = pipeline.name;
+    monitors = [...pipeline.monitors];
+  });
+
+  afterEach(() => {
+    pipeline.nodes = nodes;
+    pipeline.name = name;
+    pipeline.monitors = monitors;
+    pipeline.children = children;
+  });
+
+  it('names the root with options, like any node', () => {
+    pipeline.registerNode('test-root', { monitor: true });
+    assert.strictEqual(pipeline.getNode('test-root'), pipeline);
+    assert.strictEqual(pipeline.name, 'test-root');
+    assert.strictEqual(pipeline.monitors.length, monitors.length + 1);
+  });
+
+  it('still accepts a node as second argument', () => {
+    const node = pipeline.filter(() => true);
+    pipeline.registerNode('test-node', node);
+    assert.strictEqual(pipeline.getNode('test-node'), node);
+    assert.strictEqual(pipeline.name, name);
+  });
+
+  it('registers every node through setNode()', () => {
+    const calls = [];
+    const original = pipeline.setNode;
+    pipeline.setNode = function (nodeName, node) {
+      calls.push([nodeName, node]);
+      return original.call(this, nodeName, node);
+    };
+    try {
+      const node = pipeline.filter(() => true).registerNode('test-set');
+      pipeline.registerNode('test-root', {});
+      assert.deepStrictEqual(calls, [
+        ['test-set', node],
+        ['test-root', pipeline],
+      ]);
+    } finally {
+      pipeline.setNode = original;
+    }
+  });
+});

@@ -170,9 +170,9 @@ function start() {
   }
 
   // Auto-register future nodes
-  const originalRegisterNode = pipeline.registerNode.bind(pipeline);
-  pipeline.registerNode = function (name, node) {
-    const result = originalRegisterNode(name, node);
+  const originalSetNode = pipeline.setNode.bind(pipeline);
+  pipeline.setNode = function (name, node) {
+    const result = originalSetNode(name, node);
     if (!(name in buffers)) {
       registerNodeHistory(name, node);
     }
