@@ -292,6 +292,67 @@ describe('WebSocket integration', () => {
     });
   });
 
+  describe('repeated ?clientId=', () => {
+    // The client with ?clientId=a&clientId=b is 'b', standalone and mounted:
+    // a second client 'b' is turned away, a client 'a' isn't
+    async function checkLastValue(url) {
+      const first = await connectWs(url('?clientId=a&clientId=b'));
+      const duplicate = new WebSocket(url('?clientId=b'));
+      duplicate.on('error', () => {});
+      const closed = await new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(false), 2000);
+        duplicate.on('close', () => {
+          clearTimeout(timer);
+          resolve(true);
+        });
+      });
+      if (!closed) {
+        duplicate.terminate();
+        first.close();
+      }
+      assert.ok(closed, "a second client 'b' wasn't turned away");
+      const other = await connectWs(url('?clientId=a'));
+      assert.strictEqual(first.readyState, WebSocket.OPEN);
+      first.close();
+      other.close();
+    }
+
+    function stream(endpoint) {
+      const originalSetInterval = global.setInterval;
+      global.setInterval = () => undefined;
+      try {
+        websocket.streamToWebsocket(endpoint, { map() {} });
+      } finally {
+        global.setInterval = originalSetInterval;
+      }
+    }
+
+    it('keeps the last value standalone', async () => {
+      stream('/logs/repeated-standalone');
+      httpServer = createTestServer().httpServer;
+      baseUrl = await listen(httpServer);
+      await checkLastValue(
+        (query) =>
+          `${baseUrl.replace('http', 'ws')}/logs/repeated-standalone${query}`
+      );
+    });
+
+    it('keeps the last value when mounted', async () => {
+      stream('/logs/repeated-mounted');
+      const app = express();
+      httpServer = http.createServer(app);
+      require('../../src/app/mount')(app, {
+        server: httpServer,
+        path: '/_hw',
+      });
+      baseUrl = await listen(httpServer);
+      await checkLastValue(
+        (query) =>
+          `${baseUrl.replace('http', 'ws')}/_hw/logs/repeated-mounted${query}`
+      );
+    });
+  });
+
   describe('WebSocket server input pattern', () => {
     it('should receive messages sent by a WebSocket client', async () => {
       const setup = createTestServer();
