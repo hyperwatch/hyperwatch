@@ -48,12 +48,12 @@ Don't call `hyperwatch.start()`: it would start the standalone Hyperwatch server
 
 ## `hyperwatch.app.mount(app, options)`
 
-| Option       | Required | Description                                                                                                      |
-| ------------ | -------- | ---------------------------------------------------------------------------------------------------------------- |
-| `server`     | yes      | The Node HTTP server of the app. `mount()` adds an `upgrade` listener to it, and never creates or starts one.    |
-| `path`       | yes      | The mount path, e.g. `'/_hyperwatch'`. It must start with `/` and not end with `/`.                              |
-| `middleware` | no       | A middleware function or an array of them, e.g. authentication. Applied to HTTP requests and WebSocket upgrades. |
-| `fallback`   | no       | `(req, socket, head) => {}`, called with the WebSocket upgrades Hyperwatch doesn't own. Without it, see below.   |
+| Option       | Required | Description                                                                                                                                                           |
+| ------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server`     | yes      | The Node HTTP server of the app (or an HTTP/2 server with HTTP/1 fallback, like Vite's). `mount()` adds an `upgrade` listener to it, and never creates or starts one. |
+| `path`       | yes      | The mount path, e.g. `'/_hyperwatch'`. It must start with `/` and not end with `/`.                                                                                   |
+| `middleware` | no       | A middleware function or an array of them, e.g. authentication. Applied to HTTP requests and WebSocket upgrades.                                                      |
+| `fallback`   | no       | `(req, socket, head) => {}`, called with the WebSocket upgrades Hyperwatch doesn't own. Without it, see below.                                                        |
 
 ### HTTP routes
 
