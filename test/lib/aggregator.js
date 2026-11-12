@@ -116,3 +116,27 @@ describe('Aggregator getData filter', () => {
     );
   });
 });
+
+describe('Aggregator identifier', () => {
+  const log = (fields) => fromJS({ executionTime: 10, ...fields });
+
+  it('leaves out the logs without an identifier, without throwing', () => {
+    const aggregator = new Aggregator();
+    aggregator.setIdentifier((entry) => entry.get('key'));
+    const without = log({});
+    assert.strictEqual(aggregator.processLog(without), without);
+    aggregator.processLog(log({ key: null }));
+    assert.strictEqual(aggregator.entries.size, 0);
+
+    aggregator.processLog(log({ key: 'a' }));
+    aggregator.processLog(log({ key: '' }));
+    assert.deepStrictEqual(
+      aggregator.entries
+        .toList()
+        .map((entry) => entry.get('identifier'))
+        .toArray()
+        .sort(),
+      ['', 'a']
+    );
+  });
+});
