@@ -20,6 +20,11 @@ const [ok, notOk] = named.split((log) => !!log.get('identity'));
 ok.registerNode('identified');
 notOk.registerNode('unidentified');
 
+// The root is named like any node; a node as second argument still works
+pipeline.registerNode('root', { monitor: true });
+pipeline.registerNode('checked-again', named);
+pipeline.setNode('checked-too', named);
+
 pipeline.registerInput(
   input.websocket.create({
     name: 'Example',
@@ -46,6 +51,10 @@ void modules;
 hyperwatch.init({ port: 'not a port' });
 // @ts-expect-error getNode() takes a node name
 pipeline.getNode(42);
+// @ts-expect-error registerNode() takes options or a node
+pipeline.registerNode('root', 'main');
+// @ts-expect-error setNode() takes a node, not options
+pipeline.setNode('root', { monitor: true });
 // @ts-expect-error a WebSocket input's type is 'client' or 'server'
 input.websocket.create({ type: 'peer' });
 // @ts-expect-error mount() needs the HTTP server and a path
