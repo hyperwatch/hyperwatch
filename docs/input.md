@@ -99,6 +99,8 @@ pipeline.registerInput(expressInput);
 
 **Note**: With the `app` option, the input calls `app.use()` only when the pipeline starts. Routes registered on the app before that run first, and their requests are not logged, even if they are declared after `input.express.create()`. Prefer mounting `middleware()` yourself, as above.
 
+Behind a proxy, `request.address` is the proxy's unless Express trusts it: see [Behind a proxy](./express-embedding.md#behind-a-proxy).
+
 To log the traffic of an application running in a separate process, use the [Hyperwatch Express Logger](https://www.npmjs.com/package/@hyperwatch/express-logger) middleware with the HTTP, WebSocket or syslog input (see the [tutorial](./tutorials/express_input.md)).
 
 ## JSON Format
