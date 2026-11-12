@@ -12,6 +12,17 @@ const wsServer = require('./ws-server');
  */
 const websocket = (req, res, next) => wsServer.middleware(req, res, next);
 
+// The client's ?clientId=, the same standalone and mounted: the last value
+// when repeated (Express's query parser gives an array, the standalone
+// server the last one), none unless it's a non-empty string (the extended
+// parser can give an object)
+function clientIdOf(query) {
+  const value = Array.isArray(query.clientId)
+    ? query.clientId[query.clientId.length - 1]
+    : query.clientId;
+  return typeof value === 'string' && value ? value : null;
+}
+
 websocket.streamToWebsocket = (
   endpoint,
   stream,
@@ -41,7 +52,7 @@ websocket.streamToWebsocket = (
   updateMonitoringStatus();
 
   wsServer.ws(endpoint, (client, req) => {
-    const clientId = req.query.clientId || crypto.randomUUID();
+    const clientId = clientIdOf(req.query || {}) || crypto.randomUUID();
     if (clients[clientId]) {
       console.log(`Client '${clientId}' is already connected. Terminating.`);
       client.terminate();
