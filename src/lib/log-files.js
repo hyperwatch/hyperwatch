@@ -14,6 +14,29 @@ const { fromJS } = require('immutable');
 
 const { logMatches } = require('./util');
 
+/** @typedef {import('../types').Log} Log */
+
+/**
+ * A file being written: its name, the bytes written to it for sure, and the
+ * lines sent and not written yet (oldest first)
+ * @typedef {{ file: string, written: number, pending: string[] }} FileState
+ */
+
+/**
+ * What the files hold at a time, per file name: the bytes written for sure
+ * and the lines still pending (LogWriter#snapshot())
+ * @typedef {Map<string, { size: number, pending: string[] }>} Snapshot
+ */
+
+/**
+ * @typedef {object} LogWriterOptions
+ * @property {() => Date} [now]
+ * @property {number} [highWaterMark] Bytes a stream buffers before logs are
+ *   dropped
+ * @property {((log: Log) => Log | null) | null} [transform] What to write of
+ *   a log: a log, or null to skip it
+ */
+
 const NEWLINE = 0x0a;
 const FILE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}\.ndjson$/;
 
@@ -36,18 +59,22 @@ const DEFAULT_BOUNDS = {
   chunk: 1024 * 1024,
 };
 
-const hourOf = (date) => date.toISOString().slice(0, 13);
+const hourOf = (/** @type {Date} */ date) => date.toISOString().slice(0, 13);
 
-const fileFor = (hour) => `${hour}.ndjson`;
+const fileFor = (/** @type {string} */ hour) => `${hour}.ndjson`;
 
 // The size of a file (0 when missing), and whether it ends mid-line (a line
 // cut by a crash)
+/**
+ * @param {string} file
+ * @returns {{ size: number, midLine: boolean }}
+ */
 function fileState(file) {
   let fd;
   try {
     fd = fs.openSync(file, 'r');
   } catch (err) {
-    if (err.code === 'ENOENT') {
+    if (/** @type {NodeJS.ErrnoException} */ (err).code === 'ENOENT') {
       return { size: 0, midLine: false };
     }
     throw err;
@@ -66,6 +93,10 @@ function fileState(file) {
 }
 
 class LogWriter {
+  /**
+   * @param {string} dir
+   * @param {LogWriterOptions} [options]
+   */
   constructor(
     dir,
     {
@@ -81,23 +112,31 @@ class LogWriter {
     this.transform = transform;
     // The stream of the current hour, null when not open (failed, stopped,
     // or waiting for older streams to close)
+    /** @type {fs.WriteStream | null} */
     this.stream = null;
+    /** @type {string | null} */
     this.hour = null;
     // write() returned false: drop until that stream drains
     this.blocked = false;
     // Hour whose file failed: drop until the next hour
+    /** @type {string | null} */
     this.failedHour = null;
     // Streams ended and not closed yet: at most 2, never queued
+    /** @type {Set<fs.WriteStream>} */
     this.closing = new Set();
     // Per open stream: its file, the bytes written to it for sure, and the
     // lines sent and not written yet (oldest first), see snapshot()
+    /** @type {Map<fs.WriteStream, FileState>} */
     this.files = new Map();
     this.stopped = false;
     this.counts = { written: 0, dropped: 0, lost: 0, skipped: 0 };
+    /** @type {string | null} */
     this.lastError = null;
+    /** @type {string | null} */
     this.lastWriteAt = null;
   }
 
+  /** @param {Log} log */
   push(log) {
     if (this.stopped) {
       this.counts.dropped++;
@@ -116,9 +155,10 @@ class LogWriter {
     }
     if (this.transform) {
       try {
-        log = this.transform(log);
+        // null skips it, checked below
+        log = /** @type {Log} */ (this.transform(log));
       } catch (err) {
-        this.lastError = `transform: ${err.message}`;
+        this.lastError = `transform: ${/** @type {Error} */ (err).message}`;
         this.counts.dropped++;
         return;
       }
@@ -154,8 +194,14 @@ class LogWriter {
 
   // Writes a line, tracked until written. A stream calls back in order, so
   // the oldest pending line is the one written.
+  /**
+   * @param {fs.WriteStream} stream
+   * @param {string} line
+   * @param {(err?: Error | null) => void} callback
+   * @returns {boolean} false when the stream buffers too much
+   */
   write(stream, line, callback) {
-    const state = this.files.get(stream);
+    const state = /** @type {FileState} */ (this.files.get(stream));
     state.pending.push(line);
     return stream.write(line, (err) => {
       state.pending.shift();
@@ -171,8 +217,10 @@ class LogWriter {
    * name, the bytes written for sure and the lines still pending. Taken
    * synchronously, so a reader starting from it and a live stream starting
    * at the same time neither miss nor repeat a log.
+   * @returns {Snapshot}
    */
   snapshot() {
+    /** @type {Snapshot} */
     const files = new Map();
     for (const state of this.files.values()) {
       files.set(state.file, {
@@ -196,6 +244,7 @@ class LogWriter {
     return files;
   }
 
+  /** @param {string} hour */
   rotate(hour) {
     this.hour = hour;
     this.failedHour = null;
@@ -205,6 +254,7 @@ class LogWriter {
     }
   }
 
+  /** @param {string} hour */
   open(hour) {
     const file = path.join(this.dir, fileFor(hour));
     let state;
@@ -212,7 +262,7 @@ class LogWriter {
       fs.mkdirSync(this.dir, { recursive: true });
       state = fileState(file);
     } catch (err) {
-      this.fail(err);
+      this.fail(/** @type {Error} */ (err));
       return;
     }
     const stream = fs.createWriteStream(file, {
@@ -239,6 +289,7 @@ class LogWriter {
     }
   }
 
+  /** @param {Error} err */
   fail(err) {
     this.lastError = err.message;
     this.failedHour = this.hour;
@@ -250,6 +301,7 @@ class LogWriter {
   }
 
   // Ends a stream and forgets it once closed, failed or not
+  /** @param {fs.WriteStream} stream */
   end(stream) {
     this.closing.add(stream);
     const settle = () => {
@@ -267,6 +319,7 @@ class LogWriter {
 
   // Ends every stream; those still open when the signal fires are destroyed.
   // Logs pushed afterwards are dropped.
+  /** @param {AbortSignal} [signal] */
   async flush(signal) {
     this.stopped = true;
     if (this.stream) {
@@ -275,7 +328,8 @@ class LogWriter {
     }
     const pending = [...this.closing].map(
       (stream) =>
-        /** @type {Promise<void>} */ (
+        // Resolved with the error, if any: ignored
+        /** @type {Promise<Error | void>} */ (
           new Promise((resolve) => {
             if (!this.closing.has(stream)) {
               resolve();
@@ -326,7 +380,8 @@ class LogWriter {
         // Deleted meanwhile
       }
     }
-    const hour = (file) => (file ? file.slice(0, 13) : null);
+    const hour = (/** @type {string | undefined} */ file) =>
+      file ? file.slice(0, 13) : null;
     return {
       files: files.length,
       bytes,
@@ -340,6 +395,10 @@ class LogWriter {
 }
 
 // Log files of a directory, newest first
+/**
+ * @param {string} dir
+ * @returns {Promise<string[]>}
+ */
 async function listFiles(dir) {
   try {
     const names = await fs.promises.readdir(dir);
@@ -348,7 +407,7 @@ async function listFiles(dir) {
       .sort()
       .reverse();
   } catch (err) {
-    if (err.code === 'ENOENT') {
+    if (/** @type {NodeJS.ErrnoException} */ (err).code === 'ENOENT') {
       return [];
     }
     throw err;
@@ -359,6 +418,12 @@ class CursorError extends Error {}
 
 // "<file>:<offset>", the offset being where the next read ends: 0 or right
 // after a newline
+/**
+ * @param {string} dir
+ * @param {string[]} files
+ * @param {string} cursor
+ * @returns {Promise<{ file: string, offset: number }>}
+ */
 async function parseCursor(dir, files, cursor) {
   const match = /^(.+):(\d+)$/.exec(String(cursor));
   if (!match || !FILE_PATTERN.test(match[1]) || !files.includes(match[1])) {
@@ -390,19 +455,29 @@ async function parseCursor(dir, files, cursor) {
  * read like grep: a filter value as the JSON string the writer wrote (the
  * longest, usually the rarest), or null without filters. Searching bytes is
  * much cheaper than parsing every log.
+ * @param {ReadOptions['filters']} [filters]
+ * @returns {Buffer | null}
  */
 const searchFor = (filters = {}) =>
-  ['identity', 'address', 'signature']
+  /** @type {('identity' | 'address' | 'signature')[]} */ ([
+    'identity',
+    'address',
+    'signature',
+  ])
     .map((key) => filters[key])
     .filter((value) => typeof value === 'string' && value)
     .map((value) => Buffer.from(JSON.stringify(value)))
     .reduce(
       (longest, value) =>
         !longest || value.length > longest.length ? value : longest,
-      null
+      /** @type {Buffer | null} */ (null)
     );
 
 // The parsed log of a line, or null when it isn't one
+/**
+ * @param {Buffer} line
+ * @returns {Record<string, any> | null}
+ */
 function parseLine(line) {
   let data;
   try {
@@ -440,12 +515,23 @@ function parseLine(line) {
  * @property {{ identity?: string, address?: string, signature?: string }} [filters]
  * @property {AbortSignal} [signal]
  * @property {Partial<typeof DEFAULT_BOUNDS>} [bounds] Bytes and time per read
- * @property {any} [snapshot] From LogWriter#snapshot()
+ * @property {Snapshot} [snapshot] From LogWriter#snapshot()
+ */
+
+/**
+ * @typedef {object} ReadResult
+ * @property {Record<string, any>[]} logs Newest first
+ * @property {string | null} cursor Where to resume, null after the oldest log
+ * @property {boolean} truncated Whether a bound was hit
+ * @property {number} scannedBytes
+ * @property {number} skipped Lines that aren't logs, or too long
+ * @property {string | null} oldest The oldest hour on disk
  */
 
 /**
  * @param {string} dir
  * @param {ReadOptions} [options]
+ * @returns {Promise<ReadResult>}
  */
 async function read(
   dir,
@@ -454,6 +540,7 @@ async function read(
   const { scan, time, response, chunk } = { ...DEFAULT_BOUNDS, ...bounds };
   const started = Date.now();
   let files = await listFiles(dir);
+  /** @type {ReadResult} */
   const result = {
     logs: [],
     cursor: null,
@@ -464,6 +551,7 @@ async function read(
   };
 
   let index = 0;
+  /** @type {number | null} */
   let end = null;
   if (snapshot) {
     // Files created since the snapshot are newer than it. Its files may not
@@ -489,7 +577,8 @@ async function read(
 
   // Takes a line (without its newline) if it's a log matching the filters.
   // 'full' when it doesn't fit in the response, 'done' at the limit
-  const take = (line) => {
+  /** @returns {'full' | 'done' | null} */
+  const take = (/** @type {Buffer} */ line) => {
     if (line.length > MAX_LINE) {
       result.skipped++;
       return null;
@@ -538,7 +627,10 @@ async function read(
       handle = await fs.promises.open(path.join(dir, file), 'r');
     } catch (err) {
       // Not created yet: only its pending lines
-      if (err.code === 'ENOENT' && state) {
+      if (
+        /** @type {NodeJS.ErrnoException} */ (err).code === 'ENOENT' &&
+        state
+      ) {
         continue;
       }
       throw err;
@@ -694,13 +786,11 @@ async function read(
   return result;
 }
 
-module.exports = {
-  CursorError,
-  DEFAULT_BOUNDS,
-  FILE_PATTERN,
-  LogWriter,
-  MAX_LINE,
-  hourOf,
-  listFiles,
-  read,
-};
+module.exports.CursorError = CursorError;
+module.exports.DEFAULT_BOUNDS = DEFAULT_BOUNDS;
+module.exports.FILE_PATTERN = FILE_PATTERN;
+module.exports.LogWriter = LogWriter;
+module.exports.MAX_LINE = MAX_LINE;
+module.exports.hourOf = hourOf;
+module.exports.listFiles = listFiles;
+module.exports.read = read;

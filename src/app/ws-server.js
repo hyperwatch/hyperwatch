@@ -11,11 +11,16 @@ wss.on('headers', (headers) => {
   headers.push(`X-Hyperwatch-Version: ${version}`);
 });
 
+/** @type {Map<string, Handler>} */
 const routes = new Map();
 
 // Marks an upgrade request dispatched through an Express app
 const upgradeKey = Symbol('hyperwatch.upgrade');
 
+/**
+ * @param {string} path
+ * @param {Handler} handler
+ */
 function ws(path, handler) {
   routes.set(path, handler);
 }
@@ -25,6 +30,7 @@ function ws(path, handler) {
  * upgrades use the origin form ("/path?query"): anything else is malformed.
  * `pathname` is kept as sent, like Express routing does; `urlPathname` is
  * normalized by the URL parser.
+ * @param {unknown} url
  */
 function parseTarget(url) {
   if (typeof url !== 'string' || !url.startsWith('/')) {
@@ -45,11 +51,21 @@ function parseTarget(url) {
   }
 }
 
+/**
+ * @param {import('stream').Duplex} socket
+ * @param {number} status
+ * @param {string} message
+ */
 function reject(socket, status, message) {
   socket.end(`HTTP/1.1 ${status} ${message}\r\nConnection: close\r\n\r\n`);
 }
 
 // Find the handler of a route, matching case like Express routing does
+/**
+ * @param {string} pathname
+ * @param {boolean} caseSensitive
+ * @returns {Handler | undefined}
+ */
 function findRoute(pathname, caseSensitive) {
   if (caseSensitive) {
     return routes.get(pathname);
@@ -62,6 +78,11 @@ function findRoute(pathname, caseSensitive) {
   }
 }
 
+/**
+ * @param {import('http').IncomingMessage & { query?: Record<string, string> }} request
+ * @param {import('stream').Duplex} socket
+ * @param {Buffer} head
+ */
 function handleUpgrade(request, socket, head) {
   const target = parseTarget(request.url);
   if (!target) {
@@ -73,7 +94,7 @@ function handleUpgrade(request, socket, head) {
   const handler = routes.get(target.urlPathname);
   if (handler) {
     wss.handleUpgrade(request, socket, head, (client) => {
-      handler(client, request);
+      handler(client, /** @type {UpgradeRequest} */ (request));
     });
   } else {
     socket.destroy();
@@ -84,9 +105,12 @@ function handleUpgrade(request, socket, head) {
  * Express middleware completing the WebSocket upgrades sent by dispatch().
  * The route is matched on the path relative to where the middleware is
  * mounted, so `app.use('/_hyperwatch', middleware)` serves `/_hyperwatch/logs/raw`.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 function middleware(req, res, next) {
-  const upgrade = req[upgradeKey];
+  const upgrade = /** @type {Dispatched} */ (req)[upgradeKey];
   if (!upgrade) {
     return next();
   }
@@ -98,8 +122,8 @@ function middleware(req, res, next) {
     // The mount path is Hyperwatch's: unknown routes end here
     return res.status(404).end();
   }
-  req[upgradeKey] = null;
-  res.detachSocket(upgrade.socket);
+  /** @type {Dispatched} */ (req)[upgradeKey] = null;
+  res.detachSocket(/** @type {import('net').Socket} */ (upgrade.socket));
   wss.handleUpgrade(req, upgrade.socket, upgrade.head, (client) => {
     handler(client, req);
   });
@@ -111,14 +135,45 @@ function middleware(req, res, next) {
  * WebSocket middleware where it's mounted. The response is bound to the
  * socket, so a middleware can reject the upgrade with an HTTP response, and
  * Express answers errors and unknown routes as usual (e.g. 401, 503, 404).
+ * @param {import('express').Express} app
+ * @param {import('http').IncomingMessage} req
+ * @param {import('stream').Duplex} socket
+ * @param {Buffer} head
  */
 function dispatch(app, req, socket, head) {
-  req[upgradeKey] = { socket, head };
+  /** @type {Dispatched} */ (req)[upgradeKey] = { socket, head };
   const res = new http.ServerResponse(req);
-  res.assignSocket(socket);
+  res.assignSocket(/** @type {import('net').Socket} */ (socket));
   res.on('finish', () => socket.end());
   app(req, res);
 }
+
+/**
+ * A WebSocket connection, as handlers use it (a WebSocket of the ws package)
+ * @typedef {object} WebSocketClient
+ * @property {number} readyState
+ * @property {(data: string) => void} send
+ * @property {() => void} ping
+ * @property {() => void} terminate
+ * @property {(event: string, listener: (...args: any[]) => void) => unknown} on
+ */
+
+/**
+ * The request of a WebSocket upgrade, with its query string parsed
+ * @typedef {import('http').IncomingMessage & { query: Record<string, unknown> }} UpgradeRequest
+ */
+
+/**
+ * Handles the connections of a WebSocket route
+ * @typedef {(client: WebSocketClient, req: UpgradeRequest) => void} Handler
+ */
+
+/**
+ * A request carrying the upgrade dispatch() sends through an app
+ * @typedef {import('http').IncomingMessage & {
+ *   [upgradeKey]?: { socket: import('stream').Duplex, head: Buffer } | null,
+ * }} Dispatched
+ */
 
 module.exports = {
   ws,

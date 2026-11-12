@@ -21,12 +21,17 @@ const pipeline = require('../lib/pipeline');
 const { aggregateCount, safeHtml } = require('../lib/util');
 const { KeyStore, verify } = require('../lib/webbotauth');
 
+/** @typedef {import('../types').Log} Log */
+
+/** @type {KeyStore | undefined} */
 let keyStore;
 
+/** @returns {import('../types').ModuleConfig} */
 function config() {
   return constants.modules.webbotauth || {};
 }
 
+/** @param {import('../lib/webbotauth').KeyStoreOptions} [options] */
 function createKeyStore(options = {}) {
   return new KeyStore({
     agents: agentsData.map((entry) => entry.agent),
@@ -37,6 +42,7 @@ function createKeyStore(options = {}) {
 }
 
 // For tests: another key store (agents, committed keys, fetch)
+/** @param {KeyStore} store */
 function setKeyStore(store) {
   keyStore = store;
 }
@@ -45,6 +51,10 @@ function setKeyStore(store) {
 // and the public hosts it stands for behind a proxy, from
 // modules.webbotauth.authorities ({ 'internal.example': 'example.com' }) or
 // modules.webbotauth.authority (a function of the log, in JavaScript configs)
+/**
+ * @param {Log} log
+ * @returns {string[]}
+ */
 function authoritiesOf(log) {
   // Without the default port of the request's scheme (https when unknown,
   // as for @scheme), other ports are part of the authority
@@ -62,6 +72,10 @@ function authoritiesOf(log) {
   return [...new Set([...[].concat(extra || []), host].filter(Boolean))];
 }
 
+/**
+ * @param {Log} log
+ * @returns {Promise<Log>}
+ */
 async function augment(log) {
   const request = log.get('request');
   const headers = request && request.get('headers');
@@ -98,6 +112,7 @@ function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 }
 
+/** @type {Aggregator | undefined} */
 let _aggregator;
 
 function start() {
@@ -127,7 +142,9 @@ function start() {
     [
       'domain',
       (entry) =>
-        (entry.getIn(['webbotauth', 'agent']) || '').replace(/^https:\/\//, ''),
+        /** @type {string} */ (
+          entry.getIn(['webbotauth', 'agent']) || ''
+        ).replace(/^https:\/\//, ''),
     ],
     // In HTML, a verified signature gets the ✓ of verified hostnames
     [

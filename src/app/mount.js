@@ -2,13 +2,19 @@ const api = require('./api');
 const wsServer = require('./ws-server');
 
 // Servers where Hyperwatch handles WebSocket upgrades, with their listener
+/** @type {WeakMap<Server, UpgradeListener>} */
 const upgradeListeners = new WeakMap();
 
 // Paths where Hyperwatch is mounted, per app. Express can't remove routes, so
 // a path stays mounted for the life of the app.
+/** @type {WeakMap<import('express').Express, Set<string>>} */
 const mountedPaths = new WeakMap();
 
 // A path as the app routes it: case-insensitive unless the app says otherwise
+/**
+ * @param {import('express').Express} app
+ * @param {string} path
+ */
 function routingKey(app, path) {
   return app.enabled('case sensitive routing') ? path : path.toLowerCase();
 }
@@ -31,7 +37,10 @@ function validate(app, { server, path, middleware, fallback }) {
       `Invalid mount path "${path}": it must start with "/" and not end with "/"`
     );
   }
-  const middlewares = middleware === undefined ? [] : [].concat(middleware);
+  const middlewares =
+    middleware === undefined
+      ? []
+      : /** @type {Function[]} */ ([]).concat(middleware);
   if (!middlewares.every((fn) => typeof fn === 'function')) {
     throw new TypeError(
       'middleware must be a function or an array of functions'
@@ -53,6 +62,11 @@ function validate(app, { server, path, middleware, fallback }) {
 }
 
 // Whether a request is under the mount path, matching case like Express
+/**
+ * @param {{ pathname: string }} target
+ * @param {string} path
+ * @param {boolean} caseSensitive
+ */
 function isUnderPath(target, path, caseSensitive) {
   const pathname = caseSensitive
     ? target.pathname
@@ -81,9 +95,12 @@ function isUnderPath(target, path, caseSensitive) {
  * listener and releases the server. Express can't remove routes, so the
  * HTTP routes stay mounted on the app, with their original middleware.
  */
+/** @typedef {import('http').Server | import('http2').Http2SecureServer} Server */
+
 /**
  * @typedef {object} MountOptions
- * @property {import('http').Server} server The HTTP server of the app
+ * @property {Server} server The HTTP server of the app (an HTTP/2 server
+ *   with HTTP/1 fallback too, e.g. Vite's)
  * @property {string} path Where to mount Hyperwatch: starts with `/`, doesn't
  *   end with it
  * @property {Function | Function[]} [middleware] Before Hyperwatch's routes
@@ -101,17 +118,22 @@ function mount(app, options) {
   const middlewares = validate(app, options || /** @type {any} */ ({}));
   const { server, path, fallback } = options;
 
-  app.use(path, ...middlewares, api);
+  app.use(
+    path,
+    .../** @type {import('express').RequestHandler[]} */ (middlewares),
+    api
+  );
   if (!mountedPaths.has(app)) {
     mountedPaths.set(app, new Set());
   }
-  mountedPaths.get(app).add(routingKey(app, path));
+  /** @type {Set<string>} */ (mountedPaths.get(app)).add(routingKey(app, path));
 
   // Node removes a listener added with once() just before calling it, and
   // says so with 'removeListener', synchronously. An upgrade listener
   // removed while an upgrade is emitted may have handled it: note it until
   // the emission is over.
   let removedDuringEmission = false;
+  /** @param {string | symbol} event */
   const onRemoveListener = (event) => {
     if (event === 'upgrade' && !removedDuringEmission) {
       removedDuringEmission = true;
@@ -121,6 +143,7 @@ function mount(app, options) {
     }
   };
 
+  /** @type {UpgradeListener} */
   const listener = (req, socket, head) => {
     const target = wsServer.parseTarget(req.url);
     // Malformed targets are rejected before reaching the app or fallback
@@ -159,5 +182,9 @@ function mount(app, options) {
     },
   };
 }
+
+/**
+ * @typedef {(req: import('http').IncomingMessage, socket: import('stream').Duplex, head: Buffer) => void} UpgradeListener
+ */
 
 module.exports = mount;

@@ -67,14 +67,14 @@ async function stop() {
   await modules.stop();
   try {
     await pipeline.stop();
-  } catch (err) {
+  } catch (/** @type {any} */ err) {
     console.error('Error stopping the pipeline:', err.message);
   }
   // No more logs coming: end the log files (at most 5 s), whatever happens
   // to persistence next
   try {
     await history.flush({ timeout: 5000 });
-  } catch (err) {
+  } catch (/** @type {any} */ err) {
     console.error('Error ending the log files:', err.message);
   }
   // Persist even if stopping the inputs failed

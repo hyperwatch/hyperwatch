@@ -10,10 +10,39 @@ const PHASE = 'http_request_firewall_custom';
 // sync (and the firewall edits queued behind it) forever
 const REQUEST_TIMEOUT = 30000;
 
+/**
+ * A custom rule of the zone, as the Rulesets API returns it
+ * @typedef {object} CloudflareRule
+ * @property {string} id
+ * @property {string} [version]
+ * @property {string} [expression]
+ * @property {string} [action] `block`, `managed_challenge`…
+ * @property {string} [description]
+ * @property {boolean} [enabled]
+ * @property {Record<string, unknown>} [action_parameters]
+ * @property {Record<string, unknown>} [logging]
+ * @property {string} [ref]
+ */
+
+/**
+ * The fields of a rule a PATCH sends
+ * @typedef {Omit<CloudflareRule, 'id' | 'version'>} RulePatch
+ */
+
+/**
+ * A ruleset: the zone's custom rules entrypoint
+ * @typedef {{ id: string, version?: string, rules?: CloudflareRule[] }} CloudflareRuleset
+ */
+
+/**
+ * An error or message of a Cloudflare API response
+ * @typedef {{ code: number, message: string }} CloudflareMessage
+ */
+
 class CloudflareError extends Error {
   /**
    * @param {string} message
-   * @param {{ status?: number, errors?: any[], cause?: any }} [details]
+   * @param {{ status?: number, errors?: CloudflareMessage[], cause?: unknown }} [details]
    */
   constructor(message, { status, errors, cause } = {}) {
     super(message, { cause });
@@ -23,6 +52,9 @@ class CloudflareError extends Error {
   }
 }
 
+/**
+ * @param {{ token?: string, zoneId?: string, fetch?: typeof globalThis.fetch }} [options]
+ */
 function createClient({
   token = process.env.CLOUDFLARE_API_TOKEN,
   zoneId = process.env.CLOUDFLARE_ZONE_ID,
@@ -35,6 +67,13 @@ function createClient({
     throw new Error('Cloudflare: CLOUDFLARE_ZONE_ID is not set');
   }
 
+  /**
+   * @param {string} method
+   * @param {string} path
+   * @param {unknown} body
+   * @param {AbortSignal} [signal]
+   * @returns {Promise<any>} The response's `result`
+   */
   async function request(method, path, body, signal) {
     const res = await fetch(`${API}${path}`, {
       method,
@@ -47,6 +86,7 @@ function createClient({
         ? AbortSignal.any([signal, AbortSignal.timeout(REQUEST_TIMEOUT)])
         : AbortSignal.timeout(REQUEST_TIMEOUT),
     });
+    /** @type {any} Parsed JSON, checked below */
     let json;
     try {
       json = await res.json();
@@ -57,6 +97,7 @@ function createClient({
       );
     }
     if (!res.ok || !json.success) {
+      /** @type {CloudflareMessage[]} */
       const errors = json.errors || [];
       const detail = errors.map((e) => `${e.code}: ${e.message}`).join('; ');
       throw new CloudflareError(
@@ -68,7 +109,10 @@ function createClient({
   }
 
   // The zone's custom rules ruleset: { id, version, rules: [...] }
-  /** @param {import('../../types').Abortable} [options] */
+  /**
+   * @param {import('../../types').Abortable} [options]
+   * @returns {Promise<CloudflareRuleset>}
+   */
   const getEntrypoint = ({ signal } = {}) =>
     request(
       'GET',
@@ -82,8 +126,9 @@ function createClient({
   /**
    * @param {string} rulesetId
    * @param {string} ruleId
-   * @param {Record<string, any>} rule
+   * @param {RulePatch} rule
    * @param {import('../../types').Abortable} [options]
+   * @returns {Promise<CloudflareRuleset>} The whole ruleset, as updated
    */
   const patchRule = (rulesetId, ruleId, rule, { signal } = {}) =>
     request(
@@ -103,5 +148,7 @@ function createClient({
 
   return { getEntrypoint, patchRule };
 }
+
+/** @typedef {ReturnType<typeof createClient>} CloudflareClient */
 
 module.exports = { CloudflareError, createClient };

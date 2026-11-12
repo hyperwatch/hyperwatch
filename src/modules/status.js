@@ -3,9 +3,25 @@ const html = require('../app/html');
 const monitoring = require('../lib/monitoring');
 const { escapeHtml, fillHost, formatTable } = require('../lib/util');
 
+/**
+ * The sum of the counts of a speed, null without it
+ * @param {Entry} entry
+ * @param {string[]} path
+ * @returns {number | null}
+ */
 const aggregateCount = (entry, path) =>
-  entry.hasIn(path) ? entry.getIn(path).reduce((p, c) => p + c, 0) : null;
+  entry.hasIn(path)
+    ? /** @type {IndexedNumbers} */ (entry.getIn(path)).reduce(
+        (p, c) => p + c,
+        0
+      )
+    : null;
 
+/**
+ * A row of the status table
+ * @param {Entry} entry
+ * @param {string | null} format
+ */
 function mapper(entry, format) {
   return {
     name: entry.get('name'),
@@ -22,8 +38,14 @@ function mapper(entry, format) {
   };
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 function handler(req, res) {
-  const format = req.params.format || (req.query.raw ? 'json' : null);
+  const format =
+    /** @type {string | undefined} */ (req.params.format) ||
+    (req.query.raw ? 'json' : null);
   // The monitoring entries as they are, in JSON only: the HTML table can't
   // show Immutable Maps (?raw=1 alone defaults to JSON)
   const raw = req.query.raw && format === 'json' ? true : false;
@@ -45,7 +67,7 @@ function handler(req, res) {
     res.send(
       raw
         ? data
-        : data.map((row) => ({
+        : /** @type {Row[]} */ (data).map((row) => ({
             ...row,
             status: fillHost(row.status, (scheme) =>
               html.baseAddress(req, scheme)
@@ -55,8 +77,9 @@ function handler(req, res) {
   } else {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     // Entries without traffic in the last 15 minutes are grey
-    const rowClass = (entry) => (entry.count15m ? null : 'grey');
-    const rows = data.map((row) => ({
+    const rowClass = (/** @type {Record<string, any>} */ entry) =>
+      entry.count15m ? null : 'grey';
+    const rows = /** @type {Row[]} */ (data).map((row) => ({
       ...row,
       status: fillHost(row.status, (scheme) =>
         escapeHtml(html.baseAddress(req, scheme))
@@ -74,5 +97,9 @@ function start() {
   api.get('/', handler);
   api.get('/status{.:format}', handler);
 }
+
+/** @typedef {import('immutable').Map<string, any>} Entry */
+/** @typedef {import('../lib/speed').IndexedNumbers} IndexedNumbers */
+/** @typedef {ReturnType<typeof mapper>} Row */
 
 module.exports = { start };

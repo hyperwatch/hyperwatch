@@ -32,14 +32,33 @@ const STATE = 'firewall-lists.sync';
 const emptyState = () => ({ lists: {} });
 
 /** @typedef {import('../../types').Abortable} Abortable */
+/** @typedef {import('./lists').ListsDocument} ListsDocument */
+/** @typedef {import('./sync').SyncState} SyncState */
+
+/**
+ * Where the lists and their sync state are kept
+ * @typedef {object} FirewallStore
+ * @property {string} name The backend: `file`, `s3`…
+ * @property {string} where The lists, for messages
+ * @property {string} stateWhere The sync state, for messages
+ * @property {(options?: Abortable) => Promise<ListsDocument | null>} readLists
+ * @property {(data: ListsDocument, options?: Abortable) => Promise<void>} writeLists
+ * @property {(options?: Abortable) => Promise<SyncState>} readState
+ * @property {(value: SyncState, options?: Abortable) => Promise<void>} writeState
+ * @property {(onChange: () => void, interval: number) => void} watch Calls
+ *   `onChange` when the lists may have changed (file backend only)
+ * @property {() => Promise<unknown>} close
+ */
 
 /**
  * @param {{ file?: string, state?: string }} [paths] The lists (default
  *   firewall.json in the current directory) and their sync state
+ * @returns {FirewallStore}
  */
 function createFileStore({ file, state } = {}) {
   const listsPath = file || path.join(process.cwd(), 'firewall.json');
   const statePath = state || sync.defaultStatePath(listsPath);
+  /** @type {(() => void) | null} */
   let listener = null;
   return {
     name: 'file',
@@ -48,7 +67,7 @@ function createFileStore({ file, state } = {}) {
     async readLists() {
       try {
         return lists.load(listsPath);
-      } catch (err) {
+      } catch (/** @type {any} */ err) {
         if (err.code === 'ENOENT') {
           return null;
         }
@@ -81,6 +100,12 @@ function createFileStore({ file, state } = {}) {
 // first: some stalls ignore the abort (e.g. an S3 client stuck resolving its
 // credentials). A write abandoned this way can't land later over a newer
 // one: the S3 backend refuses further writes to that document
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {AbortSignal} signal
+ * @returns {Promise<T>}
+ */
 function settle(promise, signal) {
   return new Promise((resolve, reject) => {
     const onAbort = () => {
@@ -110,8 +135,10 @@ function settle(promise, signal) {
 /**
  * @param {import('../storage').Storage} storage
  * @param {{ timeout?: number }} [options]
+ * @returns {FirewallStore}
  */
 function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
+  /** @param {AbortSignal} [signal] */
   const bounded = (signal) =>
     signal
       ? AbortSignal.any([signal, AbortSignal.timeout(timeout)])
@@ -127,7 +154,7 @@ function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
       return body === null ? null : lists.parse(body);
     },
     /**
-     * @param {object} data
+     * @param {ListsDocument} data
      * @param {Abortable} [options]
      */
     async writeLists(data, { signal } = {}) {
@@ -146,7 +173,7 @@ function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
       return value && value.lists ? value : emptyState();
     },
     /**
-     * @param {object} value
+     * @param {SyncState} value
      * @param {Abortable} [options]
      */
     async writeState(value, { signal } = {}) {
@@ -164,6 +191,10 @@ function createStorageStore(storage, { timeout = OPERATION_TIMEOUT } = {}) {
 }
 
 // The store `constants` select (see above)
+/**
+ * @param {import('../../types').Config & { modules: Record<string, import('../../types').ModuleConfig> }} constants
+ * @returns {FirewallStore}
+ */
 function createStore(constants) {
   const firewall = constants.modules.firewall || {};
   const persistence = constants.persistence || {};

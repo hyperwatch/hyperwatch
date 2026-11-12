@@ -10,6 +10,10 @@ const { Address4, Address6 } = require('ip-address');
 
 // An address (no prefix) as an Address4 or Address6, IPv4-mapped IPv6
 // addresses as IPv4. null when it isn't a valid address.
+/**
+ * @param {unknown} value
+ * @returns {Address | null}
+ */
 function parseAddress(value) {
   if (typeof value !== 'string' || !value || value.includes('/')) {
     return null;
@@ -25,9 +29,17 @@ function parseAddress(value) {
   return address.isMapped4() ? address.to4() : address;
 }
 
+/**
+ * @param {unknown} value
+ * @returns {boolean}
+ */
 const isValidAddress = (value) => parseAddress(value) !== null;
 
 // A range (address/prefix) as an Address4 or Address6. null when invalid.
+/**
+ * @param {unknown} value
+ * @returns {Address | null}
+ */
 function parseCidr(value) {
   if (typeof value !== 'string' || !/^[^/]+\/\d{1,3}$/.test(value)) {
     return null;
@@ -36,13 +48,27 @@ function parseCidr(value) {
   return Address.isValid(value) ? new Address(value) : null;
 }
 
+/**
+ * @param {unknown} value
+ * @returns {boolean}
+ */
 const isValidCidr = (value) => parseCidr(value) !== null;
 
 // The first address of a valid range: 10.0.0.0 for 10.1.2.3/8
-const networkAddress = (value) => parseCidr(value).startAddress().correctForm();
+/**
+ * @param {string} value
+ * @returns {string}
+ */
+const networkAddress = (value) =>
+  /** @type {Address} */ (parseCidr(value)).startAddress().correctForm();
 
 // Whether an address (string, or one parsed by parseAddress) is in a parsed
 // range, both of the same family
+/**
+ * @param {Address} range
+ * @param {string | Address | null | undefined} address
+ * @returns {boolean}
+ */
 function inRange(range, address) {
   const parsed = typeof address === 'string' ? parseAddress(address) : address;
   return (
@@ -63,9 +89,12 @@ function inRange(range, address) {
  * to the first entry of the list with it. A lookup masks the address once
  * per prefix length present (a handful), instead of testing every range, and
  * keeps the candidate that comes first in the list.
+ * @param {string[]} values
+ * @returns {(address: unknown) => string | null}
  */
 function compileRanges(values) {
   // Per family: prefix length → (network address → { value, index })
+  /** @type {Record<4 | 6, Map<bigint, Networks>>} */
   const groups = { 4: new Map(), 6: new Map() };
   values.forEach((value, index) => {
     const cidr = value.includes('/')
@@ -86,7 +115,7 @@ function compileRanges(values) {
     if (!groups[family].has(shift)) {
       groups[family].set(shift, new Map());
     }
-    const networks = groups[family].get(shift);
+    const networks = /** @type {Networks} */ (groups[family].get(shift));
     if (!networks.has(network)) {
       networks.set(network, { value, index });
     }
@@ -116,6 +145,16 @@ function compileRanges(values) {
     return first ? first.value : null;
   };
 }
+
+/**
+ * A parsed address or range
+ * @typedef {import('ip-address').Address4 | import('ip-address').Address6} Address
+ */
+
+/**
+ * Network address → the first entry of the list with it
+ * @typedef {Map<bigint, { value: string, index: number }>} Networks
+ */
 
 module.exports = {
   compileRanges,
