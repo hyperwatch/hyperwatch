@@ -241,7 +241,7 @@ class Builder {
    * @returns {this}
    */
   registerNode(name, { monitor = false } = {}) {
-    this.pipeline.registerNode(name, this);
+    this.pipeline.setNode(name, this);
     this.name = name;
     if (monitor) {
       this.monitorNode();
@@ -301,7 +301,7 @@ class Pipeline extends Builder {
     tap.op = 'input';
     tap.module = null;
     tap.fnName = null;
-    this.registerNode(nodeName, tap);
+    this.setNode(nodeName, tap);
     input._tap = tap;
   }
 
@@ -382,13 +382,30 @@ class Pipeline extends Builder {
   }
 
   /**
-   * Names a node of the pipeline (see Builder#registerNode)
+   * Names this node, like Builder#registerNode. Also accepts a node as
+   * second argument, as in 5.6.0: `pipeline.registerNode(name, node)`
+   * is `node.registerNode(name)` without its options.
    * @override
    * @param {string} name
-   * @param {any} [node] The node (a Builder)
+   * @param {{ monitor?: boolean } | Builder} [options]
    * @returns {this}
    */
-  registerNode(name, node) {
+  registerNode(name, options) {
+    if (options instanceof Builder) {
+      this.setNode(name, options);
+      return this;
+    }
+    return super.registerNode(name, options);
+  }
+
+  /**
+   * The node registry: `getNode(name)` returns `node` from now on. Called by
+   * Builder#registerNode; modules wrap it to follow new nodes (history).
+   * @param {string} name
+   * @param {Builder} node
+   * @returns {this}
+   */
+  setNode(name, node) {
     const previous = this.nodes[name];
     if (previous && previous !== node && previous.name === name) {
       previous.name = null;
