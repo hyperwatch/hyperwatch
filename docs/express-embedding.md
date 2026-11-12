@@ -83,6 +83,64 @@ Hyperwatch only owns its mount path: `/other/logs/raw` is never handled by Hyper
 
 `mount()` returns `{ path, detachUpgrades }`. `detachUpgrades()` removes the `upgrade` listener, so Hyperwatch stops handling WebSocket upgrades, and releases the server for a mount at another path. It can be called several times. It doesn't unmount the HTTP routes, which stay mounted with their middleware.
 
+## Behind a proxy
+
+The Express input takes each log's `request.address` from `req.ip`. Behind a proxy (nginx on the same machine, a CDN), that is the proxy's address unless Express trusts it: every request then seems to come from the proxy, and identifying robots by address or reverse DNS fails for all of them.
+
+In an Express app, the simplest fix is to tell Express which proxies to trust, so `req.ip` is the client's address: `app.set('trust proxy', 'loopback')` for nginx on the same machine (see [Express behind proxies](https://expressjs.com/en/guide/behind-proxies.html)).
+
+Otherwise, `hyperwatch.plugins.proxy.detectAddress(remoteAddress, headers)` gives the client's address. It reads `X-Forwarded-For` with [proxy-addr](https://www.npmjs.com/package/proxy-addr), trusting loopback, link-local and unique-local addresses and the published ranges of Cloudflare, CloudFront, Sucuri and Imperva, and returns `Map({ value })`, the shape of a log's `address` field. Set it as `address`: modules read `address.value` before `request.address` (the `address` module only fills `address.value` when it's missing), so addresses, hostnames, geoip, identities and the `?address=` filters all use the client's address, while `request.address` stays the connection's, as with the `cloudflare` module. Add a middleware right after the input's:
+
+```javascript
+const { detectAddress } = hyperwatch.plugins.proxy;
+
+app.use(input.middleware());
+app.use((req, res, next) => {
+  const log = req.hyperwatch.rawLog;
+  req.hyperwatch.rawLog = log.set(
+    'address',
+    detectAddress(req.socket.remoteAddress, log.getIn(['request', 'headers']))
+  );
+  next();
+});
+```
+
+A proxy outside these ranges (on another machine of your network with a public address) isn't trusted: `detectAddress` returns its address. Use `trust proxy` then.
+
+### Without Express
+
+A server that isn't Express (a plain `http` server, Vite's Connect server) has no `req.ip`. Register an input of your own and send it the logs of finished responses, built with `hyperwatch.util.createLog`:
+
+```javascript
+const { detectAddress } = hyperwatch.plugins.proxy;
+
+const input = {
+  name: 'HTTP server',
+  start({ success, status }) {
+    this.success = success;
+    status(null, 'Listening.');
+  },
+};
+hyperwatch.pipeline.registerInput(input);
+
+server.on('request', (req, res) => {
+  // Read it now: once the connection is closed, it can be undefined, and a
+  // log without request.address is rejected
+  const address = req.socket.remoteAddress;
+  res.on('finish', () => {
+    const log = hyperwatch.util.createLog(req, res);
+    input.success(
+      log
+        .setIn(['request', 'address'], address)
+        .set(
+          'address',
+          detectAddress(address, log.getIn(['request', 'headers']))
+        )
+    );
+  });
+});
+```
+
 ## Next.js custom server (workaround for Next.js 16.3)
 
 Next.js registers an `upgrade` listener for its own WebSockets (e.g. hot reload in development) on the server it runs behind: the `httpServer` option, or the server of the first request it handles. It ends the socket of any upgrade whose path matches one of its routes, e.g. a catch-all page, which includes `/_hyperwatch/logs/raw`.
