@@ -45,6 +45,21 @@
       "kid": "0227KWFT1389RBnlR8TLhbMaA_Of2MbNPhmlNICS7eI"
     }
   ],
+  "https://anticlone.de": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "53p62Wj7cjI3vweu2zgX76kQU3vZkdq_BdMrJXmU7Sw",
+      "kid": "8S0UX60MNUkSLy6-hl6Z140WkS1Ft0L1haX5UYjED7Y"
+    }
+  ],
+  "https://api.kamata.ai": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "nrqJvlDdtNIEjv-pN7XVjiCqA-yVQIJN7bW9dAD3e08"
+    }
+  ],
   "https://api.lyrenth.com": [
     {
       "kty": "OKP",
@@ -113,6 +128,21 @@
       "kid": "AjwLTTlHogb4A-SM76Tc0YmQy5lrUsRXqjsgiaRTmWc"
     }
   ],
+  "https://domainsbot.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "Q56K1nX2aLMyIGr3bC-VpRDW6Al1-mtWhh2_e2vkRpY"
+    }
+  ],
+  "https://ecp.yusercontent.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "7wMERW7PFlh0g7fxX-_MyehP8wdarzCHqW5Tb4bPxNo",
+      "kid": "t3s0EQWUNsGG4cv5ulZBqKhKOhZGWlutQIjUAB-ntnY"
+    }
+  ],
   "https://exauser.crawler.exa.ai": [
     {
       "kty": "OKP",
@@ -127,6 +157,13 @@
       "crv": "Ed25519",
       "x": "jbJm-w9yk_-E92aQTc6H9mpIgwwakFO3sFZeGTRgfJo",
       "kid": "Dx8uGw1Um6z46pxcPQvlaj2_uLPeBvkeYPzV2Pbhmck"
+    }
+  ],
+  "https://iframely.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "OWBPzaGdprdoh03KVJPjpAJ9yZgUcUssciu5zWQfDXQ"
     }
   ],
   "https://images.crawler.exa.ai": [

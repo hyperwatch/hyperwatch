@@ -200,6 +200,11 @@ const signedOnly = new Map([
   ['https://www.aidealio.com', 'Aidealio'],
   ['https://truvon.ai', 'Truvon'],
   ['https://threadsearch.app', 'threadsearch'],
+  ['https://api.kamata.ai', 'Kamata'],
+  ['https://anticlone.de', 'AntiClone'],
+  ['https://domainsbot.com', 'DomainsBot'],
+  ['https://ecp.yusercontent.com', 'Yahoo'],
+  ['https://iframely.com', 'Iframely'],
 ]);
 
 // A Web Bot Auth signature of `agent` verified by the webbotauth module
