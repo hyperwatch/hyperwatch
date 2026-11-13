@@ -908,6 +908,11 @@ describe('identity', () => {
       ['https://www.aidealio.com', 'Aidealio'],
       ['https://truvon.ai', 'Truvon'],
       ['https://threadsearch.app', 'threadsearch'],
+      ['https://api.kamata.ai', 'Kamata'],
+      ['https://anticlone.de', 'AntiClone'],
+      ['https://domainsbot.com', 'DomainsBot'],
+      ['https://ecp.yusercontent.com', 'Yahoo'],
+      ['https://iframely.com', 'Iframely'],
     ]) {
       it(`should identify any user agent by a verified signature of ${agent}`, () => {
         for (const family of ['Chrome', 'curl', undefined]) {
