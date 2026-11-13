@@ -758,6 +758,7 @@ describe('identity', () => {
       ['87-250-224-115.spider.yandex.com', 'Yandex'],
       ['bot-103-131-71-52.coccoc.com', 'Coc Coc'],
       ['crawl.211-249-46-35.web.naver.com', 'Naver'],
+      ['crawl-149-56-160-138.dataproviderbot.com', 'Dataprovider.com'],
     ];
 
     for (const [hostname, expected] of cases) {
@@ -794,6 +795,7 @@ describe('identity', () => {
       'spider.yandex.com',
       'help.coccoc.com',
       'www.naver.com',
+      'www.dataproviderbot.com',
       'render-19.lyrenth.com.example.net',
     ]) {
       it(`should not identify another name: ${hostname}`, () => {
