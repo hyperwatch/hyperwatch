@@ -1,6 +1,8 @@
 // Uses Hyperwatch the way a TypeScript user does. `npm run types:test`
 // (scripts/test-types.js) installs the packed package in a temporary project
 // and type-checks this file with it, strict.
+import http = require('http');
+
 import express = require('express');
 import hyperwatch = require('@hyperwatch/hyperwatch');
 
@@ -42,6 +44,35 @@ app.api.streamToHttp('/example', named, lib.formatter.Formatter.prototype);
 
 const started: Promise<unknown> = hyperwatch.start();
 const stopped: Promise<void> = hyperwatch.stop();
+// An app typed `Application`, building its own logs
+const application: express.Application = express();
+const server = http.createServer(application);
+app.mount(application, { server, path: '/_hyperwatch' });
+const expressInput = input.express.create({ app: application });
+application.use(expressInput.middleware());
+application.use((req, res, next) => {
+  try {
+    const log = hyperwatch.util
+      .createLog(req, res)
+      .set('executionTime', 12)
+      .set('graphql', { operationName: 'Example' })
+      .deleteIn(['request', 'headers', 'cookie'])
+      .setIn(['application', 'user', 'id'], 1);
+    expressInput.success(log);
+  } catch (err) {
+    expressInput.reject(err);
+  }
+  next();
+});
+pipeline.registerInput(expressInput);
+
+// getIn() returns any, like get()
+node
+  .filter((log) => !log.getIn(['request', 'url']).match(/^\/_/))
+  .map((log) => log.set('checked', true))
+  .filter((log) => log.getIn(['graphql', 'operationName'], 'unknown').length)
+  .registerNode('public');
+
 void started;
 void stopped;
 void modules;

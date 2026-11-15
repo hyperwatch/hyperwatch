@@ -93,7 +93,8 @@ function isUnderPath(target, path, caseSensitive) {
  */
 
 /**
- * @param {import('express').Express} app
+ * @param {import('express').Application} app An Express app (`express()`,
+ *   typed `Express` or `Application`)
  * @param {MountOptions} options
  */
 function mount(app, options) {

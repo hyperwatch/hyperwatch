@@ -2,12 +2,30 @@ const { createLog } = require('../lib/util');
 const modules = require('../modules');
 
 /**
- * @param {{ name?: string, app?: import('express').Express }} [options]
+ * The Express input. Once the pipeline started it, `success(log)` and
+ * `reject(reason)` are the pipeline's handlers: an app that builds its own
+ * logs calls them instead of using `middleware()`.
+ * @typedef {object} ExpressInput
+ * @property {string} name
+ * @property {(handlers: import('../lib/pipeline').InputHandlers) => void} start
+ * @property {() => import('express').RequestHandler} middleware
+ * @property {(log: import('../types').Log) => void} success
+ * @property {(reason: any) => void} reject
+ * @property {(err: any, message?: string) => void} status
+ */
+
+/**
+ * @param {{ name?: string, app?: import('express').Application }} [options]
  *   `app`: add the middleware to it when starting
+ * @returns {ExpressInput}
  */
 function create({ name = 'Express Middleware', app } = {}) {
   return {
     name: name,
+    // Set by start()
+    success: undefined,
+    reject: undefined,
+    status: undefined,
     start: function ({ success, reject, status }) {
       this.success = success;
       this.reject = reject;
