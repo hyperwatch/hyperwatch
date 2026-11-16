@@ -767,6 +767,12 @@ function augment(log) {
       return address && marginaliaCidrs(address)
         ? log.set('identity', 'Marginalia')
         : log;
+    case 'ClueWeb-Crawler':
+      // https://boston.lti.cs.cmu.edu/CMU-ClueWeb-Crawler/ (from "CMU SCS IP
+      // range"): a forward-confirmed hostname under lti.cs.cmu.edu
+      return hostnameMatches(verifiedHostname, 'crawl-*.lti.cs.cmu.edu')
+        ? log.set('identity', 'CMU')
+        : log;
     case 'ibou-search':
       // https://www.ibou.com/crawlers.html: its list, or a forward-confirmed
       // hostname under ibou.io, or a verified signature of https://ibou.io

@@ -303,6 +303,38 @@ describe('identity', () => {
     });
   });
 
+  describe('CMU', () => {
+    it('should identify ClueWeb-Crawler by its lti.cs.cmu.edu hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'ClueWeb-Crawler',
+          address: '192.0.2.1',
+          hostname: 'crawl-b322-p06.lti.cs.cmu.edu',
+          verified: true,
+        })
+      );
+      assert.strictEqual(result.get('identity'), 'CMU');
+    });
+
+    it('should not identify an unconfirmed hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'ClueWeb-Crawler',
+          address: '192.0.2.1',
+          hostname: 'crawl-b322-p06.lti.cs.cmu.edu',
+        })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+
+    it('should not identify without a hostname', () => {
+      const result = identity.augment(
+        log({ family: 'ClueWeb-Crawler', address: '192.0.2.1' })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
   describe('SEOkicks', () => {
     it('should identify a seokicks.de hostname', () => {
       const result = identity.augment(
