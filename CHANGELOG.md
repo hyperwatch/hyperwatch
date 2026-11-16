@@ -2,6 +2,34 @@
 
 Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases). Versions before 5.0.0 have no entry: see the git history.
 
+## 5.7.0 (2026-11-16)
+
+### Features
+
+- The sources are type-checked in TypeScript's `strict` mode, and the published declarations are typed throughout instead of falling back to `any`: pipeline events and nodes, aggregators, modules, inputs, the firewall, persistence and history, Web Bot Auth. `modules/agent.js` uses `@hyperwatch/useragent`'s own `AgentJSON` for the `agent` of logs. No change in behaviour. ([#703](https://github.com/hyperwatch/hyperwatch/pull/703))
+- Documentation: running behind a proxy, with Express's `trust proxy` or `plugins.proxy.detectAddress()` (`docs/express-embedding.md`). ([#718](https://github.com/hyperwatch/hyperwatch/pull/718))
+
+### Fixes
+
+- The declarations published in 5.6.0 rejected code that works: `app.mount()` and the Express input now take an `express.Application`, `input.express.create()` returns an `ExpressInput` (with `middleware`, `success`, `reject` and `status`), `util.createLog()` returns a `Log`, and `Log#getIn()` returns `any`. ([#736](https://github.com/hyperwatch/hyperwatch/pull/736))
+- `pipeline.registerNode(name, { monitor })` names the root like any node instead of storing the options as a node; `setNode()` is the node registry. `registerNode(name, node)` still works. ([#719](https://github.com/hyperwatch/hyperwatch/pull/719))
+- Aggregators leave out logs without an identifier instead of throwing a warning for each. ([#722](https://github.com/hyperwatch/hyperwatch/pull/722))
+- `?limit=` on aggregators is a whole number from 1, otherwise 100 (`abc`, `0` and `-5` returned nothing or all but the last entries). ([#721](https://github.com/hyperwatch/hyperwatch/pull/721))
+- `cache.set()` without a TTL no longer passes `NaN` to lru-cache, which turned on age tracking for the whole cache. ([#720](https://github.com/hyperwatch/hyperwatch/pull/720))
+- A storage's `close()` is optional: persistence and the firewall store only call it when it exists. `persistence.start()` and `stop()` use the default deadlines when some are missing. ([#723](https://github.com/hyperwatch/hyperwatch/pull/723), [#724](https://github.com/hyperwatch/hyperwatch/pull/724))
+- `/status.txt?raw=1` shows the usual table instead of Immutable internals: `raw` only applies to JSON. ([#725](https://github.com/hyperwatch/hyperwatch/pull/725))
+- A repeated `?clientId=` on log streams is its last value, served standalone or mounted in Express. ([#726](https://github.com/hyperwatch/hyperwatch/pull/726))
+
+### Identities
+
+- A verified Web Bot Auth signature identifies the request whatever its user agent for Aidealio (aidealioBot), Truvon (TruvonBot), threadsearch, Kamata (KamataBot), AntiClone (AntiCloneBot), DomainsBot (Pandalytics), Yahoo (YahooMailProxy), Iframely and Comscore (proximic). New identities: **Aidealio**, **Truvon**, **threadsearch**, **Kamata**, **AntiClone**, **DomainsBot**, **Iframely**, **Comscore**. ([#727](https://github.com/hyperwatch/hyperwatch/pull/727), [#732](https://github.com/hyperwatch/hyperwatch/pull/732), [#737](https://github.com/hyperwatch/hyperwatch/pull/737))
+- New identities: **Dataprovider.com** (a forward-confirmed `crawl-*.dataproviderbot.com` hostname, whatever the user agent), **EcoGPT** (HyperSearchBot: its published list or a forward-confirmed `crawl-*.hypersearchbot.ecogpt.com` hostname), **Marginalia** (search.marginalia.nu: its documented addresses, copied by hand, see RELEASING.md) and **CMU** (ClueWeb-Crawler: a forward-confirmed `crawl-*.lti.cs.cmu.edu` hostname). ([#733](https://github.com/hyperwatch/hyperwatch/pull/733), [#738](https://github.com/hyperwatch/hyperwatch/pull/738))
+- Published ranges and keys refreshed: GitHub (5 ranges added), CloudFront (1 added), and a Naver key no longer in its directory removed. ([#740](https://github.com/hyperwatch/hyperwatch/pull/740))
+
+### Dependencies & tooling
+
+- `@hyperwatch/useragent` 4.1.1 ([#703](https://github.com/hyperwatch/hyperwatch/pull/703)). `scripts/` (maintainer tools) is no longer in the npm package ([#708](https://github.com/hyperwatch/hyperwatch/pull/708)). Dependabot bumps of `@aws-sdk/client-s3`, `immutable` and `@types/node`.
+
 ## 5.6.0 (2026-11-12)
 
 ### Features
