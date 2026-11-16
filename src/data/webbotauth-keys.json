@@ -106,6 +106,13 @@
       "kid": "ArwjqcCqtA5oxEWkzXGC-To_0A9whHmajCHtfe8I9aY"
     }
   ],
+  "https://crawler-key.proximic.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "n0i-4ZOQ4rL_cXRA729bruuTCsWIVkdzyEtVd3voTR0"
+    }
+  ],
   "https://crawler.exa.ai": [
     {
       "kty": "OKP",
