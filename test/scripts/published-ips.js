@@ -30,6 +30,7 @@ const handCopied = [
   'amazonbot-ips',
   'dataforseo-ips',
   'daumbot-ips',
+  'marginalia-ips',
 ];
 
 // A fetch answering from a map of URL to text, or failing

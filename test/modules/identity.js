@@ -278,6 +278,31 @@ describe('identity', () => {
     });
   });
 
+  describe('EcoGPT', () => {
+    it('should identify HyperSearchBot by its hypersearchbot.ecogpt.com hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'HyperSearchBot',
+          address: '192.0.2.1',
+          hostname: 'crawl-192-0-2-1.hypersearchbot.ecogpt.com',
+          verified: true,
+        })
+      );
+      assert.strictEqual(result.get('identity'), 'EcoGPT');
+    });
+
+    it('should not identify an unconfirmed hostname', () => {
+      const result = identity.augment(
+        log({
+          family: 'HyperSearchBot',
+          address: '192.0.2.1',
+          hostname: 'crawl-192-0-2-1.hypersearchbot.ecogpt.com',
+        })
+      );
+      assert.strictEqual(result.get('identity'), undefined);
+    });
+  });
+
   describe('SEOkicks', () => {
     it('should identify a seokicks.de hostname', () => {
       const result = identity.augment(
@@ -575,6 +600,8 @@ describe('identity', () => {
       ['RiverBot', 'riverbot-ips', 'River'],
       ['KakaoBot', 'kakaobot-ips', 'Kakao'],
       ['LinkCheckerBot', 'linkcheckerbot-ips', 'LinkChecker'],
+      ['HyperSearchBot', 'hypersearchbot-ips', 'EcoGPT'],
+      ['search.marginalia.nu', 'marginalia-ips', 'Marginalia'],
       ['DataForSeoBot', 'dataforseo-ips', 'DataForSeo'],
       ['LinkupBot', 'linkupbot-ips', 'Linkup'],
       [
