@@ -30,6 +30,7 @@ const googleFetchersIps = require('../data/google-user-triggered-fetchers-google
 const googlebotIps = require('../data/googlebot-ips.json');
 const gptbotIps = require('../data/gptbot-ips.json');
 const halobotIps = require('../data/halobot-ips.json');
+const hypersearchbotIps = require('../data/hypersearchbot-ips.json');
 const hubspotIps = require('../data/hubspot-ips.json');
 const ibouIps = require('../data/ibou-ips.json');
 const ibouBotIps = require('../data/iboubot-ips.json');
@@ -39,6 +40,7 @@ const keenableBotIps = require('../data/keenablebot-ips.json');
 const linkcheckerbotIps = require('../data/linkcheckerbot-ips.json');
 const linkupbotIps = require('../data/linkupbot-ips.json');
 const lyrenthIps = require('../data/lyrenth-ips.json');
+const marginaliaIps = require('../data/marginalia-ips.json');
 const metaIps = require('../data/meta-ips.json');
 const mojeekbotIps = require('../data/mojeekbot-ips.json');
 const naverbotIps = require('../data/naverbot-ips.json');
@@ -165,6 +167,8 @@ const iccCrawlerCidrs = compileRanges(['202.180.34.186/32', '61.86.246.72/32']);
 const linkcheckerbotCidrs = compileRanges(linkcheckerbotIps);
 const halobotCidrs = compileRanges(halobotIps);
 const hubspotCidrs = compileRanges(hubspotIps);
+const hypersearchbotCidrs = compileRanges(hypersearchbotIps);
+const marginaliaCidrs = compileRanges(marginaliaIps);
 const ibouCidrs = compileRanges(ibouIps);
 const ibouBotCidrs = compileRanges(ibouBotIps);
 
@@ -747,6 +751,27 @@ function augment(log) {
     case 'HubSpot Crawler':
       return address && hubspotCidrs(address)
         ? log.set('identity', 'HubSpot')
+        : log;
+    case 'HyperSearchBot':
+      // https://hypersearchbot.ecogpt.com/: its list, or a forward-confirmed
+      // crawl-*.hypersearchbot.ecogpt.com hostname
+      return hostnameMatches(
+        verifiedHostname,
+        'crawl-*.hypersearchbot.ecogpt.com'
+      ) ||
+        (address && hypersearchbotCidrs(address))
+        ? log.set('identity', 'EcoGPT')
+        : log;
+    case 'search.marginalia.nu':
+      // https://www.marginalia.nu/marginalia-search/for-webmasters/
+      return address && marginaliaCidrs(address)
+        ? log.set('identity', 'Marginalia')
+        : log;
+    case 'ClueWeb-Crawler':
+      // https://boston.lti.cs.cmu.edu/CMU-ClueWeb-Crawler/ (from "CMU SCS IP
+      // range"): a forward-confirmed hostname under lti.cs.cmu.edu
+      return hostnameMatches(verifiedHostname, 'crawl-*.lti.cs.cmu.edu')
+        ? log.set('identity', 'CMU')
         : log;
     case 'ibou-search':
       // https://www.ibou.com/crawlers.html: its list, or a forward-confirmed

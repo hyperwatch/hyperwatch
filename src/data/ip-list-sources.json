@@ -137,6 +137,12 @@
     "service": "WEB_SCRAPING"
   },
   {
+    "name": "hypersearchbot-ips",
+    "about": "EcoGPT's HyperSearchBot, linked from https://hypersearchbot.ecogpt.com/",
+    "urls": ["https://hypersearchbot.ecogpt.com/hypersearchbot.json"],
+    "format": "prefixes"
+  },
+  {
     "name": "ibou-ips",
     "about": "ibou-search (https://www.ibou.com/crawlers.html)",
     "urls": ["https://www.ibou.com/ibousearch-ip-ranges.json"],
