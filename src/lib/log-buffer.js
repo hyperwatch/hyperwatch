@@ -5,13 +5,16 @@
 const { fromJS } = require('immutable');
 
 class LogBuffer {
+  /** @param {number} [capacity] */
   constructor(capacity = 1000) {
     this.capacity = capacity;
+    /** @type {Log[]} */
     this.buffer = new Array(capacity);
     this.pointer = 0;
     this.size = 0;
   }
 
+  /** @param {Log} item */
   push(item) {
     this.buffer[this.pointer] = item;
     this.pointer = (this.pointer + 1) % this.capacity;
@@ -20,6 +23,7 @@ class LogBuffer {
     }
   }
 
+  /** @returns {Log[]} */
   toArray() {
     if (this.size < this.capacity) {
       return this.buffer.slice(0, this.size).reverse();
@@ -31,15 +35,21 @@ class LogBuffer {
   }
 
   // Oldest first, never more than capacity
+  /** @returns {Record<string, any>[]} */
   dump() {
     return this.toArray()
       .reverse()
       .map((log) => log.toJS());
   }
 
+  /** @param {Record<string, any>[]} data Logs as dump() gives them */
   load(data) {
-    data.slice(-this.capacity).forEach((item) => this.push(fromJS(item)));
+    data
+      .slice(-this.capacity)
+      .forEach((item) => this.push(/** @type {Log} */ (fromJS(item))));
   }
 }
+
+/** @typedef {import('../types').Log} Log */
 
 module.exports = LogBuffer;

@@ -182,6 +182,7 @@ const chatgptUserCidrs = compileRanges(chatgptUserIps);
 
 // The Signature-Agent each of Exa's crawlers signs with
 // https://crawler.exa.ai/
+/** @type {Record<string, string>} */
 const exaSignatureAgents = {
   ExaSearchBot: 'https://crawler.exa.ai',
   'ExaSearchBot-Images': 'https://images.crawler.exa.ai',
@@ -213,6 +214,10 @@ const signedOnly = new Map([
 ]);
 
 // A Web Bot Auth signature of `agent` verified by the webbotauth module
+/**
+ * @param {Log} log
+ * @param {string} agent
+ */
 function signedBy(log, agent) {
   return (
     log.getIn(['webbotauth', 'verified']) === true &&
@@ -228,6 +233,10 @@ function webbotauthActive() {
 // Hostname patterns: `*` matches within a single label of the name, so
 // 'render-*.lyrenth.com' matches render-12.lyrenth.com but not
 // a.render-12.lyrenth.com
+/**
+ * @param {string} pattern
+ * @returns {(hostname: string) => boolean}
+ */
 function hostnamePattern(pattern) {
   const source = pattern
     .split('*')
@@ -237,7 +246,12 @@ function hostnamePattern(pattern) {
   return (hostname) => regexp.test(hostname);
 }
 
+/** @type {Map<string, (hostname: string) => boolean>} */
 const compiledPatterns = new Map();
+/**
+ * @param {string | undefined} hostname
+ * @param {...string} patterns
+ */
 function hostnameMatches(hostname, ...patterns) {
   if (!hostname) {
     return false;
@@ -246,7 +260,9 @@ function hostnameMatches(hostname, ...patterns) {
     if (!compiledPatterns.has(pattern)) {
       compiledPatterns.set(pattern, hostnamePattern(pattern));
     }
-    return compiledPatterns.get(pattern)(hostname);
+    return /** @type {(hostname: string) => boolean} */ (
+      compiledPatterns.get(pattern)
+    )(hostname);
   });
 }
 
@@ -282,6 +298,11 @@ const hostnameOnly = /** @type {Array<[string, string[]]>} */ ([
 // The user-owned user-triggered fetchers (*.gae.googleusercontent.com, e.g.
 // Apps Script) run anyone's code: no identity.
 // The cheap hostname test comes before each list.
+/**
+ * @param {string | undefined} address
+ * @param {string | undefined} verifiedHostname
+ * @returns {string | undefined}
+ */
 function googleFetcher(address, verifiedHostname) {
   // Parsed once for the three lists
   const parsed = address ? parseAddress(address) : null;
@@ -304,17 +325,31 @@ function googleFetcher(address, verifiedHostname) {
 }
 
 // Single ranges written inline below, each compiled once
+/** @type {Map<string, (address: unknown) => string | null>} */
 const inlineRanges = new Map();
+/**
+ * @param {string} cidr
+ * @param {unknown} address
+ */
 function inCidr(cidr, address) {
   if (!inlineRanges.has(cidr)) {
     inlineRanges.set(cidr, compileRanges([cidr]));
   }
-  return inlineRanges.get(cidr)(address) !== null;
+  return (
+    /** @type {(address: unknown) => string | null} */ (inlineRanges.get(cidr))(
+      address
+    ) !== null
+  );
 }
 
+/** @param {Log} log */
 function augment(log) {
-  const family = log.getIn(['agent', 'family']);
-  const hostname = log.getIn(['address', 'hostname']);
+  const family = /** @type {string | null | undefined} */ (
+    log.getIn(['agent', 'family'])
+  );
+  const hostname = /** @type {string | undefined} */ (
+    log.getIn(['address', 'hostname'])
+  );
   // Reverse DNS confirmed by a forward lookup back to the same address. Used
   // wherever the operator's names were seen to resolve back. The others still
   // use the unconfirmed hostname, which whoever controls the address's reverse
@@ -323,16 +358,23 @@ function augment(log) {
   const verifiedHostname = log.getIn(['hostname', 'verified'])
     ? hostname
     : undefined;
-  const address =
-    log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
-  const signature = log.getIn(['signature', 'id']);
-  const signatureAgent = log.getIn(['request', 'headers', 'signature-agent']);
+  const address = /** @type {string | undefined} */ (
+    log.getIn(['address', 'value']) || log.getIn(['request', 'address'])
+  );
+  const signature = /** @type {string | undefined} */ (
+    log.getIn(['signature', 'id'])
+  );
+  const signatureAgent = /** @type {string | undefined} */ (
+    log.getIn(['request', 'headers', 'signature-agent'])
+  );
 
   // Signed only: a verified signature of one of the signedOnly agents gives
   // the identity whatever the user agent, before the rules per family (whose
   // other checks may fail, e.g. ChatGPT-User outside OpenAI's ranges)
   if (log.getIn(['webbotauth', 'verified']) === true) {
-    const signer = signedOnly.get(log.getIn(['webbotauth', 'agent']));
+    const signer = signedOnly.get(
+      /** @type {string} */ (log.getIn(['webbotauth', 'agent']))
+    );
     if (signer) {
       return log.set('identity', signer);
     }
@@ -1035,6 +1077,7 @@ function init() {
   pipeline.getNode('main').map(augment).registerNode('main');
 }
 
+/** @type {Aggregator | undefined} */
 let _aggregator;
 
 function start() {
@@ -1093,3 +1136,5 @@ module.exports = {
     return _aggregator;
   },
 };
+
+/** @typedef {import('../types').Log} Log */

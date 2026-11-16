@@ -2,9 +2,11 @@
 // (scripts/test-types.js) installs the packed package in a temporary project
 // and type-checks this file with it, strict.
 import http = require('http');
+import http2 = require('http2');
 
 import express = require('express');
 import hyperwatch = require('@hyperwatch/hyperwatch');
+import type { Input, InputHandlers, Log } from '@hyperwatch/hyperwatch';
 
 const { pipeline, input, lib, modules, app } = hyperwatch;
 
@@ -42,6 +44,30 @@ app.api.registerAggregator('example', new lib.aggregator.Aggregator(), {
 });
 app.api.streamToHttp('/example', named, lib.formatter.Formatter.prototype);
 
+// A custom input, with the types the package exports
+let handlers: InputHandlers | undefined;
+const custom: Input = {
+  name: 'Custom',
+  start(h) {
+    handlers = h;
+  },
+};
+pipeline.registerInput(custom);
+
+// A log from plain Node req/res (Connect or Vite middleware), not Express
+http.createServer((req, res) => {
+  const log: Log = hyperwatch.util.createLog(req, res).set('executionTime', 12);
+  handlers?.success(log);
+  res.end();
+});
+
+// Mounted on Express's server, or an HTTP/2 server with HTTP/1 fallback
+app.mount(express(), { server: http.createServer(), path: '/hyperwatch' });
+app.mount(express(), {
+  server: http2.createSecureServer({ allowHTTP1: true }),
+  path: '/hyperwatch',
+});
+
 const started: Promise<unknown> = hyperwatch.start();
 const stopped: Promise<void> = hyperwatch.stop();
 // An app typed `Application`, building its own logs
@@ -58,9 +84,10 @@ application.use((req, res, next) => {
       .set('graphql', { operationName: 'Example' })
       .deleteIn(['request', 'headers', 'cookie'])
       .setIn(['application', 'user', 'id'], 1);
-    expressInput.success(log);
+    // Set once the pipeline started the input: optional for strict callers
+    expressInput.success?.(log);
   } catch (err) {
-    expressInput.reject(err);
+    expressInput.reject?.(err);
   }
   next();
 });
@@ -77,6 +104,14 @@ void started;
 void stopped;
 void modules;
 
+// A cache provider needs has, get and set only
+const entries = new Map<string, unknown>();
+hyperwatch.cache.setProvider({
+  has: async (key) => entries.has(key),
+  get: async (key) => entries.get(key),
+  set: async (key, value) => entries.set(key, value),
+});
+
 // What the declarations reject
 // @ts-expect-error port is a number
 hyperwatch.init({ port: 'not a port' });
@@ -90,3 +125,8 @@ pipeline.setNode('root', { monitor: true });
 input.websocket.create({ type: 'peer' });
 // @ts-expect-error mount() needs the HTTP server and a path
 app.mount(express());
+// @ts-expect-error a cache provider needs get
+hyperwatch.cache.setProvider({
+  has: async () => false,
+  set: async () => undefined,
+});

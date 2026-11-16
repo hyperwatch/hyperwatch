@@ -9,7 +9,7 @@
     "moduleResolution": "nodenext",
     "lib": ["es2023"],
     "types": ["node"],
-    "strict": false,
+    "strict": true,
     "skipLibCheck": true,
     "resolveJsonModule": true
   },

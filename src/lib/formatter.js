@@ -2,19 +2,32 @@ const { default: chalk } = require('chalk');
 
 const { escapeHtml, safeHtml, SafeHtml } = require('./util');
 
+/**
+ * A value in a color: with chalk on the console, in a span in HTML
+ * @template T
+ * @param {string} name A chalk color (`grey`, `magenta`…), also the class
+ * @param {T} value
+ * @param {string} [output]
+ * @returns {string | T}
+ */
 const colorize = (name, value, output) => {
   if (output === 'console') {
-    return chalk[name](value);
+    return chalk[/** @type {import('chalk').ForegroundColorName} */ (name)](
+      value
+    );
   } else if (output === 'html') {
     return `<span class="${name}">${value}</span>`;
   }
   return value;
 };
 
-const time = (log) => log.getIn(['request', 'time']).slice(11, -5);
+/** @type {Format} */
+const time = (log) =>
+  /** @type {string} */ (log.getIn(['request', 'time'])).slice(11, -5);
 
 // Hostnames confirmed by a forward lookup end with '+'. In HTML, the
 // stylesheet adds a ✓ instead, which isn't copied with the hostname.
+/** @type {Format} */
 const address = (log, output) => {
   if (log.hasIn(['address', 'hostname'])) {
     const hostname = log.getIn(['address', 'hostname']);
@@ -33,14 +46,18 @@ const address = (log, output) => {
   }
 };
 
+/** @type {Format} */
 const request = (log) => {
   const method = log.getIn(['request', 'method']);
-  const url = log.getIn(['request', 'url']).split('?')[0];
+  const url = /** @type {string} */ (log.getIn(['request', 'url'])).split(
+    '?'
+  )[0];
   const status = log.getIn(['response', 'status']);
   return `"${method} ${url} ${status}"`;
 };
 
 // Milliseconds, with thousands separators (1,016ms) except in plain text
+/** @type {Format} */
 const executionTime = (log, output) => {
   const ms = log.get('executionTime');
   if (!ms) {
@@ -58,6 +75,11 @@ const executionTime = (log, output) => {
 
 // A format's value for the output: in HTML, text is escaped and safeHtml()
 // kept as is
+/**
+ * @param {unknown} value
+ * @param {string} [output]
+ * @returns {unknown}
+ */
 const forOutput = (value, output) => {
   if (value instanceof SafeHtml) {
     return value.html;
@@ -67,8 +89,10 @@ const forOutput = (value, output) => {
     : value;
 };
 
+/** @type {Format} */
 const identity = (log) => log.getIn(['identity'], '');
 
+/** @type {Format} */
 const agent = (log) => {
   return log.getIn(['request', 'headers', 'user-agent'], '');
 };
@@ -76,8 +100,10 @@ const agent = (log) => {
 /**
  * A field of a formatted log: its value, for an output (`console`, `html`,
  * `text`)
- * @typedef {(log: import('../types').Log, output?: string) => any} Format
+ * @typedef {(log: Log, output?: string) => any} Format
  */
+
+/** @typedef {import('../types').Log} Log */
 
 class Formatter {
   constructor() {
@@ -91,6 +117,7 @@ class Formatter {
       ['agent', agent],
     ];
 
+    /** @type {Record<string, string>} Chalk color (or class) by key */
     this.colors = {
       time: 'grey',
       identity: 'magenta',
@@ -101,6 +128,7 @@ class Formatter {
     };
   }
 
+  /** @returns {Formatter} */
   clone() {
     const formatter = new Formatter();
     formatter.formats = [...this.formats];
@@ -110,24 +138,43 @@ class Formatter {
     return formatter;
   }
 
+  /**
+   * The output when formatObject() and format() get none
+   * @param {string} output `console`, `html` or `text`
+   * @returns {this}
+   */
   setOutput(output) {
     this.output = output;
 
     return this;
   }
 
+  /**
+   * @param {Array<[string, Format]>} formats
+   * @returns {this}
+   */
   setFormats(formats) {
     this.formats = formats;
 
     return this;
   }
 
+  /**
+   * Keeps only the fields of `keys`
+   * @param {string[]} [keys]
+   * @returns {this}
+   */
   pickFormats(keys = []) {
     this.formats = this.formats.filter(([key]) => keys.includes(key));
 
     return this;
   }
 
+  /**
+   * @param {string} key
+   * @param {Format} fn
+   * @returns {this}
+   */
   replaceFormat(key, fn) {
     const index = this.formats.findIndex(([k]) => k == key);
     if (index !== -1) {
@@ -164,6 +211,12 @@ class Formatter {
     return this;
   }
 
+  /**
+   * The fields of a log (or an aggregator entry), by key
+   * @param {Log} log
+   * @param {string} [output] `console`, `html` or `text`
+   * @returns {Record<string, any>}
+   */
   formatObject(log, output) {
     output = output || this.output || 'html';
 
@@ -182,6 +235,12 @@ class Formatter {
     return result;
   }
 
+  /**
+   * The fields of a log on one line
+   * @param {Log} log
+   * @param {string} [output]
+   * @returns {string}
+   */
   format(log, output) {
     const result = this.formatObject(log, output);
 

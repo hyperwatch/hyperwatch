@@ -1,21 +1,40 @@
 const pipeline = require('../lib/pipeline');
 
+/**
+ * @param {Log} log
+ * @returns {string | undefined}
+ */
 function getConnectingIp(log) {
-  return log.getIn(['request', 'headers', 'cf-connecting-ip']);
+  return /** @type {string | undefined} */ (
+    log.getIn(['request', 'headers', 'cf-connecting-ip'])
+  );
 }
 
+/**
+ * @param {Log} log
+ * @returns {string | undefined}
+ */
 function getIpCountry(log) {
-  return log.getIn(['request', 'headers', 'cf-ipcountry']);
+  return /** @type {string | undefined} */ (
+    log.getIn(['request', 'headers', 'cf-ipcountry'])
+  );
 }
 
+/**
+ * @param {Log} log
+ * @returns {string | undefined}
+ */
 function getDataCenter(log) {
-  const cfRay = log.getIn(['request', 'headers', 'cf-ray']);
+  const cfRay = /** @type {string | undefined} */ (
+    log.getIn(['request', 'headers', 'cf-ray'])
+  );
   if (cfRay) {
     const [, dataCenter] = cfRay.split('-');
     return dataCenter;
   }
 }
 
+/** @param {Log} log */
 function augment(log) {
   const connectingIp = getConnectingIp(log);
   if (connectingIp) {
@@ -43,3 +62,5 @@ module.exports = {
   augment,
   init,
 };
+
+/** @typedef {import('../types').Log} Log */

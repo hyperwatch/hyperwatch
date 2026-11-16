@@ -7,9 +7,24 @@
 // Cloudflare's limit on a single rule expression
 const MAX_LENGTH = 4096;
 
+/**
+ * A firewall list, the expression of its Cloudflare rule built or parsed
+ * for it
+ * @typedef {import('../firewall/lists').List} List
+ */
+
+/**
+ * @typedef {{ ok: true, values: string[] } | { ok: false, reason: string }} ParseResult
+ */
+
+/** @param {string} value */
 const quote = (value) =>
   `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 
+/**
+ * @param {Pick<List, 'id' | 'type' | 'match' | 'entries'>} list
+ * @returns {string}
+ */
 function build(list) {
   const values = list.entries.map((entry) => entry.value).sort();
   if (values.length === 0) {
@@ -35,6 +50,11 @@ function build(list) {
 }
 
 // Read one double-quoted string starting at `i`; returns [value, nextIndex]
+/**
+ * @param {string} expression
+ * @param {number} i
+ * @returns {[string, number] | null}
+ */
 function readString(expression, i) {
   let value = '';
   for (let j = i + 1; j < expression.length; j++) {
@@ -55,6 +75,10 @@ function readString(expression, i) {
   return null;
 }
 
+/**
+ * @param {string} expression
+ * @returns {ParseResult}
+ */
 function parseIp(expression) {
   const match = expression.match(/^\(\s*ip\.src\s+in\s+\{([^{}]*)\}\s*\)$/);
   if (!match) {
@@ -67,7 +91,13 @@ function parseIp(expression) {
   return { ok: true, values };
 }
 
+/**
+ * @param {string} expression
+ * @param {'eq' | 'contains'} operator
+ * @returns {ParseResult}
+ */
 function parseUserAgent(expression, operator) {
+  /** @type {string[]} */
   const values = [];
   const clause = new RegExp(`^\\(\\s*http\\.user_agent\\s+${operator}\\s+`);
   let rest = expression.trim();
@@ -104,6 +134,9 @@ function parseUserAgent(expression, operator) {
 /**
  * Parse an expression for a list of the given type/match.
  * Returns { ok: true, values } or { ok: false, reason }.
+ * @param {unknown} expression
+ * @param {Pick<List, 'type' | 'match'>} list
+ * @returns {ParseResult}
  */
 function parse(expression, { type, match }) {
   if (typeof expression !== 'string') {
