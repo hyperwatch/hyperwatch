@@ -88,12 +88,6 @@
     {
       "kty": "OKP",
       "crv": "Ed25519",
-      "x": "r6qADsF5QmSJPh7Wuz1yPDYpE9Mq0uQEzo4uzgBoJZM",
-      "kid": "EnWFk9nJ3eitGqJI49eP2_60yo_1EIy4KFDaVcPO7NU"
-    },
-    {
-      "kty": "OKP",
-      "crv": "Ed25519",
       "x": "VNAP-1jxn_JA4u2iTeAx8lB2DRGnsNaZdkQ-V0UFcWo",
       "kid": "2-UzETUKVGia8VK9tPHyzDVDawEDt5KZfUZ39b0Hbms"
     }
