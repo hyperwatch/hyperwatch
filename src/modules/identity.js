@@ -250,6 +250,8 @@ const hostnameOnly = /** @type {Array<[string, string[]]>} */ ([
   ['Yandex', ['*.spider.yandex.com']],
   ['Coc Coc', ['bot-*.coccoc.com']],
   ['Naver', ['crawl.*.web.naver.com']],
+  // https://www.dataprovider.com/crawler/: reverse DNS under dataproviderbot.com
+  ['Dataprovider.com', ['crawl-*.dataproviderbot.com']],
 ]).map(
   ([identity, patterns]) =>
     /** @type {[string, Array<(hostname: string) => boolean>]} */ ([
