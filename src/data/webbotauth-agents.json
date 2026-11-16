@@ -8,6 +8,10 @@
   { "agent": "https://bot.duckduckgo.com", "robots": ["DuckDuckBot"] },
   { "agent": "https://bot.naver.com", "robots": ["Yeti"] },
   { "agent": "https://chatgpt.com", "robots": ["ChatGPT Agent"] },
+  {
+    "agent": "https://crawler-key.proximic.com",
+    "robots": ["proximic"]
+  },
   { "agent": "https://crawler.exa.ai", "robots": ["ExaSearchBot"] },
   { "agent": "https://crawler.octen.ai", "robots": ["OctenSearchBot"] },
   { "agent": "https://domainsbot.com", "robots": ["Pandalytics"] },
