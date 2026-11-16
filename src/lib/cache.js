@@ -60,21 +60,27 @@ async function set(key, value, ttlInSeconds) {
   return cacheProvider.set(key, value, ttlInSeconds);
 }
 
+// del() and clear() do nothing with a provider that has no such method
 /** @param {string} key */
 async function del(key) {
-  return cacheProvider.del(key);
+  if (cacheProvider.del) {
+    return cacheProvider.del(key);
+  }
 }
 
 async function clear() {
-  return cacheProvider.clear();
+  if (cacheProvider.clear) {
+    return cacheProvider.clear();
+  }
 }
 
 /**
  * A cache backend. Values are whatever the modules store (hostnames, parsed
- * user agents…).
+ * user agents…). Hyperwatch only calls `has`, `get` and `set`; `del` and
+ * `clear` are optional.
  * @typedef {object} CacheProvider
- * @property {() => Promise<unknown>} clear
- * @property {(key: string) => Promise<unknown>} del
+ * @property {() => Promise<unknown>} [clear]
+ * @property {(key: string) => Promise<unknown>} [del]
  * @property {(key: string) => Promise<any>} get
  * @property {(key: string) => Promise<boolean>} has
  * @property {(key: string, value: any, ttlInSeconds?: number) => Promise<unknown>} set

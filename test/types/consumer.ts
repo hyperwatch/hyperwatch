@@ -104,6 +104,14 @@ void started;
 void stopped;
 void modules;
 
+// A cache provider needs has, get and set only
+const entries = new Map<string, unknown>();
+hyperwatch.cache.setProvider({
+  has: async (key) => entries.has(key),
+  get: async (key) => entries.get(key),
+  set: async (key, value) => entries.set(key, value),
+});
+
 // What the declarations reject
 // @ts-expect-error port is a number
 hyperwatch.init({ port: 'not a port' });
@@ -117,3 +125,8 @@ pipeline.setNode('root', { monitor: true });
 input.websocket.create({ type: 'peer' });
 // @ts-expect-error mount() needs the HTTP server and a path
 app.mount(express());
+// @ts-expect-error a cache provider needs get
+hyperwatch.cache.setProvider({
+  has: async () => false,
+  set: async () => undefined,
+});
