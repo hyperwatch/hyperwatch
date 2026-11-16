@@ -5,7 +5,13 @@
  * A log: an Immutable Map with `request`, `response`, `executionTime` and
  * what the modules add (`address`, `agent`, `identity`, `geoip`,
  * `signature`, `webbotauth`…). See docs/log.md.
- * @typedef {import('immutable').Map<string, any>} Log
+ *
+ * `getIn()` returns `any`, like `get()`: Immutable's own returns `unknown`
+ * for a Map of `any`, which no caller could use without a cast
+ * (`log.getIn(['request', 'url']).match(…)`). It comes first, so it is the
+ * overload TypeScript picks.
+ * @typedef {{ getIn(searchKeyPath: Iterable<unknown>, notSetValue?: any): any }
+ *   & import('immutable').Map<string, any>} Log
  */
 
 /**

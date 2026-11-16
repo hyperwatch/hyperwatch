@@ -47,9 +47,11 @@ exports.complement = (f) => {
 
 /**
  * Create a log from Express req/res
+ * @returns {import('../types').Log} With `request` and `response`: any other
+ *   key can be set on it
  */
 exports.createLog = (req, res) => {
-  return fromJS({
+  return /** @type {any} */ (fromJS)({
     request: {
       time: new Date().toISOString(),
       address: req.ip,
