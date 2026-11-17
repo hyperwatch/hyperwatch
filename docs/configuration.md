@@ -61,6 +61,7 @@ Only `status` is active by default.
 | logs       | Streams every pipeline node over HTTP and WebSocket                                                                                                                                                                                                                    | `/logs`, `/logs/<node>`                                                   |
 | cloudflare | Uses Cloudflare headers (`cf-connecting-ip`, `cf-ipcountry`, `cf-ray`) for the client address and data                                                                                                                                                                 | –                                                                         |
 | geoip      | Geolocates addresses: logs keep the `country` (geoip-lite's country tables, 6.5 MB in memory); `fields` sets other fields of the lookup (`region`, `city`, `timezone`, `ll`, `range`, `metro`, `area`, `eu`), or `"all"`: all but `range` load its city tables, 110 MB | –                                                                         |
+| asn        | The network of client addresses (autonomous system), with [@hyperwatch/iptoasn](https://github.com/hyperwatch/iptoasn): logs carry `asn` (see below), `/addresses` an `asn` column                                                                                     | `/asns`                                                                   |
 | agent      | Parses User-Agents with [@hyperwatch/useragent](https://github.com/hyperwatch/useragent)                                                                                                                                                                               | –                                                                         |
 | hostname   | Reverse DNS lookup and forward verification of client addresses                                                                                                                                                                                                        | –                                                                         |
 | language   | Parses the `Accept-Language` header                                                                                                                                                                                                                                    | –                                                                         |
@@ -97,6 +98,28 @@ A signature's `keyid` is the key's JWK thumbprint, or its `kid` when the directo
 
 - `fetch`: `false` uses the committed keys only.
 - `authorities`: signatures cover the host the client sent the request to (`@authority`). Behind a proxy that rewrites the `Host` header, map the hosts Hyperwatch sees to the public ones (a string or an array). In a JavaScript configuration, `authority: (log) => host or [hosts]` can be used instead.
+
+### ASN
+
+The `asn` module sets on each log the autonomous system announcing its client address: `asn: { number, organization, country }`, e.g. `{ number: 13335, organization: "CLOUDFLARENET - Cloudflare, Inc.", country: "US" }`. `country` is where the AS is registered, not where the address is (that's `geoip`), and is left out when unknown. Addresses no AS announces (private, reserved, not routed) get no `asn`. `/asns` counts requests and distinct addresses per AS (sortable by `addressCount15m` or `addressCount24h`), and `/addresses` shows the AS of each address.
+
+The table comes from [@hyperwatch/iptoasn](https://github.com/hyperwatch/iptoasn), iptoasn.com's [`ip2asn-combined`](https://iptoasn.com/) (IPv4 and IPv6, public domain) shipped in that package. It's an optional peer dependency: install it next to Hyperwatch to use the module (without it, the module warns and does nothing):
+
+```bash
+npm install @hyperwatch/iptoasn
+```
+
+Nothing is downloaded at run time. The package gets a release each day the table changes (versions `1.0.YYYYMMDD`): keep it up to date like your other dependencies, e.g. with Dependabot. The table's source is in `require('@hyperwatch/iptoasn').loadSync().source`.
+
+Lookups are synchronous: a bisection over typed arrays (about 22 MB for the whole table, loaded in well under a second at start), behind a cache of the latest `cacheSize` addresses (`10000` by default).
+
+```json
+{
+  "modules": {
+    "asn": { "active": true, "cacheSize": 10000 }
+  }
+}
+```
 
 To use a custom DNS server for the `hostname` module, set the `HYPERWATCH_DNS_SERVER` environment variable.
 
