@@ -89,11 +89,18 @@ function lookup(address) {
   return value;
 }
 
+// The client address: address.value (address and cloudflare modules), else
+// the address of the request, as inputs give it
+/**
+ * @param {Log} log
+ * @returns {string | undefined}
+ */
+const addressOf = (log) =>
+  log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
+
 /** @param {Log} log */
 function augment(log) {
-  const value = lookup(
-    log.getIn(['address', 'value']) || log.getIn(['request', 'address'])
-  );
+  const value = lookup(addressOf(log));
   return value ? log.set('asn', value) : log;
 }
 
@@ -183,7 +190,8 @@ function start() {
   });
   aggregator.setEnricher((entry, log) => {
     entry = entry.set('asn', log.get('asn'));
-    const address = log.getIn(['address', 'value']);
+    // Counted without the address module too, as augment() looks it up
+    const address = addressOf(log);
     return address
       ? entry.update('addresses', (map) => touch(map, address))
       : entry;

@@ -103,4 +103,27 @@ describe('asn', () => {
       assert.strictEqual(asn.lookup('8.8.8.8'), null);
     });
   });
+
+  describe('aggregator', () => {
+    before(async () => {
+      asn.start();
+      await asn.ready();
+    });
+
+    beforeEach(() => asn.aggregator.reset());
+
+    it('counts distinct addresses, without the address module too', () => {
+      for (const address of ['8.8.8.8', '8.8.4.4', '8.8.8.8']) {
+        // As an input gives it: request.address, no address.value
+        asn.aggregator.processLog(
+          asn.augment(log({ requestAddress: address }))
+        );
+      }
+      asn.aggregator.processLog(asn.augment(log({ address: '8.8.4.8' })));
+      const entry = asn.aggregator.entries.first();
+      const row = asn.aggregator.formatter.formatObject(entry, 'text');
+      assert.strictEqual(row.asn, 'AS15169');
+      assert.strictEqual(row.addressCount24h, 3);
+    });
+  });
 });
