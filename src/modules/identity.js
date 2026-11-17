@@ -211,6 +211,7 @@ const signedOnly = new Map([
   ['https://ecp.yusercontent.com', 'Yahoo'],
   ['https://iframely.com', 'Iframely'],
   ['https://crawler-key.proximic.com', 'Comscore'],
+  ['https://www.meta.com', 'Meta'],
 ]);
 
 // A Web Bot Auth signature of `agent` verified by the webbotauth module
