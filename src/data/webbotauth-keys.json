@@ -282,6 +282,38 @@
       "x": "WWdOaIRWmSREGfiEHqaBPuy6xN41uFIeFsykuM8Mem4"
     }
   ],
+  "https://www.meta.com": [
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "vMEYr406dhzH8Tf8ClCCvt8D-MBTAkBHsnqz10iM5c0",
+      "kid": "2h6d-naMeNYCEY_tziKuRgyrXhviX1wPZnK3YvpkJpo"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "zyr8gublkmFR2NH1NrOb8YxX_37l-j-MpDAnJLvSAJY",
+      "kid": "co8Mqi_ams-_h9I-gXZ-NsG1BfSN34LTyIZaw9hUUGk"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "9SsjIMTl9VZq1ENHSf2O6546RqxEND4aY3qaSrir1aw",
+      "kid": "PZZZiz0rLbE9RZJ1DyryOFQzzqVwf96kCcr44MMKP0M"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "tKt3iCHBs2ZlHWb2n-MKjXvfPyj7SkHSXM02IBIdNRc",
+      "kid": "6CdRjLYItMBcIR0Sn0QS97MEDoUm3Xmr7dV9DwEOU7E"
+    },
+    {
+      "kty": "OKP",
+      "crv": "Ed25519",
+      "x": "vZZN3dwDUvU8CGzrB_GVsstowD79eAYgLNM-Jof2Di0",
+      "kid": "Iy80tzAcbbb85lkjfKieYYwxAqinLDqDUBXjVMEnI_s"
+    }
+  ],
   "https://you.com": [
     {
       "kty": "OKP",

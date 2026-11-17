@@ -35,5 +35,6 @@
   { "agent": "https://truvon.ai", "robots": ["TruvonBot"] },
   { "agent": "https://us.posthog.com", "robots": ["PostHogImageFetcherBot"] },
   { "agent": "https://www.aidealio.com", "robots": ["aidealioBot"] },
+  { "agent": "https://www.meta.com", "robots": ["meta-webindexer"] },
   { "agent": "https://you.com", "robots": ["YouBot"] }
 ]
