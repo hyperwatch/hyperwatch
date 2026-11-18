@@ -23,9 +23,9 @@ describe('geoip fields', () => {
     console.warn = warn;
   });
 
-  it('keeps country, region and city by default', () => {
-    assert.deepStrictEqual(fieldsFor(), ['country', 'region', 'city']);
-    assert.deepStrictEqual(fieldsFor({}), ['country', 'region', 'city']);
+  it('keeps the country by default', () => {
+    assert.deepStrictEqual(fieldsFor(), ['country']);
+    assert.deepStrictEqual(fieldsFor({}), ['country']);
   });
 
   it('keeps everything with "all", or the fields listed', () => {
@@ -43,16 +43,8 @@ describe('geoip fields', () => {
   });
 
   it('warns about invalid values', () => {
-    assert.deepStrictEqual(fieldsFor({ fields: 3 }), [
-      'country',
-      'region',
-      'city',
-    ]);
-    assert.deepStrictEqual(fieldsFor({ fields: [1] }), [
-      'country',
-      'region',
-      'city',
-    ]);
+    assert.deepStrictEqual(fieldsFor({ fields: 3 }), ['country']);
+    assert.deepStrictEqual(fieldsFor({ fields: [1] }), ['country']);
     assert.strictEqual(warnings.length, 2);
   });
 });
@@ -83,12 +75,11 @@ describe('geoip augment', () => {
   };
 
   it('keeps the fields set', () => {
-    assert.deepStrictEqual(Object.keys(augmented(undefined)).sort(), [
-      'city',
-      'country',
-      'region',
-    ]);
-    assert.strictEqual(augmented(undefined).country, 'US');
+    assert.deepStrictEqual(augmented(undefined), { country: 'US' });
+    assert.deepStrictEqual(
+      Object.keys(augmented(['country', 'region', 'city'])).sort(),
+      ['city', 'country', 'region']
+    );
     assert.ok(augmented('all').ll);
     assert.deepStrictEqual(Object.keys(augmented(['country', 'timezone'])), [
       'country',
@@ -131,8 +122,8 @@ describe('geoip tables', () => {
       )
     );
 
-  it('loads the country tables only when fields allow', () => {
-    const { external, v4, v6 } = load(['country']);
+  it('loads the country tables only by default', () => {
+    const { external, v4, v6 } = load(undefined);
     assert.strictEqual(v4.country, 'GB');
     assert.strictEqual(v4.city, '');
     assert.strictEqual(v6.country, 'US');

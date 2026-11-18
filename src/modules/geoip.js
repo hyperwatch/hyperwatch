@@ -11,8 +11,9 @@ const logger = require('../lib/logger');
 const pipeline = require('../lib/pipeline');
 
 // What a log keeps of the lookup by default: it's copied into logs, history
-// and aggregator entries, and these are the fields shown
-const DEFAULT_FIELDS = ['country', 'region', 'city'];
+// and aggregator entries. The country only: it needs geoip-lite's country
+// tables (6.5 MB in memory), region and city its city tables (110 MB)
+const DEFAULT_FIELDS = ['country'];
 
 /**
  * The fields of the lookup kept in logs: `modules.geoip.fields`, a list of
@@ -203,10 +204,13 @@ function init() {
     after: 'address',
     color: 'grey',
   });
-  aggregator.defaultFormatter.insertFormat('city', city, {
-    after: 'country',
-    color: 'grey',
-  });
+  // A column only when logs have the city
+  if (!fields || fields.includes('city')) {
+    aggregator.defaultFormatter.insertFormat('city', city, {
+      after: 'country',
+      color: 'grey',
+    });
+  }
   logger.defaultFormatter.insertFormat('country', country, {
     after: 'address',
     color: 'grey',
