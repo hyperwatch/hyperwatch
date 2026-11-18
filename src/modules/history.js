@@ -61,6 +61,94 @@ let diskReads = 0;
 
 const DEFAULT_DISK_DIR = path.join('.hyperwatch-data', 'logs');
 
+// The aggregators whose entries are the values of each filter: the same
+// keys as logMatches (an identity key, address.value, signature.id), fed
+// with every log of the main node
+const FILTER_AGGREGATORS = {
+  identity: 'identities',
+  address: 'addresses',
+  signature: 'signatures',
+};
+
+// A log is written to the file of the hour it's written, a moment after the
+// aggregators count it: look a few minutes past the last time seen
+const LAST_SEEN_MARGIN = 5 * 60;
+
+/**
+ * When a log matching all the filters was last seen, in seconds: the
+ * earliest of the last times of their aggregator entries (a log matching
+ * them all matches each). null when no filter has an entry to tell, e.g. its
+ * module is off, or the entry was dropped from a full aggregator.
+ * @param {Record<string, unknown>} filters
+ * @returns {number | null}
+ */
+function lastSeen(filters) {
+  /** @type {number | null} */
+  let earliest = null;
+  for (const [key, name] of Object.entries(FILTER_AGGREGATORS)) {
+    const value = filters[key];
+    if (typeof value !== 'string' || !value) {
+      continue;
+    }
+    const aggregator = api.getAggregator(name);
+    const entry = aggregator && aggregator.get(value);
+    const speed = entry && entry.getIn(['speed', 'per_minute']);
+    const latest =
+      speed && /** @type {{ latest: number | null }} */ (speed).latest;
+    if (
+      typeof latest === 'number' &&
+      (earliest === null || latest < earliest)
+    ) {
+      earliest = latest;
+    }
+  }
+  return earliest;
+}
+
+/**
+ * Whether a node's logs all go through the main node, where the aggregators
+ * count them: main and the nodes made from it, not the inputs' nodes
+ * @param {string} name
+ * @returns {boolean}
+ */
+function afterMain(name) {
+  const main = pipeline.nodes.main;
+  const node = pipeline.nodes[name];
+  if (!main || !node) {
+    return false;
+  }
+  const queue = [main];
+  const seen = new Set();
+  while (queue.length) {
+    const current = /** @type {Node} */ (queue.shift());
+    if (current === node) {
+      return true;
+    }
+    if (!seen.has(current)) {
+      seen.add(current);
+      queue.push(...current.children);
+    }
+  }
+  return false;
+}
+
+/**
+ * The newest hour of a node's log files that can hold logs matching the
+ * filters, from when they were last seen, or undefined to read from the
+ * newest file. Searches for a value seen hours ago start there, instead of
+ * spending their bounds on the hours since.
+ * @param {string} name
+ * @param {Record<string, unknown>} filters
+ * @returns {string | undefined}
+ */
+function searchStart(name, filters) {
+  const seen = lastSeen(filters);
+  if (seen === null || !afterMain(name)) {
+    return undefined;
+  }
+  return logFiles.hourOf(new Date((seen + LAST_SEEN_MARGIN) * 1000));
+}
+
 // A whole number of logs, 0 included, or null. Values set through the
 // environment (rc) are strings
 /**
@@ -212,7 +300,7 @@ function start() {
 
     if (writer) {
       api.get(`/history/${name}/disk.json`, (req, res) =>
-        readDisk(/** @type {string} */ (dir), req, res)
+        readDisk(name, /** @type {string} */ (dir), req, res)
       );
     }
   }
@@ -234,11 +322,12 @@ function start() {
 
 // GET /history/<node>/disk.json?identity=|address=|signature=&limit=&cursor=
 /**
+ * @param {string} name
  * @param {string} dir
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  */
-async function readDisk(dir, req, res) {
+async function readDisk(name, dir, req, res) {
   const limit =
     req.query.limit === undefined
       ? 100
@@ -260,17 +349,22 @@ async function readDisk(dir, req, res) {
       controller.abort();
     }
   });
+  const filters = { identity, address, signature };
+  const cursor = /** @type {string | undefined} */ (req.query.cursor);
+  // The first page starts where the filters were last seen
+  const until = cursor ? undefined : searchStart(name, filters);
   diskReads++;
   try {
     const result = await logFiles.read(dir, {
       limit,
-      cursor: /** @type {string | undefined} */ (req.query.cursor),
-      filters: { identity, address, signature },
+      cursor,
+      filters,
       signal: controller.signal,
+      until,
     });
     const logs = await restoreAll(result.logs);
     if (!controller.signal.aborted) {
-      res.json({ ...result, logs });
+      res.json({ ...result, logs, until: until || null });
     }
   } catch (err) {
     if (err instanceof logFiles.CursorError) {
@@ -331,36 +425,91 @@ const hasFilter = (filters = {}) =>
  * written logs and those still pending when the view asks, so live logs
  * received from then on follow it without a gap or a repeat. Otherwise, or
  * while 2 reads are running, or when reading fails, the latest logs in
- * memory.
+ * memory. The read starts where the filters were last seen (searchStart).
+ * searchView also says how far it searched.
  * @param {string} name
  * @param {number} limit
  * @param {Record<string, any>} filters From the query string
  * @returns {Log[] | Promise<Log[]>}
  */
 function forView(name, limit, filters) {
+  const result = searchView(name, limit, filters);
+  return result instanceof Promise
+    ? result.then(({ logs }) => logs)
+    : result.logs;
+}
+
+/**
+ * What a view shows of a node's past logs, and how far it searched
+ * @typedef {object} ViewSearch
+ * @property {Log[]} logs Newest first
+ * @property {string | null} cursor Where older logs go on in the log
+ *   files (a cursor of /history/<node>/disk.json), null when there are none
+ *   or the files weren't read
+ * @property {boolean} truncated Whether the search stopped on a bound of
+ *   the read, not at the limit or the oldest log
+ * @property {string | null} until The newest hour searched, when it started
+ *   where the filters were last seen, else null
+ * @property {string} [error] Why nothing was read, e.g. an invalid cursor
+ */
+
+/**
+ * The latest logs of a node matching `filters`, for views: from the log
+ * files with filters (see forView), from `cursor` when given, else from
+ * where the filters were last seen
+ * @param {string} name
+ * @param {number} limit
+ * @param {Record<string, unknown>} filters
+ * @param {string} [cursor] From an earlier search
+ * @returns {ViewSearch | Promise<ViewSearch>}
+ */
+function searchView(name, limit, filters, cursor) {
+  /** @type {(logs: Log[]) => ViewSearch} */
+  const memory = (logs) => ({
+    logs,
+    cursor: null,
+    truncated: false,
+    until: null,
+  });
   const writer = writers[name];
   if (!writer || !hasFilter(filters) || limit <= 0) {
-    return latest(name, limit, filters);
+    return memory(latest(name, limit, filters));
   }
   if (diskReads >= MAX_DISK_READS) {
-    return latest(name, limit, filters);
+    return memory(latest(name, limit, filters));
   }
   // Now, before any live log reaches the view: what the files hold, and
   // the memory history if reading them fails (taken later, it would repeat
   // the live logs received meanwhile)
-  const snapshot = writer.snapshot();
-  const fallback = latest(name, limit, filters);
+  const snapshot = cursor ? undefined : writer.snapshot();
+  const fallback = memory(latest(name, limit, filters));
   const { identity, address, signature } = filters;
+  const until = cursor ? undefined : searchStart(name, filters);
   diskReads++;
   return (async () => {
     try {
-      const { logs } = await logFiles.read(dirs[name], {
+      const result = await logFiles.read(dirs[name], {
         limit: Math.min(limit, 1000),
-        filters: { identity, address, signature },
+        cursor,
+        filters:
+          /** @type {import('../lib/log-files').ReadOptions['filters']} */ ({
+            identity,
+            address,
+            signature,
+          }),
         snapshot,
+        until,
       });
-      return await restoreAll(logs);
+      return {
+        logs: await restoreAll(result.logs),
+        cursor: result.cursor,
+        truncated: result.truncated,
+        until: until || null,
+      };
     } catch (err) {
+      if (err instanceof logFiles.CursorError) {
+        return { ...memory([]), error: err.message };
+      }
       console.error(
         'Error reading the log files:',
         /** @type {Error} */ (err).message
@@ -390,4 +539,12 @@ function latest(name, limit, filters) {
     .slice(0, limit);
 }
 
-module.exports = { start, latest, forView, capacityFor, diskDirFor, flush };
+module.exports = {
+  start,
+  latest,
+  forView,
+  searchView,
+  capacityFor,
+  diskDirFor,
+  flush,
+};

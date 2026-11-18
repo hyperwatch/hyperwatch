@@ -677,6 +677,56 @@ function streamLine(line) {
   return `<div>${line}</div>`;
 }
 
+// "2026-11-18T05" as "2026-11-18 05:00 UTC"
+const hourLabel = (/** @type {string} */ hour) =>
+  `${hour.slice(0, 10)} ${hour.slice(11, 13)}:00 UTC`;
+
+/**
+ * What the search of the log files before the live logs found, under them:
+ * where it started, where it stopped, and a link to older logs
+ * @param {Request} req
+ * @param {{ logs: unknown[], cursor?: string | null, truncated?: boolean,
+ *   until?: string | null, error?: string }} search
+ * @returns {string} Empty when there's nothing to say
+ */
+function streamSearchNotice(req, search) {
+  /** @type {string[]} */
+  const parts = [];
+  if (search.error) {
+    parts.push(escapeHtml(search.error));
+  }
+  if (search.until) {
+    parts.push(
+      `Searched from ${hourLabel(search.until)}, the last hour these filters were seen`
+    );
+  }
+  const reached = search.cursor ? search.cursor.slice(0, 13) : null;
+  if (search.truncated) {
+    parts.push(
+      reached
+        ? `stopped at the read limit, in the hour of ${hourLabel(reached)}`
+        : 'stopped at the read limit'
+    );
+  }
+  if (search.cursor) {
+    const query = new URLSearchParams(
+      /** @type {Record<string, string>} */ (
+        Object.fromEntries(
+          Object.entries(req.query).filter(
+            ([, value]) => typeof value === 'string'
+          )
+        )
+      )
+    );
+    query.set('cursor', search.cursor);
+    parts.push(link(`${here(req)}?${query}`, 'older logs'));
+  }
+  if (!parts.length) {
+    return '';
+  }
+  return streamLine(`<span class="grey">${parts.join(' · ')}</span>`);
+}
+
 /** @typedef {import('express').Request} Request */
 /** @typedef {import('../../lib/pipeline').TreeNode} TreeNode */
 /** @typedef {import('../../lib/pipeline').TreeInput} TreeInput */
@@ -695,4 +745,5 @@ module.exports = {
   registerSection,
   streamHead,
   streamLine,
+  streamSearchNotice,
 };
