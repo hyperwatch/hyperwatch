@@ -31,6 +31,7 @@ Some lists have no updater: their operators publish them only inside a page, a t
 - `360spider-ips.json`: the PDF linked from [360's spider page](https://www.so.com/help/spider_ip.html), one address per line (`pdftotext` reads it).
 - `dataforseo-ips.json`: the IPv4 and IPv6 subnets written under "IPv4:" and "IPv6:" on [DataForSEO's bot page](https://dataforseo.com/dataforseo-bot).
 - `marginalia-ips.json`: the addresses written after "IP address:" under "Crawler Fingerprint" on [Marginalia's page for webmasters](https://www.marginalia.nu/marginalia-search/for-webmasters/) (`193.183.0.162-174` as CIDRs).
+- `censys-ips.json`: the IPv4 and IPv6 ranges in the block under the list of addresses on [Censys's opt-out page](https://docs.censys.com/docs/opt-out-of-data-collection) (its ASNs aren't used).
 
 If any list or key changed, run `npm test`, then open a PR named after what changed: "Refresh the published IP ranges", "Refresh the Web Bot Auth keys", or "Refresh the published IP ranges and Web Bot Auth keys". Give a table of the ranges and keys added and removed per file, and the lists left unchanged (as in [#636](https://github.com/hyperwatch/hyperwatch/pull/636)). Merge it before step 1, and mention it under **Identities** in the release notes. If nothing changed, go on.
 

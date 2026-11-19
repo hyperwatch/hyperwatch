@@ -41,6 +41,8 @@ const linkcheckerbotIps = require('../data/linkcheckerbot-ips.json');
 const linkupbotIps = require('../data/linkupbot-ips.json');
 const lyrenthIps = require('../data/lyrenth-ips.json');
 const marginaliaIps = require('../data/marginalia-ips.json');
+const censysIps = require('../data/censys-ips.json');
+const deepfieldIps = require('../data/deepfield-ips.json');
 const metaIps = require('../data/meta-ips.json');
 const mojeekbotIps = require('../data/mojeekbot-ips.json');
 const naverbotIps = require('../data/naverbot-ips.json');
@@ -169,6 +171,8 @@ const halobotCidrs = compileRanges(halobotIps);
 const hubspotCidrs = compileRanges(hubspotIps);
 const hypersearchbotCidrs = compileRanges(hypersearchbotIps);
 const marginaliaCidrs = compileRanges(marginaliaIps);
+const censysCidrs = compileRanges(censysIps);
+const deepfieldCidrs = compileRanges(deepfieldIps);
 const ibouCidrs = compileRanges(ibouIps);
 const ibouBotCidrs = compileRanges(ibouBotIps);
 
@@ -239,6 +243,11 @@ function webbotauthActive() {
  * @returns {(hostname: string) => boolean}
  */
 function hostnamePattern(pattern) {
+  // A leading dot: any name under that domain, whatever its depth
+  if (pattern.startsWith('.')) {
+    const suffix = pattern.toLowerCase();
+    return (hostname) => hostname.toLowerCase().endsWith(suffix);
+  }
   const source = pattern
     .split('*')
     .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
@@ -279,6 +288,28 @@ const hostnameOnly = /** @type {Array<[string, string[]]>} */ ([
   ['Naver', ['crawl.*.web.naver.com']],
   // https://www.dataprovider.com/crawler/: reverse DNS under dataproviderbot.com
   ['Dataprovider.com', ['crawl-*.dataproviderbot.com']],
+  // Internet-wide scanners, from their operators' own zones: they probe with
+  // any user agent (zgrab, browsers) or none
+  // Censys: its published ranges are checked for CensysInspect; follow-up
+  // connections may come from other machines
+  ['Censys', ['*.*.*.*.censys-scanner.com']],
+  ['Shodan', ['*.census.shodan.io']],
+  // https://stretchoid.com/ (opt-out only)
+  ['Stretchoid', ['azpd*.stretchoid.com']],
+  // BinaryEdge (Coalition): "reverse DNS entries in the binaryedge.ninja domain"
+  ['BinaryEdge', ['.binaryedge.ninja']],
+  // https://infrawat.ch/
+  ['Infrawatch', ['*-*-*-*.infrawat.ch']],
+  // https://www.internet-census.org/home.html: reverse DNS under
+  // internet-census.org, confirmed by a forward lookup
+  ['Internet Census', ['*.internet-census.org']],
+  // http://survey07.hackertarget.io/: "survey##.hackertarget.io"
+  ['HackerTarget', ['survey*.hackertarget.io']],
+  // Kaspersky's CEREBRO web crawler, with a browser user agent
+  ['Kaspersky', ['cerebro-*.kaspersky-labs.com']],
+  // https://net.in.tum.de/projects/gino/: TU Munich's research scans
+  // (Goscanner, with a Chrome user agent)
+  ['TUM', ['planetlab*.gino-research.net.in.tum.de']],
 ]).map(
   ([identity, patterns]) =>
     /** @type {[string, Array<(hostname: string) => boolean>]} */ ([
@@ -804,6 +835,21 @@ function augment(log) {
       ) ||
         (address && hypersearchbotCidrs(address))
         ? log.set('identity', 'EcoGPT')
+        : log;
+    case 'CensysInspect':
+      // https://docs.censys.com/docs/opt-out-of-data-collection
+      return address && censysCidrs(address)
+        ? log.set('identity', 'Censys')
+        : log;
+    case 'GenomeCrawlerd':
+      // https://www.nokia.com/genomecrawler/
+      return address && deepfieldCidrs(address)
+        ? log.set('identity', 'Deepfield')
+        : log;
+    case 'ForestEngine':
+      // https://forestengine.net/: its only range
+      return address && inCidr('151.245.151.0/24', address)
+        ? log.set('identity', 'Forest')
         : log;
     case 'search.marginalia.nu':
       // https://www.marginalia.nu/marginalia-search/for-webmasters/

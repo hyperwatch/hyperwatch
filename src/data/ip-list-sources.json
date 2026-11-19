@@ -171,7 +171,7 @@
     "about": "Kakao lists KakaoBot's addresses on its help page, in Korean: \"KakaoBot uses the following IPs. The list may change without notice.\"",
     "urls": ["https://cs.kakao.com/helps_html/1073213012"],
     "format": "listAfter",
-    "marker": "KakaoBot은 다음의 IP를 사용합니다"
+    "marker": "KakaoBot\uc740 \ub2e4\uc74c\uc758 IP\ub97c \uc0ac\uc6a9\ud569\ub2c8\ub2e4"
   },
   {
     "name": "linkcheckerbot-ips",
@@ -307,5 +307,11 @@
     "format": "awsService",
     "service": "CLOUDFRONT",
     "bothFamilies": true
+  },
+  {
+    "name": "deepfield-ips",
+    "about": "Nokia Deepfield's GenomeCrawlerd: https://www.nokia.com/genomecrawler/ links to its list.",
+    "urls": ["https://genome.deepfield.net/crawlers.txt"],
+    "format": "lines"
   }
 ]
