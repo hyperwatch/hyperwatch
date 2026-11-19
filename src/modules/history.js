@@ -8,7 +8,7 @@ const LogBuffer = require('../lib/log-buffer');
 const logFiles = require('../lib/log-files');
 const persistence = require('../lib/persistence');
 const pipeline = require('../lib/pipeline');
-const { logMatches, parseNumber } = require('../lib/util');
+const { logMatches, md5, parseNumber } = require('../lib/util');
 
 /** @typedef {import('../types').Log} Log */
 /** @typedef {import('../lib/pipeline').Node} Node */
@@ -90,8 +90,9 @@ function lastSeen(filters) {
     if (typeof value !== 'string' || !value) {
       continue;
     }
+    // Aggregators key their entries by the md5 of the identifier
     const aggregator = api.getAggregator(name);
-    const entry = aggregator && aggregator.get(value);
+    const entry = aggregator && aggregator.get(md5(value));
     const speed = entry && entry.getIn(['speed', 'per_minute']);
     const latest =
       speed && /** @type {{ latest: number | null }} */ (speed).latest;

@@ -8,9 +8,11 @@ const { fromJS } = require('immutable');
 
 const api = require('../../src/app/api');
 const constants = require('../../src/constants');
+const { Aggregator } = require('../../src/lib/aggregator');
 const { defaultFormatter } = require('../../src/lib/logger');
 const persistence = require('../../src/lib/persistence');
 const pipeline = require('../../src/lib/pipeline');
+const { md5 } = require('../../src/lib/util');
 const history = require('../../src/modules/history');
 
 describe('history capacity', () => {
@@ -424,16 +426,18 @@ describe('history on disk', () => {
         path.join(nodeDir, '2026-01-01T06.ndjson'),
         record('/skipped')
       );
+      // A real aggregator, keyed like the addresses one, its entry last seen
+      // at 05:20 UTC
+      const addresses = new Aggregator();
+      addresses.setIdentifier((log) => log.getIn(['request', 'address']));
+      addresses.processLog(
+        fromJS({ request: { address: '10.9.9.9' }, response: { status: 200 } })
+      );
+      addresses.get(md5('10.9.9.9')).getIn(['speed', 'per_minute']).latest =
+        seen;
       getAggregator = api.getAggregator;
       api.getAggregator = (name) =>
-        name === 'addresses'
-          ? {
-              get: (id) =>
-                id === '10.9.9.9'
-                  ? fromJS({}).setIn(['speed', 'per_minute'], { latest: seen })
-                  : undefined,
-            }
-          : undefined;
+        name === 'addresses' ? addresses : undefined;
       // The node is main, where aggregators count logs
       pipeline.nodes.main = pipeline.nodes['test-disk'];
       api.streamToHttp(
