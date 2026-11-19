@@ -1,9 +1,12 @@
 const assert = require('assert');
 
 const {
+  addChangelogSection,
   changelogSection,
   draftNotes,
+  isAbove,
   noteLine,
+  notesProblem,
   unexpectedFiles,
 } = require('../../scripts/lib/release');
 
@@ -105,6 +108,59 @@ describe('release', () => {
     it('matches the whole version', () => {
       assert.strictEqual(changelogSection(changelog, '5.7'), null);
       assert.strictEqual(changelogSection(changelog, '5.6.1'), null);
+    });
+  });
+
+  describe('addChangelogSection', () => {
+    const changelog =
+      '# Changelog\n\nIntro.\n\n## 5.7.0 (2026-11-14)\n\n- One\n';
+
+    it('adds the section above the latest one', () => {
+      assert.strictEqual(
+        addChangelogSection(changelog, '5.8.0', '2026-11-20', '- Two'),
+        '# Changelog\n\nIntro.\n\n## 5.8.0 (2026-11-20)\n\n- Two\n\n## 5.7.0 (2026-11-14)\n\n- One\n'
+      );
+    });
+
+    it('refuses a version it already has', () => {
+      assert.throws(
+        () => addChangelogSection(changelog, '5.7.0', '2026-11-20', '- Two'),
+        /already has a 5\.7\.0 section/
+      );
+    });
+  });
+
+  describe('isAbove', () => {
+    it('compares each number', () => {
+      assert.ok(isAbove('5.8.0', '5.7.0'));
+      assert.ok(isAbove('5.10.0', '5.9.3'));
+      assert.ok(isAbove('6.0.0', '5.99.99'));
+      assert.ok(!isAbove('5.7.0', '5.7.0'));
+      assert.ok(!isAbove('5.6.9', '5.7.0'));
+    });
+  });
+
+  describe('notesProblem', () => {
+    const changelog = (notes) =>
+      `# Changelog\n\n## 5.8.0 (2026-11-20)\n\n${notes}\n`;
+
+    it('accepts sorted notes', () => {
+      assert.strictEqual(
+        notesProblem(changelog('### Fixes\n\n- One'), '5.8.0'),
+        null
+      );
+    });
+
+    it('refuses missing, empty or unsorted notes', () => {
+      assert.match(
+        notesProblem(changelog('- One'), '5.9.0'),
+        /no "## 5\.9\.0"/
+      );
+      assert.match(notesProblem(changelog('- …'), '5.8.0'), /empty/);
+      assert.match(
+        notesProblem(changelog('### To sort: Features\n\n- One'), '5.8.0'),
+        /To sort/
+      );
     });
   });
 });

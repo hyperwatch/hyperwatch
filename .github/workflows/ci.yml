@@ -99,3 +99,19 @@ jobs:
       # installed from the packed package with its dependencies only
       - run: npm run type:check
       - run: npm run types:test
+
+  # A pull request that changes the version (release-prepare.yml) has its
+  # release notes ready: what release.yml checks first
+  release-notes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Notes of an unreleased version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ -n "$(git ls-remote --tags origin "refs/tags/v$version")" ]; then
+            echo "$version is released"
+          else
+            node scripts/release.js verify
+          fi

@@ -1,0 +1,61 @@
+# Opens the pull request of a release: package.json and package-lock.json
+# bumped, and the release notes drafted in CHANGELOG.md from the commits
+# since the last release, to rewrite before merging. Merging it releases
+# (release.yml). See RELEASING.md.
+name: Prepare a release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version to release (X.Y.Z)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The commits and tags since the last release
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - run: npm ci
+
+      - name: Bump the version and draft the notes
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          node scripts/release.js prepare "$VERSION"
+          npx prettier --write CHANGELOG.md
+
+      - name: Open the pull request
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="release-v$VERSION"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "$branch"
+          git commit -am "version $VERSION"
+          git push -u origin "$branch"
+          cat > body.md <<BODY
+          Releases $VERSION when merged ([release.yml]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/main/.github/workflows/release.yml)): checks, \`npm publish\`, tag \`v$VERSION\` and GitHub release.
+
+          Before merging, rewrite the drafted notes in \`CHANGELOG.md\` ([RELEASING.md]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/main/RELEASING.md), step 2): sort the "To sort" lines into Breaking changes, Features, Fixes and Identities, for the package's users. The release refuses notes that still have a "To sort" section.
+          BODY
+          # Needs "Allow GitHub Actions to create and approve pull requests"
+          # in the repository's settings; otherwise, a link to open it
+          if ! gh pr create --draft --base main --head "$branch" --title "version $VERSION" --body-file body.md; then
+            url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/main...$branch?expand=1"
+            echo "Open the pull request: $url" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi

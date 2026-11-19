@@ -2,11 +2,12 @@
 
 How to release a new version of `@hyperwatch/hyperwatch`.
 
-Releases are cut from `origin/main` only: anything not merged into `main` doesn't ship. Each release is one commit `version X.Y.Z` that bumps the version and adds the release notes to [CHANGELOG.md](CHANGELOG.md), an annotated tag `vX.Y.Z` on it, a publish to npm, and a GitHub release with the same notes.
+Releases are made by two GitHub Actions workflows, from `main` only: anything not merged into `main` doesn't ship.
 
-You need push access to `main`, publish rights on the npm package (with 2FA), and the [GitHub CLI](https://cli.github.com/).
+- [**Prepare a release**](.github/workflows/release-prepare.yml) (run by hand) opens the pull request `version X.Y.Z`: `package.json` and `package-lock.json` bumped, and the release notes drafted in `CHANGELOG.md`.
+- [**Release**](.github/workflows/release.yml) (on each push to `main`) releases `package.json`'s version when it isn't released yet: the checks, `npm publish`, an annotated tag `vX.Y.Z` on the commit that set the version, and a GitHub release with its notes.
 
-`node scripts/release.js` helps with the steps that need no decision: `check` runs steps 2 and 3, `changes` drafts the notes of step 4 from the commits since the last release, and `notes X.Y.Z [file]` writes the release's section of `CHANGELOG.md` for step 8. It never commits, tags, pushes or publishes. Agents follow the `release` skill (`.claude/skills/release/SKILL.md`), which walks through this file.
+`node scripts/release.js` holds what they share (`changes`, `prepare`, `verify`, `pack`, `notes`: see its header). It never commits, tags, pushes or publishes.
 
 ## Before you start: refresh the published ranges and keys
 
@@ -34,7 +35,7 @@ Some lists have no updater: their operators publish them only inside a page, a t
 - `dataforseo-ips.json`: the IPv4 and IPv6 subnets written under "IPv4:" and "IPv6:" on [DataForSEO's bot page](https://dataforseo.com/dataforseo-bot).
 - `marginalia-ips.json`: the addresses written after "IP address:" under "Crawler Fingerprint" on [Marginalia's page for webmasters](https://www.marginalia.nu/marginalia-search/for-webmasters/) (`193.183.0.162-174` as CIDRs).
 
-If any list or key changed, run `npm test`, then open a PR named after what changed: "Refresh the published IP ranges", "Refresh the Web Bot Auth keys", or "Refresh the published IP ranges and Web Bot Auth keys". Give a table of the ranges and keys added and removed per file, and the lists left unchanged (as in [#636](https://github.com/hyperwatch/hyperwatch/pull/636)). Merge it before step 1, and mention it under **Identities** in the release notes. If nothing changed, go on.
+If any list or key changed, run `npm test`, then open a PR named after what changed: "Refresh the published IP ranges", "Refresh the Web Bot Auth keys", or "Refresh the published IP ranges and Web Bot Auth keys". Give a table of the ranges and keys added and removed per file, and the lists left unchanged (as in [#636](https://github.com/hyperwatch/hyperwatch/pull/636)). Merge it before step 1; its line lands under **Identities** in the drafted notes. If nothing changed, go on.
 
 Then remove the refresh worktree and its branch, so the next release can create them again:
 
@@ -44,55 +45,19 @@ git worktree remove ../hyperwatch-refresh
 git branch -D refresh-ranges
 ```
 
-## 1. Prepare a clean worktree
+## 1. Prepare the pull request
 
-Release from a separate worktree, so your usual checkout and whatever branch it's on stay untouched:
-
-```bash
-git fetch origin
-git worktree add ../hyperwatch-release origin/main
-cd ../hyperwatch-release
-```
-
-## 2. Check the tree
+Pick the version with [semver](https://semver.org/): raising the required Node.js version, or changing the Express major version behind `hyperwatch.app.api`, is a major bump. `node scripts/release.js changes` lists what changed since the last release, on npm and as a tag, to decide. Then run the workflow:
 
 ```bash
-npm ci
-node scripts/release.js check
+gh workflow run release-prepare.yml -f version=X.Y.Z
 ```
 
-It checks that the tree is `origin/main` without changes, then runs, as you can by hand:
+It pushes the branch `release-vX.Y.Z` and opens the draft pull request `version X.Y.Z`. If the repository doesn't allow GitHub Actions to create pull requests (Settings → Actions → General), the run's summary gives the link to open it.
 
-```bash
-npm test
-npm run lint
-npm run prettier:check
-npm run type:check
-npm run types:test
-npm run depcheck
-```
+## 2. Rewrite the release notes
 
-Fix anything that fails on `main` first, through a normal PR.
-
-## 3. Check the package contents
-
-```bash
-npm pack --dry-run
-```
-
-(`release.js check` does it too, and fails on any file outside the list below.) The file list should only contain what the `files` whitelist in `package.json` allows (`bin`, `config`, `docs`, `src`, `start.js`, and `types`, the declarations `prepack` generates; `scripts/` holds maintainer tools and doesn't ship), plus the files npm always adds (`hyperwatch.js`, `LICENSE`, `README.md`, `package.json`). Make sure no local files or secrets slipped in.
-
-## 4. Write the release notes and pick the version
-
-List what changed since the last release:
-
-```bash
-git log --no-merges vX.Y.Z..origin/main
-```
-
-`node scripts/release.js changes` gives the last release, on npm and as a tag, and a draft of the notes from these commits: PRs linked, dependabot bumps in one line, the rest to sort into the sections below.
-
-Write the notes in Markdown, in these sections (skip the empty ones):
+The notes are drafted in `CHANGELOG.md`, under `## X.Y.Z (YYYY-MM-DD)`: PR links in full, dependabot bumps in one line under **Dependencies & tooling**, refreshes of the published lists under **Identities**, the rest under **To sort**. Rewrite them in these sections, with `###` headings (skip the empty ones):
 
 - **Breaking changes**
 - **Features**
@@ -100,55 +65,25 @@ Write the notes in Markdown, in these sections (skip the empty ones):
 - **Identities**
 - **Dependencies & tooling**, with the dependabot bumps summarized in one line
 
-Link PR numbers in full, as `([#NNN](https://github.com/hyperwatch/hyperwatch/pull/NNN))`: GitHub doesn't turn a bare `#NNN` into a link in a Markdown file.
+Write for the package's users: what changed for them, not how; leave out what they can't see (CI, tests, refactors), or fold it into Dependencies & tooling. Link PR numbers in full, as `([#NNN](https://github.com/hyperwatch/hyperwatch/pull/NNN))`: GitHub doesn't turn a bare `#NNN` into a link in a Markdown file.
 
-Choose the version with [semver](https://semver.org/). Raising the required Node.js version, or changing the Express major version behind `hyperwatch.app.api`, is a major bump.
+Push the notes to the branch, mark the pull request ready, and merge it once CI passes. The `release-notes` check (and the release) refuses notes that still have a "To sort" section. Any merge method works: the tag is created after the merge, on the commit it put on `main`.
 
-## 5. Update the changelog and bump the version
+## 3. The release
 
-Add the notes at the top of `CHANGELOG.md`, under a `## X.Y.Z (YYYY-MM-DD)` heading, with one `###` heading per section. Then:
+Merging starts the Release workflow (`gh run watch`). From the commit that set the version, it:
 
-```bash
-npm version X.Y.Z --no-git-tag-version
-git commit -am "version X.Y.Z"
-git tag -a vX.Y.Z -m "version X.Y.Z"
-```
+1. checks the notes (`release.js verify`), then runs `npm test`, `lint`, `prettier:check`, `type:check`, `types:test`, `depcheck`, and checks the package contents (`release.js pack`: only what the `files` whitelist of `package.json` allows, plus what npm always adds);
+2. publishes to npm, with [trusted publishing](https://docs.npmjs.com/trusted-publishers) (no token);
+3. tags the commit `vX.Y.Z`;
+4. creates the GitHub release `X.Y.Z`, with the version's section of `CHANGELOG.md` and a link to npm.
 
-This updates `package.json` and `package-lock.json`, commits them with `CHANGELOG.md` as `version X.Y.Z`, and creates the tag `vX.Y.Z`. `npm version` refuses to commit and tag when the working tree has other changes, hence `--no-git-tag-version` and the manual commit and tag, which match what it would create.
+Each step is skipped when already done: if one fails, fix the cause and rerun the workflow (`gh workflow run release.yml`), it finishes what's missing. Check the result with `npm view @hyperwatch/hyperwatch dist-tags`: `latest` should be the new version.
 
-## 6. Push to main
+### Setup, once
 
-```bash
-git push --atomic origin HEAD:main vX.Y.Z
-```
-
-`--atomic` pushes the commit and the tag together or not at all. Without it, if `main` moved since step 1, the branch update is rejected but the tag is still pushed, on a commit that isn't on `main`. If the push is rejected, drop the local tag and version commit (`git tag -d vX.Y.Z && git fetch origin && git reset --hard origin/main`) and start again from step 2, since the release notes may need the new commits.
-
-Push the version commit straight to `main`. Don't open a PR that gets squash- or rebase-merged: that rewrites the commit, and the tag ends up pointing at a commit that isn't on `main` (this happened with `v4.3.1`). If it really has to go through a PR, merge it with a merge commit and push the tag after the merge.
-
-## 7. Publish to npm
-
-```bash
-npm publish
-```
-
-Check the result with `npm view @hyperwatch/hyperwatch dist-tags`: `latest` should be the new version.
-
-## 8. Create the GitHub release
-
-Save the release's section of `CHANGELOG.md`, without its `## X.Y.Z` heading, to a file outside the worktree (an untracked file there would block the cleanup in step 9): `node scripts/release.js notes X.Y.Z ../hyperwatch-vX.Y.Z-notes.md`. Then:
-
-```bash
-gh release create vX.Y.Z --repo hyperwatch/hyperwatch --title "X.Y.Z" --notes-file ../hyperwatch-vX.Y.Z-notes.md --latest --verify-tag
-```
-
-## 9. Clean up
-
-```bash
-cd -
-git worktree remove ../hyperwatch-release
-git worktree prune
-```
+- npm trusted publishing: on npmjs.com, in the package's settings, add a trusted publisher: GitHub Actions, `hyperwatch/hyperwatch`, workflow `release.yml`.
+- Optionally, in the repository's settings (Actions → General), "Allow GitHub Actions to create and approve pull requests", so that step 1 opens the pull request itself.
 
 ## After the release
 

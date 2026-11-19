@@ -1,0 +1,112 @@
+# Releases package.json's version when it isn't released yet: on each push
+# to main (a merged "version X.Y.Z" pull request, see release-prepare.yml),
+# or by hand to resume a release that failed. Built from the commit that set
+# the version: checks, npm publish, the tag vX.Y.Z on that commit, and the
+# GitHub release with the version's notes from CHANGELOG.md. Each step is
+# skipped when already done, so a rerun finishes what's missing.
+#
+# Publishing uses npm's trusted publishing (OIDC): no token. It's set up on
+# npmjs.com, in the package's settings: GitHub Actions,
+# hyperwatch/hyperwatch, workflow release.yml.
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # To find the commit that set the version
+          fetch-depth: 0
+
+      - name: What's left to do
+        id: state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p "require('./package.json').version")
+          name=$(node -p "require('./package.json').name")
+          published=$(npm view "$name@$version" version 2> /dev/null || true)
+          tag=$(git ls-remote --tags origin "refs/tags/v$version")
+          release=$(gh release view "v$version" --json tagName --jq .tagName 2> /dev/null || true)
+          if [ -n "$published" ] && [ -n "$tag" ] && [ -n "$release" ]; then
+            echo "$version is released"
+            exit 0
+          fi
+          # The commit that set the version, the one released
+          commit=$(git log -1 --format=%H -G "\"version\": \"${version//./\\.}\"" -- package.json)
+          if [ "$(git show "$commit:package.json" | node -p "JSON.parse(require('fs').readFileSync(0)).version")" != "$version" ]; then
+            echo "No commit sets the version to $version"
+            exit 1
+          fi
+          echo "Releasing $version from $commit"
+          {
+            echo "version=$version"
+            echo "commit=$commit"
+            echo "publish=$([ -z "$published" ] && echo true)"
+            echo "tag=$([ -z "$tag" ] && echo true)"
+            echo "release=$([ -z "$release" ] && echo true)"
+          } >> "$GITHUB_OUTPUT"
+
+      - if: steps.state.outputs.version
+        run: git checkout --detach "${{ steps.state.outputs.commit }}"
+      - if: steps.state.outputs.version
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          registry-url: https://registry.npmjs.org
+      # Trusted publishing needs npm 11.5.1 or later
+      - if: steps.state.outputs.version
+        run: npm install -g npm@^11.5.1
+      - if: steps.state.outputs.version
+        run: npm ci
+
+      - name: Checks
+        if: steps.state.outputs.version
+        run: |
+          node scripts/release.js verify
+          npm test
+          npm run lint
+          npm run prettier:check
+          npm run type:check
+          npm run types:test
+          npm run depcheck
+          node scripts/release.js pack
+
+      - name: Publish
+        if: steps.state.outputs.publish
+        run: npm publish --access public
+
+      - name: Tag
+        if: steps.state.outputs.tag
+        env:
+          VERSION: ${{ steps.state.outputs.version }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "v$VERSION" -m "version $VERSION"
+          git push origin "v$VERSION"
+
+      - name: GitHub release
+        if: steps.state.outputs.release
+        env:
+          VERSION: ${{ steps.state.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/release.js notes "$VERSION" "$RUNNER_TEMP/notes.md"
+          echo "- **npm:** https://www.npmjs.com/package/@hyperwatch/hyperwatch/v/$VERSION" >> "$RUNNER_TEMP/notes.md"
+          gh release create "v$VERSION" --title "$VERSION" --notes-file "$RUNNER_TEMP/notes.md" --verify-tag --latest

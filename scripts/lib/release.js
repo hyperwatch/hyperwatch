@@ -1,6 +1,6 @@
 /**
  * What scripts/release.js computes, without running anything: see
- * RELEASING.md.
+ * RELEASING.md and .github/workflows/release*.yml.
  */
 
 const REPOSITORY = 'https://github.com/hyperwatch/hyperwatch';
@@ -118,7 +118,71 @@ function changelogSection(changelog, version) {
     .trim();
 }
 
+// The heading of the lines draftNotes couldn't sort: a release can't ship
+// with it (see unsortedNotes)
+const TO_SORT = '### To sort';
+
+/**
+ * The changelog with a new section for `version` above the latest one
+ * @param {string} changelog
+ * @param {string} version
+ * @param {string} date YYYY-MM-DD
+ * @param {string} notes
+ */
+function addChangelogSection(changelog, version, date, notes) {
+  if (changelogSection(changelog, version) !== null) {
+    throw new Error(`CHANGELOG.md already has a ${version} section`);
+  }
+  const lines = changelog.split('\n');
+  let index = lines.findIndex((line) => line.startsWith('## '));
+  if (index === -1) {
+    index = lines.length;
+  }
+  const section = [`## ${version} (${date})`, '', notes || '- …', ''];
+  return [...lines.slice(0, index), ...section, ...lines.slice(index)].join(
+    '\n'
+  );
+}
+
+/**
+ * Whether a.b.c is above x.y.z
+ * @param {string} version
+ * @param {string} than
+ */
+function isAbove(version, than) {
+  const [a, b] = [version, than].map((v) => v.split('.').map(Number));
+  for (let i = 0; i < 3; i++) {
+    if (a[i] !== b[i]) {
+      return a[i] > b[i];
+    }
+  }
+  return false;
+}
+
+/**
+ * Why a version's notes can't be released, or null
+ * @param {string} changelog
+ * @param {string} version
+ */
+function notesProblem(changelog, version) {
+  const section = changelogSection(changelog, version);
+  if (section === null) {
+    return `CHANGELOG.md has no "## ${version}" section`;
+  }
+  if (!section || section === '- …') {
+    return `the ${version} section of CHANGELOG.md is empty`;
+  }
+  if (section.includes(TO_SORT)) {
+    return `the ${version} notes still have a "${TO_SORT}" section`;
+  }
+  return null;
+}
+
 module.exports = {
+  TO_SORT,
+  addChangelogSection,
+  isAbove,
+  notesProblem,
   changelogSection,
   draftNotes,
   noteLine,
