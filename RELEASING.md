@@ -6,7 +6,7 @@ Releases are cut from `origin/main` only: anything not merged into `main` doesn'
 
 You need push access to `main`, publish rights on the npm package (with 2FA), and the [GitHub CLI](https://cli.github.com/).
 
-## Before you start: refresh the published ranges and keys
+## Before you start: refresh the published ranges, keys and categories
 
 Several identities are checked against address lists their operators publish (`src/data/*-ips.json`). Refresh them all before each release, so it ships with current ranges. Do it in a separate worktree, with dependencies installed (the updater needs them):
 
@@ -32,7 +32,18 @@ Some lists have no updater: their operators publish them only inside a page, a t
 - `dataforseo-ips.json`: the IPv4 and IPv6 subnets written under "IPv4:" and "IPv6:" on [DataForSEO's bot page](https://dataforseo.com/dataforseo-bot).
 - `marginalia-ips.json`: the addresses written after "IP address:" under "Crawler Fingerprint" on [Marginalia's page for webmasters](https://www.marginalia.nu/marginalia-search/for-webmasters/) (`193.183.0.162-174` as CIDRs).
 
-If any list or key changed, run `npm test`, then open a PR named after what changed: "Refresh the published IP ranges", "Refresh the Web Bot Auth keys", or "Refresh the published IP ranges and Web Bot Auth keys". Give a table of the ranges and keys added and removed per file, and the lists left unchanged (as in [#636](https://github.com/hyperwatch/hyperwatch/pull/636)). Merge it before step 1, and mention it under **Identities** in the release notes. If nothing changed, go on.
+The category of each identity's robots (`src/data/robot-categories.json`) comes from the [robots database](https://github.com/hyperwatch/database). Refresh it from a clean checkout of the database's `main`:
+
+```bash
+git clone --depth 1 https://github.com/hyperwatch/database ../hyperwatch-database
+node scripts/robot-categories.js ../hyperwatch-database
+npx prettier --write src/data
+git diff --stat src/data/robot-categories.json
+```
+
+The script prints what to read before releasing: the identities without a category, the agent families without one under an identity whose robots differ, and what changed since the committed file. An identity can lose its category for every user agent when the database gains a robot of another kind for it (it then has one per agent family): say so under **Identities** in the release notes. The script stops, and keeps the file, on a robot file it can't read, on two categories for one agent family of an identity, and on a category it doesn't know: add a new category to `CATEGORIES` in `scripts/lib/robot-categories.js`, and name it under **Features** (applications decide by category). Remove the checkout afterwards.
+
+If any list, key or category changed, run `npm test`, then open a PR named after what changed: "Refresh the published IP ranges", "Refresh the Web Bot Auth keys", "Refresh the robot categories", or a title naming each ("Refresh the published IP ranges and Web Bot Auth keys"). Give a table of the ranges and keys added and removed per file, and the lists left unchanged (as in [#636](https://github.com/hyperwatch/hyperwatch/pull/636)). Merge it before step 1, and mention it under **Identities** in the release notes. If nothing changed, go on.
 
 Then remove the refresh worktree and its branch, so the next release can create them again:
 

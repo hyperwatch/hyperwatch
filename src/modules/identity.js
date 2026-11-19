@@ -51,6 +51,10 @@ const pingdomIps = require('../data/pingdom-ips.json');
 const qwantbotIps = require('../data/qwantbot-ips.json');
 const reflectionbotIps = require('../data/reflectionbot-ips.json');
 const riverbotIps = require('../data/riverbot-ips.json');
+// The category of each identity's robots. Run
+// `node scripts/robot-categories.js <database checkout>` to update it from
+// https://github.com/hyperwatch/database.
+const robotCategories = require('../data/robot-categories.json');
 const rootcrawlIps = require('../data/rootcrawl-ips.json');
 const seekportbotIps = require('../data/seekportbot-ips.json');
 const sentryUptimeIps = require('../data/sentry-uptime-ips.json');
@@ -62,6 +66,7 @@ const uptimerobotIps = require('../data/uptimerobot-ips.json');
 const { Aggregator } = require('../lib/aggregator');
 const { compileRanges, parseAddress } = require('../lib/cidr');
 const pipeline = require('../lib/pipeline');
+const { lookup: lookupCategory } = require('../lib/robot-category');
 const { identityKey, safeHtml } = require('../lib/util');
 
 // Anthropic publishes one list of ranges covering all Claude crawlers.
@@ -343,8 +348,9 @@ function inCidr(cidr, address) {
   );
 }
 
+// Sets `identity` when the request is verified to come from a known operator
 /** @param {Log} log */
-function augment(log) {
+function identify(log) {
   const family = /** @type {string | null | undefined} */ (
     log.getIn(['agent', 'family'])
   );
@@ -1072,6 +1078,36 @@ function augment(log) {
   }
 
   return log;
+}
+
+// Sets `identity`, then `category`: the kind of robot the database knows the
+// request as (search-engine, seo, social-preview…), from its identity and,
+// where an operator's robots differ, its agent family. The identity is what
+// was verified; the family is what the request claims, so the category is the
+// kind of robot it claims to be among that operator's. Only identified
+// requests get one.
+/** @param {Log} log */
+function augment(log) {
+  const identified = identify(log);
+  const identity = /** @type {string | undefined} */ (
+    identified.get('identity')
+  );
+  if (!identity) {
+    return identified.delete('category');
+  }
+  const category = lookupCategory(
+    robotCategories.identities,
+    identity,
+    identified.getIn(['agent', 'family'])
+  );
+  if (category) {
+    return identified.set('category', category);
+  }
+  // Nothing known: a category that came with the log stays with the identity
+  // it came with, and goes when this module gave another identity
+  return identity === log.get('identity')
+    ? identified
+    : identified.delete('category');
 }
 
 function init() {

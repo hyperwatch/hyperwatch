@@ -3,7 +3,7 @@
 
 /**
  * A log: an Immutable Map with `request`, `response`, `executionTime` and
- * what the modules add (`address`, `agent`, `identity`, `geoip`,
+ * what the modules add (`address`, `agent`, `identity`, `category`, `geoip`,
  * `signature`, `webbotauth`…). See docs/log.md.
  *
  * `getIn()` returns `any`, like `get()`: Immutable's own returns `unknown`
