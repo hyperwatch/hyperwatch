@@ -9,8 +9,9 @@
  * `getIn()` returns `any`, like `get()`: Immutable's own returns `unknown`
  * for a Map of `any`, which no caller could use without a cast
  * (`log.getIn(['request', 'url']).match(…)`). It comes first, so it is the
- * overload TypeScript picks.
- * @typedef {{ getIn(searchKeyPath: Iterable<unknown>, notSetValue?: any): any }
+ * overload TypeScript picks. Its key path is Immutable's `KeyPath`, like
+ * `Map.getIn`'s since Immutable 5.2, so an Immutable Map is still a Log.
+ * @typedef {{ getIn(searchKeyPath: import('immutable').KeyPath<unknown>, notSetValue?: any): any }
  *   & import('immutable').Map<string, any>} Log
  */
 
