@@ -36,6 +36,8 @@ function get(module) {
       return require('./dnsbl');
     case 'firewall':
       return require('./firewall');
+    case 'forward-proxy':
+      return require('./forward-proxy');
     case 'geoip':
       return require('./geoip');
     case 'history':

@@ -64,12 +64,12 @@ A source that sets `asn` itself (e.g. from a CDN header) runs before `asn` (prio
 
 ## Address
 
-What the `address` module adds to a log, in `address`:
+What the modules add to a log, in `address`:
 
 | Attribute | Type   | Description                                                                                                                                                                                                                                                  |
 | --------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| value     | string | The client address: the one set by an earlier module (`cloudflare`), else `request.address`                                                                                                                                                                  |
-| proxy     | string | When `value` is in the published egress ranges of a corporate web gateway, its name (`Zscaler`). Many organizations share these addresses                                                                                                                    |
+| value     | string | The client address (`address` module): the one set by an earlier module (`cloudflare`), else `request.address`                                                                                                                                               |
+| proxy     | string | `forward-proxy` module: when `value` is in the published egress ranges of a corporate web gateway, its name (`Zscaler`). Many organizations share these addresses                                                                                            |
 | forwarded | string | With `proxy`, the address the gateway forwards for: in `X-Forwarded-For`, the one just before `value` (or the last one, when the gateway connected directly). Zscaler writes the organization's public address there. A hint: `value` stays the verified one |
 
-`X-Forwarded-For` from any other address is ignored: any client can write it. On `/addresses`, the `proxy` column shows the gateway and, in HTML, how many distinct addresses it forwarded for in the last 24 hours (`forwardedCount24h`, also a sort).
+For `forward-proxy`, `X-Forwarded-For` from any other address is ignored: any client can write it. On `/addresses`, the `proxy` column shows the gateway and, in HTML, how many distinct addresses it forwarded for in the last 24 hours (`forwardedCount24h`, also a sort).

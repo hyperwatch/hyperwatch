@@ -51,6 +51,11 @@ const constants = {
       active: false,
       priority: 600,
     },
+    // Corporate web gateways: address.proxy and address.forwarded
+    'forward-proxy': {
+      active: false,
+      priority: 605, // depends on: address (or cloudflare)
+    },
     signature: {
       active: false,
       priority: 610,
