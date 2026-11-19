@@ -75,6 +75,36 @@ describe('asn', () => {
     });
   });
 
+  describe('byNumber', () => {
+    beforeEach(() => asn.setTable(parse(TSV)));
+
+    it('gives the value of an AS number, as for its addresses', () => {
+      const value = asn.byNumber(15169);
+      assert.deepStrictEqual(value.toJS(), {
+        number: 15169,
+        organization: 'GOOGLE - Google LLC',
+        country: 'US',
+      });
+      assert.strictEqual(value, asn.lookup('8.8.8.8'));
+    });
+
+    it('gives null for unknown numbers, other types and without a table', () => {
+      assert.strictEqual(asn.byNumber(64512), null);
+      assert.strictEqual(asn.byNumber('15169'), null);
+      asn.setTable(null);
+      assert.strictEqual(asn.byNumber(15169), null);
+    });
+
+    it('builds its index again for a new table', () => {
+      asn.byNumber(15169);
+      asn.setTable(
+        parse('1.1.1.0\t1.1.1.255\t13335\tUS\tCLOUDFLARENET - Cloudflare, Inc.')
+      );
+      assert.strictEqual(asn.byNumber(15169), null);
+      assert.strictEqual(asn.byNumber(13335).get('country'), 'US');
+    });
+  });
+
   describe('load', () => {
     it('loads the table of @hyperwatch/iptoasn', async () => {
       await asn.load();

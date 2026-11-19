@@ -109,7 +109,7 @@ The table comes from [@hyperwatch/iptoasn](https://github.com/hyperwatch/iptoasn
 npm install @hyperwatch/iptoasn
 ```
 
-Nothing is downloaded at run time. The package gets a release each day the table changes (versions `1.0.YYYYMMDD`): keep it up to date like your other dependencies, e.g. with Dependabot. The table's source is in `require('@hyperwatch/iptoasn').loadSync().source`.
+Nothing is downloaded at run time. The package gets a release each day the table changes (versions `1.0.YYYYMMDD`): keep it up to date like your other dependencies, e.g. with Dependabot. The table's source is in `require('@hyperwatch/iptoasn').loadSync().source`. `modules.get('asn').byNumber(number)` gives the value for an AS number, e.g. to put back an `asn` stored as `{ number }` only (it builds an index of the table's AS numbers on first use, about 700 KB).
 
 Lookups are synchronous: a bisection over typed arrays (about 22 MB for the whole table, loaded in well under a second at start), behind a cache of the latest `cacheSize` addresses (`10000` by default).
 

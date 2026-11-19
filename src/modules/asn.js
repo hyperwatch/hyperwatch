@@ -33,6 +33,7 @@ const {
  * @property {(address: unknown) => number} find The index of the address's
  *   range, -1 when none
  * @property {(index: number) => { number: number, organization: string, country?: string }} range
+ * @property {ArrayLike<number>} numbers The AS number of each range
  * @property {number} size
  * @property {string} source
  */
@@ -54,12 +55,18 @@ let addresses = new LRUCache({ max: 10000 });
 /** @type {Map<number, AsnValue>} */
 let values = new Map();
 
+// AS numbers, sorted, and for each one of its ranges: built at the first
+// byNumber(), for the table in use (680 KB for all ASes)
+/** @type {{ numbers: Uint32Array, ranges: Uint32Array } | null} */
+let numberIndex = null;
+
 /**
  * Uses a table (tests, or a table built elsewhere). null: no lookups.
  * @param {AsnTable | null} next
  */
 function setTable(next) {
   table = next;
+  numberIndex = null;
   addresses = new LRUCache({ max: Number(config().cacheSize) || 10000 });
   values = new Map();
 }
@@ -81,12 +88,66 @@ function lookup(address) {
   if (index === -1) {
     return null;
   }
+  return valueOf(index);
+}
+
+/**
+ * The value of a range, built once
+ * @param {number} index
+ * @returns {AsnValue}
+ */
+function valueOf(index) {
   let value = values.get(index);
   if (!value) {
-    value = /** @type {AsnValue} */ (fromJS(table.range(index)));
+    value = /** @type {AsnValue} */ (
+      fromJS(/** @type {AsnTable} */ (table).range(index))
+    );
     values.set(index, value);
   }
   return value;
+}
+
+/**
+ * What logs get for an AS number, as for its addresses, null when no range
+ * of the table has it. To put back what a log kept of its `asn` (e.g. only
+ * the number, on disk).
+ * @param {unknown} number
+ * @returns {AsnValue | null}
+ */
+function byNumber(number) {
+  if (!table || typeof number !== 'number') {
+    return null;
+  }
+  if (!numberIndex) {
+    /** @type {Map<number, number>} */
+    const first = new Map();
+    for (let i = 0; i < table.numbers.length; i++) {
+      if (!first.has(table.numbers[i])) {
+        first.set(table.numbers[i], i);
+      }
+    }
+    const numbers = Uint32Array.from(first.keys()).sort();
+    const ranges = Uint32Array.from(
+      numbers,
+      (n) => /** @type {number} */ (first.get(n))
+    );
+    numberIndex = { numbers, ranges };
+  }
+  const { numbers, ranges } = numberIndex;
+  let low = 0;
+  let high = numbers.length - 1;
+  while (low <= high) {
+    const middle = (low + high) >> 1;
+    if (numbers[middle] === number) {
+      return valueOf(ranges[middle]);
+    }
+    if (numbers[middle] < number) {
+      low = middle + 1;
+    } else {
+      high = middle - 1;
+    }
+  }
+  return null;
 }
 
 // The client address: address.value (address and cloudflare modules), else
@@ -241,6 +302,7 @@ function start() {
 
 module.exports = {
   augment,
+  byNumber,
   init,
   load,
   lookup,
