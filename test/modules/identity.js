@@ -975,7 +975,7 @@ describe('identity', () => {
       ['https://ecp.yusercontent.com', 'Yahoo'],
       ['https://iframely.com', 'Iframely'],
       ['https://crawler-key.proximic.com', 'Comscore'],
-      ['https://www.meta.com', 'Meta'],
+      ['https://www.meta.com', 'Meta Agent'],
     ]) {
       it(`should identify any user agent by a verified signature of ${agent}`, () => {
         for (const family of ['Chrome', 'curl', undefined]) {
