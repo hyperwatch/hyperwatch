@@ -4,7 +4,7 @@ Notes for AI coding agents working on this repository.
 
 ## Release management
 
-Follow [RELEASING.md](RELEASING.md). On top of it:
+Follow [RELEASING.md](RELEASING.md), with the `release` skill (`.claude/skills/release/SKILL.md`) and `node scripts/release.js`. On top of it:
 
 - Only `origin/main` ships. Do the release in a separate worktree, and never switch branches in the main checkout: other projects may use it through a symlink.
 - Don't mention unmerged branches or modules in the release notes.

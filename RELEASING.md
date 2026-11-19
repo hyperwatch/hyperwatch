@@ -6,7 +6,9 @@ Releases are cut from `origin/main` only: anything not merged into `main` doesn'
 
 You need push access to `main`, publish rights on the npm package (with 2FA), and the [GitHub CLI](https://cli.github.com/).
 
-## Before you start: refresh the published ranges, keys and categories
+`node scripts/release.js` helps with the steps that need no decision: `check` runs steps 2 and 3, `changes` drafts the notes of step 4 from the commits since the last release, and `notes X.Y.Z [file]` writes the release's section of `CHANGELOG.md` for step 8. It never commits, tags, pushes or publishes. Agents follow the `release` skill (`.claude/skills/release/SKILL.md`), which walks through this file.
+
+## Before you start: refresh the published ranges and keys
 
 Several identities are checked against address lists their operators publish (`src/data/*-ips.json`). Refresh them all before each release, so it ships with current ranges. Do it in a separate worktree, with dependencies installed (the updater needs them):
 
@@ -31,20 +33,8 @@ Some lists have no updater: their operators publish them only inside a page, a t
 - `360spider-ips.json`: the PDF linked from [360's spider page](https://www.so.com/help/spider_ip.html), one address per line (`pdftotext` reads it).
 - `dataforseo-ips.json`: the IPv4 and IPv6 subnets written under "IPv4:" and "IPv6:" on [DataForSEO's bot page](https://dataforseo.com/dataforseo-bot).
 - `marginalia-ips.json`: the addresses written after "IP address:" under "Crawler Fingerprint" on [Marginalia's page for webmasters](https://www.marginalia.nu/marginalia-search/for-webmasters/) (`193.183.0.162-174` as CIDRs).
-- `censys-ips.json`: the IPv4 and IPv6 ranges in the block under the list of addresses on [Censys's opt-out page](https://docs.censys.com/docs/opt-out-of-data-collection) (its ASNs aren't used).
 
-The category of each identity's robots (`src/data/robot-categories.json`) comes from the [robots database](https://github.com/hyperwatch/database). Refresh it from a clean checkout of the database's `main`:
-
-```bash
-git clone --depth 1 https://github.com/hyperwatch/database ../hyperwatch-database
-node scripts/robot-categories.js ../hyperwatch-database
-npx prettier --write src/data
-git diff --stat src/data/robot-categories.json
-```
-
-The script prints what to read before releasing: the identities without a category, the agent families without one under an identity whose robots differ, and what changed since the committed file. An identity can lose its category for every user agent when the database gains a robot of another kind for it (it then has one per agent family): say so under **Identities** in the release notes. The script stops, and keeps the file, on a robot file it can't read, on two categories for one agent family of an identity, and on a category it doesn't know: add a new category to `CATEGORIES` in `scripts/lib/robot-categories.js`, and name it under **Features** (applications decide by category). Remove the checkout afterwards.
-
-If any list, key or category changed, run `npm test`, then open a PR named after what changed: "Refresh the published IP ranges", "Refresh the Web Bot Auth keys", "Refresh the robot categories", or a title naming each ("Refresh the published IP ranges and Web Bot Auth keys"). Give a table of the ranges and keys added and removed per file, and the lists left unchanged (as in [#636](https://github.com/hyperwatch/hyperwatch/pull/636)). Merge it before step 1, and mention it under **Identities** in the release notes. If nothing changed, go on.
+If any list or key changed, run `npm test`, then open a PR named after what changed: "Refresh the published IP ranges", "Refresh the Web Bot Auth keys", or "Refresh the published IP ranges and Web Bot Auth keys". Give a table of the ranges and keys added and removed per file, and the lists left unchanged (as in [#636](https://github.com/hyperwatch/hyperwatch/pull/636)). Merge it before step 1, and mention it under **Identities** in the release notes. If nothing changed, go on.
 
 Then remove the refresh worktree and its branch, so the next release can create them again:
 
@@ -68,11 +58,18 @@ cd ../hyperwatch-release
 
 ```bash
 npm ci
+node scripts/release.js check
+```
+
+It checks that the tree is `origin/main` without changes, then runs, as you can by hand:
+
+```bash
 npm test
 npm run lint
 npm run prettier:check
 npm run type:check
 npm run types:test
+npm run depcheck
 ```
 
 Fix anything that fails on `main` first, through a normal PR.
@@ -83,7 +80,7 @@ Fix anything that fails on `main` first, through a normal PR.
 npm pack --dry-run
 ```
 
-The file list should only contain what the `files` whitelist in `package.json` allows (`bin`, `config`, `docs`, `src`, `start.js`, and `types`, the declarations `prepack` generates; `scripts/` holds maintainer tools and doesn't ship), plus the files npm always adds (`hyperwatch.js`, `LICENSE`, `README.md`, `package.json`). Make sure no local files or secrets slipped in.
+(`release.js check` does it too, and fails on any file outside the list below.) The file list should only contain what the `files` whitelist in `package.json` allows (`bin`, `config`, `docs`, `src`, `start.js`, and `types`, the declarations `prepack` generates; `scripts/` holds maintainer tools and doesn't ship), plus the files npm always adds (`hyperwatch.js`, `LICENSE`, `README.md`, `package.json`). Make sure no local files or secrets slipped in.
 
 ## 4. Write the release notes and pick the version
 
@@ -92,6 +89,8 @@ List what changed since the last release:
 ```bash
 git log --no-merges vX.Y.Z..origin/main
 ```
+
+`node scripts/release.js changes` gives the last release, on npm and as a tag, and a draft of the notes from these commits: PRs linked, dependabot bumps in one line, the rest to sort into the sections below.
 
 Write the notes in Markdown, in these sections (skip the empty ones):
 
@@ -137,7 +136,7 @@ Check the result with `npm view @hyperwatch/hyperwatch dist-tags`: `latest` shou
 
 ## 8. Create the GitHub release
 
-Save the release's section of `CHANGELOG.md`, without its `## X.Y.Z` heading, to a file outside the worktree (an untracked file there would block the cleanup in step 9), then:
+Save the release's section of `CHANGELOG.md`, without its `## X.Y.Z` heading, to a file outside the worktree (an untracked file there would block the cleanup in step 9): `node scripts/release.js notes X.Y.Z ../hyperwatch-vX.Y.Z-notes.md`. Then:
 
 ```bash
 gh release create vX.Y.Z --repo hyperwatch/hyperwatch --title "X.Y.Z" --notes-file ../hyperwatch-vX.Y.Z-notes.md --latest --verify-tag
