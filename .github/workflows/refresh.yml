@@ -113,4 +113,18 @@ jobs:
 
       - name: Nothing changed
         if: ${{ !steps.changes.outputs.changed }}
-        run: echo "The published lists are unchanged" | tee -a "$GITHUB_STEP_SUMMARY"
+        run: echo "The lists that could be fetched are unchanged" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # A refresh with failures isn't complete, changes or not: the run fails
+      # after reporting them (in the pull request too, when one was updated)
+      - name: Failures
+        if: steps.fetch.outputs.failed
+        env:
+          FAILED: ${{ steps.fetch.outputs.failed }}
+        run: |
+          {
+            echo "Couldn't be fetched, current files kept:"
+            echo
+            echo "$FAILED"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 1
