@@ -61,12 +61,13 @@ Push the notes to the branch, mark the pull request ready, and merge it once CI 
 
 Merging starts the Release workflow (`gh run watch`). From the last commit the version pull request put on `main` (whatever the merge method; the version commit itself if it was pushed without a pull request), it:
 
-1. checks the notes (`release.js verify`), then runs `npm test`, `lint`, `prettier:check`, `type:check`, `types:test`, `depcheck`, and checks the package contents (`release.js pack`: only what the `files` whitelist of `package.json` allows, plus what npm always adds);
-2. publishes to npm, with [trusted publishing](https://docs.npmjs.com/trusted-publishers) (no token);
-3. tags the commit `vX.Y.Z`;
-4. creates the GitHub release `X.Y.Z`, with the version's section of `CHANGELOG.md` and a link to npm.
+1. checks the notes (`release.js verify`), then runs `npm test`, `lint`, `prettier:check`, `type:check` and `depcheck`;
+2. packs the package once, checks the tarball's contents (`release.js pack`: only what the `files` whitelist of `package.json` allows, plus what npm always adds) and type-tests its declarations (`types:test`);
+3. publishes that tarball to npm, with [trusted publishing](https://docs.npmjs.com/trusted-publishers) (no token);
+4. tags the commit `vX.Y.Z`;
+5. creates the GitHub release `X.Y.Z`, with the version's section of `CHANGELOG.md` and a link to npm.
 
-Each step is skipped when already done: if one fails, fix the cause and rerun the workflow on `main` (`gh workflow run release.yml`; from another branch it does nothing), it finishes what's missing. Check the result with `npm view @hyperwatch/hyperwatch dist-tags`: `latest` should be the new version.
+Each step is skipped when already done: if one fails, fix the cause and rerun the workflow on `main` (`gh workflow run release.yml`; from another branch it does nothing), it finishes what's missing. Once the version is on npm, a rerun only checks the notes again before the tag and the GitHub release. Check the result with `npm view @hyperwatch/hyperwatch dist-tags`: `latest` should be the new version.
 
 ### Setup, once
 

@@ -10,8 +10,9 @@
 //                                          drafted notes to CHANGELOG.md
 //   node scripts/release.js verify         The notes of package.json's
 //                                          version are ready to release
-//   node scripts/release.js pack           The package holds only what
-//                                          `files` allows
+//   node scripts/release.js pack [tarball] The package (or a tarball packed
+//                                          before) holds only what `files`
+//                                          allows
 //   node scripts/release.js notes X.Y.Z [file]
 //                                          The CHANGELOG.md section of
 //                                          X.Y.Z, for the GitHub release
@@ -116,16 +117,28 @@ function verify() {
   console.log(`The ${version} notes are ready`);
 }
 
-function pack() {
+function pack(tarball) {
   const { files, main } = pkg();
-  const [packed] = JSON.parse(run('npm', ['pack', '--dry-run', '--json']));
-  const paths = packed.files.map((file) => file.path);
+  let paths;
+  let size;
+  if (tarball) {
+    // A tarball's paths start with package/
+    paths = run('tar', ['-tzf', path.resolve(tarball)])
+      .split('\n')
+      .filter((entry) => entry && !entry.endsWith('/'))
+      .map((entry) => entry.replace(/^package\//, ''));
+    size = fs.statSync(path.resolve(tarball)).size;
+  } else {
+    const [packed] = JSON.parse(run('npm', ['pack', '--dry-run', '--json']));
+    paths = packed.files.map((file) => file.path);
+    size = packed.size;
+  }
   const unexpected = unexpectedFiles(paths, files, main);
   if (unexpected.length) {
     fail(`Unexpected files in the package: ${unexpected.join(', ')}`);
   }
   console.log(
-    `${paths.length} files, ${(packed.size / 1024).toFixed(0)} kB packed, all expected`
+    `${paths.length} files, ${(size / 1024).toFixed(0)} kB packed, all expected`
   );
 }
 
@@ -186,13 +199,13 @@ const commands = {
   changes,
   prepare: () => prepare(args[0]),
   verify,
-  pack,
+  pack: () => pack(args[0]),
   notes: () => notes(args[0], args[1]),
   'data-changes': changedData,
 };
 if (!commands[command]) {
   fail(
-    'Usage: node scripts/release.js changes | prepare X.Y.Z | verify | pack | notes X.Y.Z [file] | data-changes'
+    'Usage: node scripts/release.js changes | prepare X.Y.Z | verify | pack [tarball] | notes X.Y.Z [file] | data-changes'
   );
 }
 commands[command]();

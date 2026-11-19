@@ -33,6 +33,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.x
+          cache: npm
       - run: npm ci
 
       # A list or an agent that can't be fetched keeps its current file: the

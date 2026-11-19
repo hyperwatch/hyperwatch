@@ -27,6 +27,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          cache: npm
       - run: npm ci
       - run: npm test
 
@@ -44,6 +45,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.x
+          cache: npm
       - run: npm ci
       - name: Start S3Mock
         run: |
@@ -64,6 +66,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.x
+          cache: npm
       - run: npm ci
       - run: npm run lint
 
@@ -75,6 +78,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.x
+          cache: npm
       - run: npm ci
       - run: npm run prettier:check
 
@@ -86,6 +90,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.x
+          cache: npm
       - run: npm ci
       - run: npm run depcheck
 
@@ -97,6 +102,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.x
+          cache: npm
       - run: npm ci
       # The sources (JSDoc), then the declarations the package publishes,
       # installed from the packed package with its dependencies only

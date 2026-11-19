@@ -4,7 +4,10 @@
 # commit of the pull request that set the version: checks, npm publish, the
 # tag vX.Y.Z on that commit, and the GitHub release with the version's notes
 # from CHANGELOG.md. Each step is skipped when already done, so a rerun
-# finishes what's missing.
+# finishes what's missing: once published, only the notes are checked again.
+# The package is packed once: that tarball is checked, type-tested and
+# published. No dependency cache in a publishing workflow (setup-node's
+# advice).
 #
 # Publishing uses npm's trusted publishing (OIDC): no token. It's set up on
 # npmjs.com, in the package's settings: GitHub Actions,
@@ -31,10 +34,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Shallow: most runs find the version released and stop there
       - uses: actions/checkout@v4
-        with:
-          # To find the commit that set the version
-          fetch-depth: 0
 
       - name: What's left to do
         id: state
@@ -50,7 +51,12 @@ jobs:
             echo "$version is released"
             exit 0
           fi
-          # The commit that set the version
+          # The history, to find the commit that set the version
+          if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+            git fetch --quiet --unshallow origin '+refs/heads/main:refs/remotes/origin/main'
+          else
+            git fetch --quiet origin '+refs/heads/main:refs/remotes/origin/main'
+          fi
           bump=$(git log -1 --format=%H -G "\"version\": \"${version//./\\.}\"" -- package.json)
           if [ "$(git show "$bump:package.json" | node -p "JSON.parse(require('fs').readFileSync(0)).version")" != "$version" ]; then
             echo "No commit sets the version to $version"
@@ -79,32 +85,48 @@ jobs:
 
       - if: steps.state.outputs.version
         run: git checkout --detach "${{ steps.state.outputs.commit }}"
-      - if: steps.state.outputs.version
+      # Without dependencies: checked on every run, as the GitHub release
+      # takes its notes from there
+      - name: Notes
+        if: steps.state.outputs.version
+        run: node scripts/release.js verify
+
+      # Publishing only: a rerun that only tags or creates the GitHub release
+      # skips the install and the checks
+      - if: steps.state.outputs.publish
         uses: actions/setup-node@v4
         with:
           node-version: 24.x
           registry-url: https://registry.npmjs.org
       # Trusted publishing needs npm 11.5.1 or later
-      - if: steps.state.outputs.version
+      - if: steps.state.outputs.publish
         run: npm install -g npm@^11.5.1
-      - if: steps.state.outputs.version
+      - if: steps.state.outputs.publish
         run: npm ci
 
       - name: Checks
-        if: steps.state.outputs.version
+        if: steps.state.outputs.publish
         run: |
-          node scripts/release.js verify
           npm test
           npm run lint
           npm run prettier:check
           npm run type:check
-          npm run types:test
           npm run depcheck
-          node scripts/release.js pack
+
+      # One tarball (prepack builds the declarations once): its contents
+      # checked, its declarations type-tested, and published as is
+      - name: Pack
+        id: pack
+        if: steps.state.outputs.publish
+        run: |
+          tarball="$RUNNER_TEMP/$(npm pack --silent --pack-destination "$RUNNER_TEMP" | tail -1)"
+          node scripts/release.js pack "$tarball"
+          npm run types:test -- "$tarball"
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
 
       - name: Publish
         if: steps.state.outputs.publish
-        run: npm publish --access public
+        run: npm publish "${{ steps.pack.outputs.tarball }}" --access public
 
       - name: Tag
         if: steps.state.outputs.tag

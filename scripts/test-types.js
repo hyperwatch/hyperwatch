@@ -6,6 +6,8 @@
 // without skipLibCheck.
 //
 //   npm run types:test
+//   npm run types:test -- <tarball>   A tarball already packed (the release
+//                                     checks the one it publishes)
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
@@ -45,13 +47,12 @@ function version(name) {
 function main() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'hyperwatch-types-'));
   try {
-    const tarball = run(
-      'npm',
-      ['pack', '--silent', '--pack-destination', tmp],
-      root
-    )
-      .split('\n')
-      .pop();
+    const given = process.argv[2];
+    const tarball = given
+      ? path.resolve(given)
+      : `./${run('npm', ['pack', '--silent', '--pack-destination', tmp], root)
+          .split('\n')
+          .pop()}`;
     fs.writeFileSync(
       path.join(tmp, 'package.json'),
       `${JSON.stringify({ name: 'consumer', private: true }, null, 2)}\n`
@@ -63,7 +64,7 @@ function main() {
         '--no-audit',
         '--no-fund',
         '--ignore-scripts',
-        `./${tarball}`,
+        tarball,
         `typescript@${version('typescript')}`,
         `@types/node@${version('@types/node')}`,
         // An optional peer dependency: TypeScript users of Express have it
