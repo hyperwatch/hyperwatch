@@ -25,7 +25,6 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const { dataChanges, refreshTitle } = require('./lib/data-changes');
 const {
   addChangelogSection,
   changelogSection,
@@ -150,6 +149,9 @@ function notes(version, file) {
 }
 
 function changedData() {
+  // Loaded here only: it needs the dependencies (src/lib/webbotauth.js), the
+  // other commands don't (CI runs `verify` without installing them)
+  const { dataChanges, refreshTitle } = require('./lib/data-changes');
   const names = git('status', '--porcelain', '--', 'src/data')
     .split('\n')
     .filter(Boolean)

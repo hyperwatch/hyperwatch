@@ -27,6 +27,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # To compare the refresh branch with main
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24.x
@@ -82,6 +85,15 @@ jobs:
           } > body.md
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Commits added by hand to the branch (the lists copied by hand)
+          # would be lost: refuse to replace them
+          if git fetch -q origin "$BRANCH" 2> /dev/null; then
+            others=$(git log --format='%an' "origin/main..origin/$BRANCH" | grep -v -x 'github-actions\[bot\]' || true)
+            if [ -n "$others" ]; then
+              echo "::error::$BRANCH has commits made by hand: merge or close its pull request first, or retry the failed fetches on the branch (node scripts/fetch-ips.js <name>)"
+              exit 1
+            fi
+          fi
           git switch -C "$BRANCH"
           git add src/data
           git commit -qm "$title"
