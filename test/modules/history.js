@@ -438,6 +438,8 @@ describe('history on disk', () => {
       getAggregator = api.getAggregator;
       api.getAggregator = (name) =>
         name === 'addresses' ? addresses : undefined;
+      // Counted by this process, not restored from a snapshot
+      history.setCountingSince(seen - 60);
       // The node is main, where aggregators count logs
       pipeline.nodes.main = pipeline.nodes['test-disk'];
       api.streamToHttp(
@@ -453,7 +455,22 @@ describe('history on disk', () => {
 
     after(() => {
       api.getAggregator = getAggregator;
+      history.setCountingSince(Math.floor(Date.now() / 1000));
       delete pipeline.nodes.main;
+    });
+
+    it('reads every file for values last seen before this process counted', async () => {
+      // As after a crash: restored from a snapshot older than the newest logs
+      history.setCountingSince(seen + 60);
+      try {
+        const { body } = await get(
+          '/history/test-disk/disk.json?address=10.9.9.9'
+        );
+        assert.strictEqual(body.until, null);
+        assert.strictEqual(body.logs[0].request.url, '/skipped');
+      } finally {
+        history.setCountingSince(seen - 60);
+      }
     });
 
     it('starts the disk pages at the hour last seen', async () => {

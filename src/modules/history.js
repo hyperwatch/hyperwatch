@@ -8,7 +8,7 @@ const LogBuffer = require('../lib/log-buffer');
 const logFiles = require('../lib/log-files');
 const persistence = require('../lib/persistence');
 const pipeline = require('../lib/pipeline');
-const { logMatches, md5, parseNumber } = require('../lib/util');
+const { logMatches, md5, now, parseNumber } = require('../lib/util');
 
 /** @typedef {import('../types').Log} Log */
 /** @typedef {import('../lib/pipeline').Node} Node */
@@ -74,11 +74,26 @@ const FILTER_AGGREGATORS = {
 // aggregators count it: look a few minutes past the last time seen
 const LAST_SEEN_MARGIN = 5 * 60;
 
+// When this process started counting logs, in seconds. Aggregator entries
+// last seen before are restored from a snapshot: after a crash, the logs
+// since that snapshot are on disk but not counted, so their last time isn't
+// a bound of the disk
+let countingSince = now();
+
+/**
+ * Sets when this process started counting logs (tests)
+ * @param {number} seconds
+ */
+function setCountingSince(seconds) {
+  countingSince = seconds;
+}
+
 /**
  * When a log matching all the filters was last seen, in seconds: the
  * earliest of the last times of their aggregator entries (a log matching
  * them all matches each). null when no filter has an entry to tell, e.g. its
- * module is off, or the entry was dropped from a full aggregator.
+ * module is off, the entry was dropped from a full aggregator, or it was
+ * last seen before this process counted logs (restored, see countingSince).
  * @param {Record<string, unknown>} filters
  * @returns {number | null}
  */
@@ -98,6 +113,7 @@ function lastSeen(filters) {
       speed && /** @type {{ latest: number | null }} */ (speed).latest;
     if (
       typeof latest === 'number' &&
+      latest >= countingSince &&
       (earliest === null || latest < earliest)
     ) {
       earliest = latest;
@@ -548,4 +564,5 @@ module.exports = {
   capacityFor,
   diskDirFor,
   flush,
+  setCountingSince,
 };
