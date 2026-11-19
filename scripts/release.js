@@ -65,20 +65,30 @@ function draft() {
   return { tag, subjects, notes: draftNotes(subjects) };
 }
 
-function changes() {
-  const { tag, subjects, notes } = draft();
-  let published = null;
+// The version on npm, or null when it can't be read (offline)
+function publishedVersion() {
   try {
-    published = run('npm', ['view', pkg().name, 'version']);
+    return run('npm', ['view', pkg().name, 'version']);
   } catch (err) {
-    // Offline: only the tag
+    return null;
   }
+}
+
+// When the last tag isn't what npm has, the commits since that tag aren't
+// what changed since the last release
+function warnBaseline(tag) {
+  const published = publishedVersion();
   console.log(`Last release: ${tag}, on npm: ${published || 'unknown'}`);
   if (published && `v${published}` !== tag) {
     console.log(
       `Warning: the last tag isn't the published version: check which commits shipped (npm pack ${pkg().name}@${published})`
     );
   }
+}
+
+function changes() {
+  const { tag, subjects, notes } = draft();
+  warnBaseline(tag);
   if (subjects.length === 0) {
     console.log('Nothing to release.');
     return;
@@ -95,7 +105,8 @@ function prepare(version) {
   if (!isAbove(version, current)) {
     fail(`${version} isn't above the current version, ${current}`);
   }
-  const { notes } = draft();
+  const { tag, notes } = draft();
+  warnBaseline(tag);
   const date = new Date().toISOString().slice(0, 10);
   const changelog = addChangelogSection(
     fs.readFileSync(changelogPath, 'utf8'),

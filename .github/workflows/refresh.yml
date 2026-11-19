@@ -41,10 +41,21 @@ jobs:
       - name: Fetch
         id: fetch
         run: |
-          node scripts/fetch-ips.js 2>&1 | tee fetch-ips.log || true
-          node scripts/fetch-webbotauth-keys.js 2>&1 | tee fetch-keys.log || true
+          # Their exit status is what says a refresh failed; the ": failed"
+          # lines say which list
+          ips=0
+          node scripts/fetch-ips.js 2>&1 | tee fetch-ips.log || ips=$?
+          keys=0
+          node scripts/fetch-webbotauth-keys.js 2>&1 | tee fetch-keys.log || keys=$?
           npx prettier --write src/data > /dev/null
           failed=$(grep -h -E ': failed' fetch-ips.log fetch-keys.log | sed 's/^/- /' || true)
+          if [ "$ips" -ne 0 ] && ! grep -q ': failed' fetch-ips.log; then
+            failed="$failed"$'\n'"- scripts/fetch-ips.js exited with status $ips"
+          fi
+          if [ "$keys" -ne 0 ] && ! grep -q ': failed' fetch-keys.log; then
+            failed="$failed"$'\n'"- scripts/fetch-webbotauth-keys.js exited with status $keys"
+          fi
+          failed=$(echo "$failed" | sed '/^$/d')
           {
             echo 'failed<<EOF'
             echo "$failed"
@@ -88,17 +99,25 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           # Commits added by hand to the branch (the lists copied by hand)
           # would be lost: refuse to replace them
-          if git fetch -q origin "$BRANCH" 2> /dev/null; then
-            others=$(git log --format='%an' "origin/main..origin/$BRANCH" | grep -v -x 'github-actions\[bot\]' || true)
+          # (a lookup that fails stops the run: it isn't "no branch")
+          lease=
+          if remote=$(git ls-remote --exit-code --heads origin "$BRANCH"); then
+            lease=$(echo "$remote" | awk '{ print $1 }')
+            git fetch -q origin "$BRANCH"
+            others=$(git log --format='%an' "origin/main..$lease" | grep -v -x 'github-actions\[bot\]' || true)
             if [ -n "$others" ]; then
               echo "::error::$BRANCH has commits made by hand: merge or close its pull request first, or retry the failed fetches on the branch (node scripts/fetch-ips.js <name>)"
               exit 1
             fi
+          elif [ $? -ne 2 ]; then
+            exit 1
           fi
           git switch -C "$BRANCH"
           git add src/data
           git commit -qm "$title"
-          git push --force origin "$BRANCH"
+          # Replaces only the branch inspected above: a push made since then
+          # makes this one fail
+          git push --force-with-lease="$BRANCH:$lease" origin "$BRANCH"
           pr=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
           if [ -n "$pr" ]; then
             gh pr edit "$pr" --title "$title" --body-file body.md
@@ -108,8 +127,9 @@ jobs:
             url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/main...$BRANCH?expand=1"
             echo "Open the pull request: $url" | tee -a "$GITHUB_STEP_SUMMARY"
           fi
-          # Pushes made with the workflow's token start no workflow: run CI
-          # on the branch, for the checks the pull request needs
+          # A push made with the workflow's token starts no CI run (and
+          # its pull request's runs may wait for approval): run CI on the
+          # branch, for the checks the pull request needs
           gh workflow run ci.yml --ref "$BRANCH"
 
       - name: Nothing changed

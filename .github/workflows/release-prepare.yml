@@ -18,6 +18,11 @@ permissions:
   # To run CI on the branch (see below)
   actions: write
 
+# One preparation per version at a time
+concurrency:
+  group: release-prepare-${{ inputs.version }}
+  cancel-in-progress: false
+
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -33,12 +38,38 @@ jobs:
           cache: npm
       - run: npm ci
 
+      # A rerun after a failure finds the branch pushed: it keeps it (with
+      # any notes edited since) and does what's left
+      - name: Existing branch
+        id: branch
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if git ls-remote --exit-code --heads origin "release-v$VERSION" > /dev/null; then
+            echo "release-v$VERSION is pushed already: keeping it"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif [ $? -ne 2 ]; then
+            exit 1
+          fi
+
       - name: Bump the version and draft the notes
+        if: ${{ !steps.branch.outputs.exists }}
         env:
           VERSION: ${{ inputs.version }}
         run: |
           node scripts/release.js prepare "$VERSION"
           npx prettier --write CHANGELOG.md
+
+      - name: Push the branch
+        if: ${{ !steps.branch.outputs.exists }}
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -c "release-v$VERSION"
+          git commit -am "version $VERSION"
+          git push -u origin "release-v$VERSION"
 
       - name: Open the pull request
         env:
@@ -46,22 +77,22 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           branch="release-v$VERSION"
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git switch -c "$branch"
-          git commit -am "version $VERSION"
-          git push -u origin "$branch"
-          cat > body.md <<BODY
+          if [ -n "$(gh pr list --head "$branch" --state open --json number --jq '.[0].number')" ]; then
+            echo "Its pull request is open already"
+          else
+            cat > body.md <<BODY
           Releases $VERSION when merged ([release.yml]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/main/.github/workflows/release.yml)): checks, \`npm publish\`, tag \`v$VERSION\` and GitHub release.
 
           Before merging, rewrite the drafted notes in \`CHANGELOG.md\` ([RELEASING.md]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/blob/main/RELEASING.md), step 2): sort the "To sort" lines into Breaking changes, Features, Fixes and Identities, for the package's users. The release refuses notes that still have a "To sort" section.
           BODY
-          # Needs "Allow GitHub Actions to create and approve pull requests"
-          # in the repository's settings; otherwise, a link to open it
-          if ! gh pr create --draft --base main --head "$branch" --title "version $VERSION" --body-file body.md; then
-            url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/main...$branch?expand=1"
-            echo "Open the pull request: $url" | tee -a "$GITHUB_STEP_SUMMARY"
+            # Needs "Allow GitHub Actions to create and approve pull
+            # requests" in the repository's settings; otherwise, a link
+            if ! gh pr create --draft --base main --head "$branch" --title "version $VERSION" --body-file body.md; then
+              url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/main...$branch?expand=1"
+              echo "Open the pull request: $url" | tee -a "$GITHUB_STEP_SUMMARY"
+            fi
           fi
-          # Pushes made with the workflow's token start no workflow: run CI
-          # on the branch, for the checks the pull request needs
+          # A push made with the workflow's token starts no CI run (and its
+          # pull request's runs may wait for approval): run CI on the
+          # branch, for the checks the pull request needs
           gh workflow run ci.yml --ref "$branch"
