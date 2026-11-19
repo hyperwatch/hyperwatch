@@ -1,20 +1,19 @@
 ---
 name: release
-description: Release a new version of @hyperwatch/hyperwatch through its GitHub Actions workflows, following RELEASING.md. Refreshes the published ranges and keys, proposes the version, runs the Prepare workflow, rewrites the drafted release notes in the version pull request, and follows the Release workflow once the maintainer merged it. Use when asked to release, cut, ship or publish a new Hyperwatch version, or to prepare the release notes.
+description: Release a new version of @hyperwatch/hyperwatch with its GitHub Actions workflows, following RELEASING.md. Does the parts that need judgment: refreshing the published lists (including those copied by hand), proposing the version, and rewriting the drafted release notes. Use when asked to release, cut, ship or publish a new Hyperwatch version, or to prepare the release notes.
 ---
 
 # Release
 
-[RELEASING.md](../../../RELEASING.md) is the procedure, and the "Release management" section of [AGENTS.md](../../../AGENTS.md) adds the rules for agents. Read both first, every time: this skill only says where to stop. Where they differ, they win.
+[RELEASING.md](../../../RELEASING.md) is the procedure and the "Release management" section of [AGENTS.md](../../../AGENTS.md) the rules (what to agree on with the maintainer, never merge). Read both first, every time. The workflows do the mechanical steps; this is what's left to you. Work in worktrees: never switch branches in the main checkout.
 
-## Steps
+1. **Refresh the published lists.** Run the Refresh workflow (`gh workflow run refresh.yml`, then `gh run watch`). In its pull request (or on its branch, through the link in the run's summary):
+   - lists or agents that couldn't be fetched: retry the workflow later, or find out why;
+   - the lists copied by hand: read each source listed in RELEASING.md, update the files that changed, and add them to the pull request's table, or say they are unchanged.
 
-1. **Refresh the published ranges and keys** ("Before you start" in RELEASING.md), in its own worktree. If a list fails to fetch, stop and report it. If anything changed, open the refresh PR with its table of what was added and removed, and wait for it to be merged before going on. Also compare the lists copied by hand with their sources.
-2. **What changed:** `git fetch origin`, then `node scripts/release.js changes` from a checkout of `origin/main` (a worktree: never switch branches in the main checkout). Read the PRs when a subject isn't enough (`gh pr view N`). Propose a version with semver (RELEASING.md, step 1).
-3. **Stop: agree on the version** with the maintainer.
-4. **Prepare:** `gh workflow run release-prepare.yml -f version=X.Y.Z`, then follow the run (`gh run watch`). It opens the draft pull request `version X.Y.Z`, or gives the link to open it in the run's summary: then open it with the same title.
-5. **Rewrite the notes** in `CHANGELOG.md` on the branch `release-vX.Y.Z` (RELEASING.md, step 2), in a worktree, in the style of the previous entries; push them.
-6. **Stop: show the maintainer the notes** and the pull request link. Once they approve, mark it ready (`gh pr ready N`). CI's `release-notes` check must pass.
-7. **The maintainer merges** the pull request: never merge it yourself, merging publishes.
-8. **Follow the Release workflow** (`gh run list --workflow release.yml`, `gh run watch`). If a step fails, report which and why; after the fix, rerun it (`gh workflow run release.yml`) with the maintainer's approval.
-9. **Report** the version, the links to the GitHub release and the npm page, and the projects that depend on Hyperwatch to update ("After the release").
+   The maintainer merges it before the release.
+
+2. **Propose the version.** `node scripts/release.js changes` on an up-to-date `origin/main` lists the commits since the last release. Read the PRs when a subject isn't enough (`gh pr view N`), and propose a version with semver (RELEASING.md, step 1). Agree on it.
+3. **Prepare.** `gh workflow run release-prepare.yml -f version=X.Y.Z`. If the run's summary gives a link instead of a pull request, open it with the title `version X.Y.Z`.
+4. **Rewrite the notes** in `CHANGELOG.md` on `release-vX.Y.Z` (RELEASING.md, step 2), in the style of the previous entries: for the package's users, nothing about unmerged work, no "To sort" left. Push, then agree on them before marking the pull request ready.
+5. **After the maintainer's merge**, follow the Release workflow (`gh run list --workflow release.yml`). On a failure, report the step and why. Then report the GitHub release and npm links, and the projects to update ("After the release").

@@ -1,5 +1,6 @@
 // The steps of a release that need no decision, for the release workflows
-// (.github/workflows/release-prepare.yml, release.yml) and by hand. See
+// (.github/workflows/refresh.yml, release-prepare.yml, release.yml) and by
+// hand. See
 // RELEASING.md.
 //
 //   node scripts/release.js changes        The last release, and a draft of
@@ -14,12 +15,17 @@
 //   node scripts/release.js notes X.Y.Z [file]
 //                                          The CHANGELOG.md section of
 //                                          X.Y.Z, for the GitHub release
+//   node scripts/release.js data-changes   What the uncommitted changes of
+//                                          src/data add and remove: the
+//                                          title (first line) and table of
+//                                          a refresh pull request
 //
 // It never commits, tags, pushes or publishes.
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+const { dataChanges, refreshTitle } = require('./lib/data-changes');
 const {
   addChangelogSection,
   changelogSection,
@@ -143,6 +149,36 @@ function notes(version, file) {
   }
 }
 
+function changedData() {
+  const names = git('status', '--porcelain', '--', 'src/data')
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => line.slice(3))
+    .filter((file) => file.endsWith('.json'))
+    .map((file) => path.basename(file));
+  if (names.length === 0) {
+    console.log('Nothing changed.');
+    return;
+  }
+  const parse = (text) => (text ? JSON.parse(text) : null);
+  const files = names.map((name) => {
+    const file = `src/data/${name}`;
+    let before = null;
+    try {
+      before = parse(git('show', `HEAD:${file}`));
+    } catch (err) {
+      // A new file
+    }
+    const full = path.join(root, file);
+    const after = fs.existsSync(full)
+      ? parse(fs.readFileSync(full, 'utf8'))
+      : null;
+    return { name, before, after };
+  });
+  console.log(refreshTitle(names));
+  console.log(dataChanges(files) || 'Only formatting changed.');
+}
+
 const [command, ...args] = process.argv.slice(2);
 const commands = {
   changes,
@@ -150,10 +186,11 @@ const commands = {
   verify,
   pack,
   notes: () => notes(args[0], args[1]),
+  'data-changes': changedData,
 };
 if (!commands[command]) {
   fail(
-    'Usage: node scripts/release.js changes | prepare X.Y.Z | verify | pack | notes X.Y.Z [file]'
+    'Usage: node scripts/release.js changes | prepare X.Y.Z | verify | pack | notes X.Y.Z [file] | data-changes'
   );
 }
 commands[command]();

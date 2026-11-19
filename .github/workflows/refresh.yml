@@ -1,0 +1,104 @@
+# Refreshes the address lists and Web Bot Auth keys that operators publish
+# (src/data), and opens or updates the pull request "Refresh the published
+# IP ranges…" with what was added and removed, before each release (see
+# RELEASING.md). Lists copied by hand aren't fetched: compare them on the
+# branch.
+name: Refresh the published lists
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  # To run CI on the branch (see below)
+  actions: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+
+    env:
+      BRANCH: refresh-published-lists
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+      - run: npm ci
+
+      # A list or an agent that can't be fetched keeps its current file: the
+      # others are still refreshed, and the failures go in the pull request
+      - name: Fetch
+        id: fetch
+        run: |
+          node scripts/fetch-ips.js 2>&1 | tee fetch-ips.log || true
+          node scripts/fetch-webbotauth-keys.js 2>&1 | tee fetch-keys.log || true
+          npx prettier --write src/data > /dev/null
+          failed=$(grep -h -E ': failed' fetch-ips.log fetch-keys.log | sed 's/^/- /' || true)
+          {
+            echo 'failed<<EOF'
+            echo "$failed"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+          rm fetch-ips.log fetch-keys.log
+
+      - name: Changes
+        id: changes
+        run: |
+          node scripts/release.js data-changes > changes.md
+          cat changes.md
+          if [ -n "$(git status --porcelain -- src/data)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.changes.outputs.changed
+        run: npm test
+
+      - name: Open or update the pull request
+        if: steps.changes.outputs.changed
+        env:
+          FAILED: ${{ steps.fetch.outputs.failed }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title=$(head -1 changes.md)
+          {
+            echo "Ran \`scripts/fetch-ips.js\` and \`scripts/fetch-webbotauth-keys.js\` and committed the result, formatted with prettier. \`npm test\` passes: the identity tests read their addresses from these files."
+            echo
+            tail -n +2 changes.md
+            if [ -n "$FAILED" ]; then
+              echo
+              echo "Couldn't be fetched, current files kept:"
+              echo
+              echo "$FAILED"
+            fi
+            echo
+            echo "Lists copied by hand (RELEASING.md) aren't fetched: compare them with their sources on this branch."
+          } > body.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch -C "$BRANCH"
+          git add src/data
+          git commit -qm "$title"
+          git push --force origin "$BRANCH"
+          pr=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --title "$title" --body-file body.md
+          elif ! gh pr create --base main --head "$BRANCH" --title "$title" --body-file body.md; then
+            # Needs "Allow GitHub Actions to create and approve pull
+            # requests" in the repository's settings
+            url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/main...$BRANCH?expand=1"
+            echo "Open the pull request: $url" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          # Pushes made with the workflow's token start no workflow: run CI
+          # on the branch, for the checks the pull request needs
+          gh workflow run ci.yml --ref "$BRANCH"
+
+      - name: Nothing changed
+        if: ${{ !steps.changes.outputs.changed }}
+        run: echo "The published lists are unchanged" | tee -a "$GITHUB_STEP_SUMMARY"

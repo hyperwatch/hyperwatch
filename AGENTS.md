@@ -7,16 +7,16 @@ Notes for AI coding agents working on this repository.
 Follow [RELEASING.md](RELEASING.md), with the `release` skill (`.claude/skills/release/SKILL.md`). On top of it:
 
 - Only `origin/main` ships, through the release workflows. Never run `npm publish`, tag or create a GitHub release by hand: a failed release is resumed by rerunning the Release workflow.
+- Never merge the refresh or version pull requests: the maintainer does.
 - Don't mention unmerged branches or modules in the release notes.
 - Agree on the version with the maintainer before running the Prepare workflow, and on the notes before marking the pull request ready.
-- Never merge the version pull request: merging publishes. The maintainer merges it.
 - Build the "changes since" list from what was actually published: `release.js changes` warns when the last tag isn't the version on npm; then check the published tarball (`npm pack @hyperwatch/hyperwatch@<previous>`).
 
 ## Published address lists
 
 Identities are checked against the address lists operators publish (`src/data/*-ips.json`).
 
-- Lists published as structured data (JSON, plain text, one range per line) have a source in `src/data/ip-list-sources.json` and are refreshed by `node scripts/fetch-ips.js`.
+- Lists published as structured data (JSON, plain text, one range per line) have a source in `src/data/ip-list-sources.json` and are refreshed by `node scripts/fetch-ips.js`, or by the Refresh workflow (`gh workflow run refresh.yml`), which opens the refresh pull request.
 - Lists published only inside a page, a table or a PDF are copied by hand, listed in [RELEASING.md](RELEASING.md) ("Some lists have no updater"). Don't write a parser for them: a parser per page breaks silently when the page changes. To refresh them, read each source, update its file in the same format (a JSON array of ranges, single addresses as `/32` or `/128`), run `npx prettier --write src/data`, and report what was added and removed.
 - A new operator list: if it is structured, add a source to `ip-list-sources.json`; otherwise copy it by hand, add it to the RELEASING.md list and to `handCopied` in `test/scripts/published-ips.js`.
 - Before a release, refresh both kinds ([RELEASING.md](RELEASING.md), "Before you start: refresh the published ranges, keys and categories").

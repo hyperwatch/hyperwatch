@@ -15,6 +15,8 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  # To run CI on the branch (see below)
+  actions: write
 
 jobs:
   prepare:
@@ -59,3 +61,6 @@ jobs:
             url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/main...$branch?expand=1"
             echo "Open the pull request: $url" | tee -a "$GITHUB_STEP_SUMMARY"
           fi
+          # Pushes made with the workflow's token start no workflow: run CI
+          # on the branch, for the checks the pull request needs
+          gh workflow run ci.yml --ref "$branch"
