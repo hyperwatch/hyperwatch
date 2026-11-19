@@ -9,17 +9,31 @@
  */
 // Run `node scripts/fetch-ips.js zscaler-ips` to update
 const zscalerIps = require('../data/zscaler-ips.json');
-const { compileRanges, isValidAddress } = require('../lib/cidr');
+const { compileRanges, parseAddress } = require('../lib/cidr');
 const pipeline = require('../lib/pipeline');
 
-// The published egress ranges of each forward proxy
+// The published egress ranges of each forward proxy. Only proxies that
+// replace X-Forwarded-For with a single entry (see forwardedFor)
 const proxies = [{ name: 'Zscaler', match: compileRanges(zscalerIps) }];
 
+// An address in one form, to compare them: undefined when invalid
+/** @param {unknown} value */
+function canonical(value) {
+  const address = parseAddress(value);
+  return address ? address.correctForm() : undefined;
+}
+
 /**
- * The address a forward proxy forwards for: in X-Forwarded-For, the one just
- * before the proxy's own (a CDN in front of the site appends it), or the last
- * one (the proxy connected directly). Earlier entries were written by
- * whoever sent the request to the proxy: they can't be trusted.
+ * The address a forward proxy forwards for, in X-Forwarded-For. The proxies
+ * listed replace the header they receive with a single entry (Zscaler: "it
+ * removes the original XFF header and replaces it with an XFF header that
+ * contains the IP address of the client gateway"), so nothing before that
+ * entry comes from their client:
+ * - a reverse proxy of the site (a CDN) appended the egress, and maybe
+ *   others their own: the entry just before the last occurrence of the egress;
+ * - the proxy connected directly: the header is its single entry.
+ * Otherwise, nothing. The entry is returned in canonical form, unless it is
+ * the egress itself.
  * @param {unknown} header
  * @param {string} egress
  */
@@ -27,10 +41,12 @@ function forwardedFor(header, egress) {
   if (typeof header !== 'string') {
     return;
   }
-  const hops = header.split(',').map((hop) => hop.trim());
-  const index = hops.lastIndexOf(egress);
-  const hop = index === -1 ? hops[hops.length - 1] : hops[index - 1];
-  return hop && hop !== egress && isValidAddress(hop) ? hop : undefined;
+  const self = canonical(egress);
+  const hops = header.split(',').map((hop) => canonical(hop.trim()));
+  const index = hops.lastIndexOf(self);
+  const hop =
+    index === -1 ? (hops.length === 1 ? hops[0] : undefined) : hops[index - 1];
+  return hop && hop !== self ? hop : undefined;
 }
 
 /**
