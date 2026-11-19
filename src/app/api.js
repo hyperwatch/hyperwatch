@@ -82,9 +82,10 @@ app.get('/pipeline', (req, res) => {
  * @typedef {object} StreamOptions
  * @property {string} [name] Its name on the status page
  * @property {boolean} [monitoringEnabled] Show it on the status page
- * @property {(limit: number, filters: Record<string, any>) => Log[] | Promise<Log[]>} [history]
- *   The latest logs matching the filters, newest first, shown before live
- *   ones
+ * @property {(limit: number, filters: Record<string, any>) => HistoryResult | Promise<HistoryResult>} [history]
+ *   The latest logs matching the filters (the query string), newest first,
+ *   shown before live ones, or a search of them (see history.searchView),
+ *   whose cursor and bounds a notice shows under them
  * @property {(req: import('express').Request) => string} [header] More HTML
  *   under the navigation of the stream page
  */
@@ -180,23 +181,25 @@ function streamToHttp(
     // (default 100), ?history=0 to only show live logs
     if (history) {
       const limit = parseInt(String(req.query.history), 10);
-      const logs = history(limit >= 0 ? limit : 100, req.query);
-      if (isPromise(logs)) {
+      const result = history(limit >= 0 ? limit : 100, req.query);
+      if (isPromise(result)) {
         /** @type {Log[]} */
         const queue = [];
         requests[requestId][2] = queue;
-        logs
+        result
           .catch((err) => {
             console.error(`Error reading the history of ${endpoint}:`, err);
-            return [];
+            return /** @type {Log[]} */ ([]);
           })
           .then((read) => {
             if (res.writableEnded || res.destroyed) {
               return;
             }
-            for (const log of [...read].reverse()) {
+            const search = Array.isArray(read) ? { logs: read } : read;
+            for (const log of [...search.logs].reverse()) {
               writeLog(req, res, log);
             }
+            res.write(html.streamSearchNotice(req, search));
             for (const log of queue) {
               writeLog(req, res, log);
             }
@@ -205,9 +208,11 @@ function streamToHttp(
             }
           });
       } else {
-        for (const log of logs.reverse()) {
+        const search = Array.isArray(result) ? { logs: result } : result;
+        for (const log of [...search.logs].reverse()) {
           writeLog(req, res, log);
         }
+        res.write(html.streamSearchNotice(req, search));
       }
     }
 
@@ -234,6 +239,17 @@ const identityFilters = new Map([
   ['unidentified', (entry) => !entry.get('identity')],
 ]);
 
+// Aggregators registered, by name
+/** @type {Map<string, import('../lib/aggregator').Aggregator>} */
+const aggregators = new Map();
+
+/**
+ * An aggregator registered with registerAggregator, by name
+ * @param {string} name
+ * @returns {import('../lib/aggregator').Aggregator | undefined}
+ */
+const getAggregator = (name) => aggregators.get(name);
+
 /**
  * Serves an aggregator at `/<name>` (HTML, `.json`, `.csv`), and saves it
  * with the persistence.
@@ -243,6 +259,7 @@ const identityFilters = new Map([
  */
 function registerAggregator(name, aggregator, htmlOptions = {}) {
   const htmlView = html.aggregatorView(name, htmlOptions);
+  aggregators.set(name, aggregator);
   persistence.register(name, aggregator);
   app.get(`/${name}{.:format}`, (req, res) => {
     const raw = req.query.raw ? true : false;
@@ -326,7 +343,14 @@ function isPromise(value) {
 }
 
 /** @typedef {import('../types').Log} Log */
+/**
+ * @typedef {Log[] | import('../modules/history').ViewSearch} HistoryResult
+ */
 /** @typedef {import('express').Request} Request */
 /** @typedef {import('express').Response} Response */
 
-module.exports = Object.assign(app, { streamToHttp, registerAggregator });
+module.exports = Object.assign(app, {
+  streamToHttp,
+  registerAggregator,
+  getAggregator,
+});

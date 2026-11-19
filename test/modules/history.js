@@ -8,8 +8,11 @@ const { fromJS } = require('immutable');
 
 const api = require('../../src/app/api');
 const constants = require('../../src/constants');
+const { Aggregator } = require('../../src/lib/aggregator');
+const { defaultFormatter } = require('../../src/lib/logger');
 const persistence = require('../../src/lib/persistence');
 const pipeline = require('../../src/lib/pipeline');
+const { md5 } = require('../../src/lib/util');
 const history = require('../../src/modules/history');
 
 describe('history capacity', () => {
@@ -311,6 +314,8 @@ describe('history on disk', () => {
   });
 
   after(async () => {
+    // The live log pages keep their connections open
+    server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
     await pipeline.stop();
     await history.flush();
@@ -396,5 +401,157 @@ describe('history on disk', () => {
   it('only serves nodes with disk history', async () => {
     const res = await fetch(`${baseUrl}/history/main/disk.json`);
     assert.strictEqual(res.status, 404);
+  });
+
+  describe('from where the filters were last seen', () => {
+    let getAggregator;
+    let nodeDir;
+
+    // An address last seen at 05:20 UTC, logs in its hour and, as if it were
+    // seen later, in the next one
+    const seen = Date.parse('2026-01-01T05:20:00Z') / 1000;
+    const record = (url) =>
+      `${JSON.stringify({
+        request: { time: '2026-01-01T05:00:00Z', address: '10.9.9.9', url },
+        response: { status: 200 },
+      })}\n`;
+
+    before(() => {
+      nodeDir = history.diskDirFor('test-disk', constants.modules.history);
+      fs.writeFileSync(
+        path.join(nodeDir, '2026-01-01T05.ndjson'),
+        record('/old1') + record('/old2')
+      );
+      fs.writeFileSync(
+        path.join(nodeDir, '2026-01-01T06.ndjson'),
+        record('/skipped')
+      );
+      // A real aggregator, keyed like the addresses one, its entry last seen
+      // at 05:20 UTC
+      const addresses = new Aggregator();
+      addresses.setIdentifier((log) => log.getIn(['request', 'address']));
+      addresses.processLog(
+        fromJS({ request: { address: '10.9.9.9' }, response: { status: 200 } })
+      );
+      addresses.get(md5('10.9.9.9')).getIn(['speed', 'per_minute']).latest =
+        seen;
+      getAggregator = api.getAggregator;
+      api.getAggregator = (name) =>
+        name === 'addresses' ? addresses : undefined;
+      // Counted by this process, not restored from a snapshot
+      history.setCountingSince(seen - 60);
+      // The node is main, where aggregators count logs
+      pipeline.nodes.main = pipeline.nodes['test-disk'];
+      api.streamToHttp(
+        '/logs-test',
+        pipeline.nodes['test-disk'],
+        defaultFormatter,
+        {
+          history: (limit, query) =>
+            history.searchView('test-disk', limit, query, query.cursor),
+        }
+      );
+    });
+
+    after(() => {
+      api.getAggregator = getAggregator;
+      history.setCountingSince(Math.floor(Date.now() / 1000));
+      delete pipeline.nodes.main;
+    });
+
+    it('reads every file for values last seen before this process counted', async () => {
+      // As after a crash: restored from a snapshot older than the newest logs
+      history.setCountingSince(seen + 60);
+      try {
+        const { body } = await get(
+          '/history/test-disk/disk.json?address=10.9.9.9'
+        );
+        assert.strictEqual(body.until, null);
+        assert.strictEqual(body.logs[0].request.url, '/skipped');
+      } finally {
+        history.setCountingSince(seen - 60);
+      }
+    });
+
+    it('starts the disk pages at the hour last seen', async () => {
+      const { body } = await get(
+        '/history/test-disk/disk.json?address=10.9.9.9'
+      );
+      assert.deepStrictEqual(
+        body.logs.map((l) => l.request.url),
+        ['/old2', '/old1']
+      );
+      assert.strictEqual(body.until, '2026-01-01T05');
+    });
+
+    it('reads every file for values without an entry', async () => {
+      const { body } = await get(
+        '/history/test-disk/disk.json?address=10.0.0.1'
+      );
+      assert.strictEqual(body.until, null);
+      assert.ok(body.logs.length > 0);
+    });
+
+    it("doesn't start at the last hour seen for nodes before main", async () => {
+      delete pipeline.nodes.main;
+      try {
+        const { body } = await get(
+          '/history/test-disk/disk.json?address=10.9.9.9'
+        );
+        assert.strictEqual(body.until, null);
+        assert.strictEqual(body.logs[0].request.url, '/skipped');
+      } finally {
+        pipeline.nodes.main = pipeline.nodes['test-disk'];
+      }
+    });
+
+    // The page streams live logs after its history: read until `marker`
+    const page = async (url, marker) => {
+      const controller = new AbortController();
+      const res = await fetch(`${baseUrl}${url}`, {
+        signal: controller.signal,
+      });
+      const decoder = new TextDecoder();
+      let text = '';
+      for await (const chunk of res.body) {
+        text += decoder.decode(chunk, { stream: true });
+        if (text.includes(marker)) {
+          break;
+        }
+      }
+      controller.abort();
+      return text;
+    };
+
+    it('says where the view searched, and links to older logs', async () => {
+      const text = await page(
+        '/logs-test?address=10.9.9.9&history=1',
+        'older logs</a>'
+      );
+      assert.ok(text.includes('/old2'));
+      assert.ok(!text.includes('/old1'));
+      assert.ok(!text.includes('/skipped'));
+      assert.ok(
+        text.includes(
+          'Searched from 2026-01-01 05:00 UTC, the last hour these filters were seen'
+        )
+      );
+      const href = /<a href="([^"]+)">older logs<\/a>/
+        .exec(text)[1]
+        .replace(/&amp;/g, '&');
+      assert.match(href, /^logs-test\?address=10\.9\.9\.9&history=1&cursor=/);
+
+      const older = await page(`/${href}`, '/old1');
+      assert.ok(older.includes('/old1'));
+      assert.ok(!older.includes('/old2'));
+    });
+
+    it('says when a cursor is invalid', async () => {
+      const text = await page(
+        '/logs-test?address=10.9.9.9&cursor=nope',
+        'Invalid cursor'
+      );
+      assert.ok(text.includes('Invalid cursor: nope'));
+    });
   });
 });

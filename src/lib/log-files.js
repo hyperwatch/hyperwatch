@@ -505,8 +505,13 @@ function parseLine(line) {
  * hit (`truncated`). `cursor` is where to resume, null after the oldest log.
  *
  * With a `snapshot` (LogWriter.snapshot()), reads what the files held when it
- * was taken, logs not written yet included, and nothing newer: in one call,
- * without a cursor.
+ * was taken, logs not written yet included, and nothing newer, without a
+ * cursor. The cursor returned resumes like any other once the read gets
+ * past the logs not written yet.
+ *
+ * With `until` (an hour, 2026-11-18T05), reads that hour's file and older
+ * ones only, e.g. from when a filtered value was last seen. A cursor wins
+ * over it.
  */
 /**
  * @typedef {object} ReadOptions
@@ -516,6 +521,7 @@ function parseLine(line) {
  * @property {AbortSignal} [signal]
  * @property {Partial<typeof DEFAULT_BOUNDS>} [bounds] Bytes and time per read
  * @property {Snapshot} [snapshot] From LogWriter#snapshot()
+ * @property {string} [until] The newest hour to read (see hourOf)
  */
 
 /**
@@ -535,11 +541,21 @@ function parseLine(line) {
  */
 async function read(
   dir,
-  { limit = 100, cursor, filters = {}, signal, bounds = {}, snapshot } = {}
+  {
+    limit = 100,
+    cursor,
+    filters = {},
+    signal,
+    bounds = {},
+    snapshot,
+    until,
+  } = {}
 ) {
   const { scan, time, response, chunk } = { ...DEFAULT_BOUNDS, ...bounds };
   const started = Date.now();
   let files = await listFiles(dir);
+  // Files a cursor can point to
+  const onDisk = new Set(files);
   /** @type {ReadResult} */
   const result = {
     logs: [],
@@ -563,10 +579,13 @@ async function read(
         .sort()
         .reverse();
     }
-  } else if (cursor) {
+  }
+  if (cursor && !snapshot) {
     const parsed = await parseCursor(dir, files, cursor);
     index = files.indexOf(parsed.file);
     end = parsed.offset;
+  } else if (until) {
+    files = files.filter((file) => file <= fileFor(until));
   }
 
   const search = searchFor(filters);
@@ -662,15 +681,17 @@ async function read(
         }
         if (overBudget()) {
           result.truncated = true;
-          if (!snapshot) {
-            // Before the end of this file is trimmed, upto may be mid-line:
-            // resume from the start of the previous file, done (there is
-            // one: only progress allows stopping on the budget, and nothing
-            // of this file was consumed yet)
-            result.cursor = trimmed
-              ? `${file}:${upto}`
-              : `${files[index - 1]}:0`;
-          }
+          // Before the end of this file is trimmed, upto may be mid-line:
+          // resume from the start of the previous file, done (there is one:
+          // only progress allows stopping on the budget, and nothing of this
+          // file was consumed yet). From a snapshot, that file may not be
+          // written yet: no cursor then
+          const previous = files[index - 1];
+          result.cursor = trimmed
+            ? `${file}:${upto}`
+            : onDisk.has(previous)
+              ? `${previous}:0`
+              : null;
           return result;
         }
 
@@ -764,17 +785,13 @@ async function read(
           if (taken === 'full') {
             // Not included: resume with this line
             result.truncated = true;
-            if (!snapshot) {
-              result.cursor = `${file}:${lineEnd}`;
-            }
+            result.cursor = `${file}:${lineEnd}`;
             return result;
           }
           upto = lineStart;
           progressed = true;
           if (taken === 'done') {
-            if (!snapshot) {
-              result.cursor = `${file}:${upto}`;
-            }
+            result.cursor = `${file}:${upto}`;
             return result;
           }
         }

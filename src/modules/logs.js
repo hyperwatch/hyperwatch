@@ -21,7 +21,14 @@ function start() {
     api.streamToHttp(`/logs/${name}`, stream, defaultFormatter, {
       name: `HTTP stream (${name} logs)`,
       monitoringEnabled: true,
-      history: (limit, filters) => history.forView(name, limit, filters),
+      // ?cursor= goes on from an earlier search (the notice's link)
+      history: (limit, query) =>
+        history.searchView(
+          name,
+          limit,
+          query,
+          typeof query.cursor === 'string' ? query.cursor : undefined
+        ),
       header: (req) => html.nodesNav(req, name, pipeline.getTree()),
     });
   }

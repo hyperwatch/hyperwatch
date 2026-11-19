@@ -292,6 +292,48 @@ describe('log files snapshot', () => {
     assert.deepStrictEqual(ids(result), ['c']);
     assert.strictEqual(result.cursor, null);
   });
+
+  it('gives a cursor once it reads logs written to the files', async () => {
+    fs.writeFileSync(
+      path.join(dir, '2026-11-03T09.ndjson'),
+      lines(record('a'), record('b'))
+    );
+    writer.push(fromJS(record('c')));
+    const snapshot = writer.snapshot();
+    const result = await read(dir, { snapshot, limit: 2 });
+    assert.deepStrictEqual(ids(result), ['c', 'b']);
+    assert.ok(result.cursor);
+    const next = await read(dir, { cursor: result.cursor, limit: 10 });
+    assert.deepStrictEqual(ids(next), ['a']);
+  });
+
+  it('starts at the hour given, with or without a snapshot', async () => {
+    fs.writeFileSync(
+      path.join(dir, '2026-11-03T08.ndjson'),
+      lines(record('a'))
+    );
+    fs.writeFileSync(
+      path.join(dir, '2026-11-03T09.ndjson'),
+      lines(record('b'))
+    );
+    writer.push(fromJS(record('c')));
+    const snapshot = writer.snapshot();
+    assert.deepStrictEqual(
+      ids(await read(dir, { snapshot, until: '2026-11-03T08' })),
+      ['a']
+    );
+    await writer.flush();
+    assert.deepStrictEqual(ids(await read(dir, { until: '2026-11-03T09' })), [
+      'b',
+      'a',
+    ]);
+    // A cursor wins
+    const { cursor } = await read(dir, { limit: 1 });
+    assert.deepStrictEqual(
+      ids(await read(dir, { cursor, until: '2026-11-03T08' })),
+      ['b', 'a']
+    );
+  });
 });
 
 describe('log files reader', () => {
