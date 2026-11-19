@@ -10,6 +10,7 @@ const {
   parseKeys,
   parseLines,
   parseListAfter,
+  parseNested,
   parsePrefixes,
   parseResults,
   parseRoutes,
@@ -129,6 +130,21 @@ describe('published IP lists', () => {
         '192.0.2.1',
       ]);
       assert.throws(() => parseData('{"items": []}'), /no data array/);
+    });
+
+    it('reads the values of a key at any depth', () => {
+      const parse = parseNested('range');
+      const text = JSON.stringify({
+        'cloud.example': {
+          'continent : Europe': {
+            'city : Paris': [{ range: '192.0.2.0/24', vpn: 'x' }],
+          },
+          'continent : Asia': {
+            'city : Tokyo': [{ range: '2001:db8::/48' }, { range: 1 }],
+          },
+        },
+      });
+      assert.deepStrictEqual(parse(text), ['192.0.2.0/24', '2001:db8::/48']);
     });
 
     it('reads one entry per line', () => {

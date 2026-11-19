@@ -2,10 +2,17 @@ const { is } = require('immutable');
 
 const api = require('../app/api');
 const html = require('../app/html');
+// Run `node scripts/fetch-ips.js zscaler-ips` to update
+const zscalerIps = require('../data/zscaler-ips.json');
 const { Aggregator } = require('../lib/aggregator');
+const { compileRanges, isValidAddress } = require('../lib/cidr');
 const pipeline = require('../lib/pipeline');
 const { touch, prune, countRecent } = require('../lib/recent-map');
 const { safeHtml, toHtml } = require('../lib/util');
+
+// Corporate web gateways: the published egress ranges of shared proxies that
+// put their user's address in X-Forwarded-For
+const gateways = [{ name: 'Zscaler', match: compileRanges(zscalerIps) }];
 
 /** @type {Identifier} */
 const identifier = (log) => log.getIn(['address', 'value']);
@@ -19,12 +26,56 @@ const signatureCount24h = (entry) => countRecent(entry.get('signatures'));
 /** @type {Aggregator | undefined} */
 let aggregator;
 
+/** @type {Sorter} */
+const forwardedCount24h = (entry) => countRecent(entry.get('forwarded'));
+
+/**
+ * The address a gateway forwards for: in X-Forwarded-For, the one just before
+ * the gateway's own (a CDN in front of the site appends it), or the last one
+ * (the gateway connected directly). Earlier entries were written by whoever
+ * sent the request to the gateway, they can't be trusted.
+ * @param {unknown} header
+ * @param {string} egress
+ */
+function forwardedFor(header, egress) {
+  if (typeof header !== 'string') {
+    return;
+  }
+  const hops = header.split(',').map((hop) => hop.trim());
+  const index = hops.lastIndexOf(egress);
+  const hop = index === -1 ? hops[hops.length - 1] : hops[index - 1];
+  return hop && hop !== egress && isValidAddress(hop) ? hop : undefined;
+}
+
+/**
+ * When the address is the verified egress of a corporate gateway, the gateway
+ * (`address.proxy`) and the address it forwards for (`address.forwarded`).
+ * The address stays the connecting one: `forwarded` is only a hint
+ * @param {Log} log
+ */
+function gateway(log) {
+  const egress = log.getIn(['address', 'value']);
+  if (typeof egress !== 'string' || log.hasIn(['address', 'proxy'])) {
+    return log;
+  }
+  const found = gateways.find(({ match }) => match(egress));
+  if (!found) {
+    return log;
+  }
+  log = log.setIn(['address', 'proxy'], found.name);
+  const forwarded = forwardedFor(
+    log.getIn(['request', 'headers', 'x-forwarded-for']),
+    egress
+  );
+  return forwarded ? log.setIn(['address', 'forwarded'], forwarded) : log;
+}
+
 /** @param {Log} log */
 function fill(log) {
   if (!log.hasIn(['address', 'value'])) {
     log = log.setIn(['address', 'value'], log.getIn(['request', 'address']));
   }
-  return log;
+  return gateway(log);
 }
 
 function init() {
@@ -67,14 +118,30 @@ function start() {
       );
     }
 
+    // Behind a gateway's egress: the distinct addresses it forwarded for
+    const forwarded = /** @type {string | undefined} */ (
+      log.getIn(['address', 'forwarded'])
+    );
+    if (forwarded) {
+      entry = entry.update(
+        'forwarded',
+        (/** @type {RecentMap | undefined} */ map) => touch(map, forwarded)
+      );
+    }
+
     return entry;
   };
 
   aggregator.setEnricher(enricher);
 
-  aggregator.setEntryGc((entry) =>
-    entry.has('signatures') ? entry.update('signatures', prune) : entry
-  );
+  aggregator.setEntryGc((entry) => {
+    for (const key of ['signatures', 'forwarded']) {
+      if (entry.has(key)) {
+        entry = entry.update(key, prune);
+      }
+    }
+    return entry;
+  });
 
   // Identity and agent come from the latest log with one
   const { formatter } = aggregator;
@@ -115,6 +182,27 @@ function start() {
       : address;
   });
 
+  // The gateway an address is an egress of, and how many addresses it
+  // forwarded for: one row, many clients
+  aggregator.formatter.insertFormat(
+    'proxy',
+    (entry, output) => {
+      const proxy = /** @type {string} */ (
+        entry.getIn(['address', 'proxy']) || ''
+      );
+      const count = forwardedCount24h(entry);
+      return output === 'html' && proxy && count
+        ? safeHtml(
+            `${toHtml(proxy)} <span class="grey">(${count} behind)</span>`
+          )
+        : proxy;
+    },
+    { after: 'address' }
+  );
+  aggregator.formatter.insertFormat('forwardedCount24h', forwardedCount24h, {
+    before: 'count15m',
+  });
+
   aggregator.formatter.insertFormat('signatureCount15m', signatureCount15m, {
     before: 'count15m',
   });
@@ -124,6 +212,7 @@ function start() {
 
   aggregator.sorters.signatureCount15m = signatureCount15m;
   aggregator.sorters.signatureCount24h = signatureCount24h;
+  aggregator.sorters.forwardedCount24h = forwardedCount24h;
 
   pipeline
     .getNode('main')
@@ -137,6 +226,7 @@ function start() {
     identityFilter: true,
     columns: [
       'address',
+      'proxy',
       'hostname',
       'country',
       'asn',
@@ -151,6 +241,8 @@ function start() {
 module.exports = {
   init,
   start,
+  fill,
+  forwardedFor,
   get aggregator() {
     return aggregator;
   },
