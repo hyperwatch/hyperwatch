@@ -101,7 +101,7 @@ A signature's `keyid` is the key's JWK thumbprint, or its `kid` when the directo
 
 ### ASN
 
-The `asn` module sets on each log the autonomous system announcing its client address: `asn: { number, organization, country }`, e.g. `{ number: 13335, organization: "CLOUDFLARENET - Cloudflare, Inc.", country: "US" }`. `country` is where the AS is registered, not where the address is (that's `geoip`), and is left out when unknown. Addresses no AS announces (private, reserved, not routed) get no `asn`. `/asns` counts requests and distinct addresses per AS (sortable by `addressCount15m` or `addressCount24h`), and `/addresses` shows the AS of each address.
+The `asn` module sets on each log the autonomous system announcing its client address: `asn: { number, organization, country }`, e.g. `{ number: 13335, organization: "CLOUDFLARENET - Cloudflare, Inc.", country: "US" }`. `country` is where the AS is registered, not where the address is (that's `geoip`), and is left out when unknown. Addresses no AS announces (private, reserved, not routed) get no `asn`, and a log that already has one (set by a more specific source, see [the shared fields](log.md#shared-fields)) keeps it. `/asns` counts requests and distinct addresses per AS (sortable by `addressCount15m` or `addressCount24h`), and `/addresses` shows the AS of each address.
 
 The table comes from [@hyperwatch/iptoasn](https://github.com/hyperwatch/iptoasn), iptoasn.com's [`ip2asn-combined`](https://iptoasn.com/) (IPv4 and IPv6, public domain) shipped in that package. It's an optional peer dependency: install it next to Hyperwatch to use the module (without it, the module warns and does nothing):
 

@@ -159,8 +159,15 @@ function byNumber(number) {
 const addressOf = (log) =>
   log.getIn(['address', 'value']) || log.getIn(['request', 'address']);
 
-/** @param {Log} log */
+/**
+ * Fills `asn` from the table: a log that already has one (set by a more
+ * specific source) keeps it
+ * @param {Log} log
+ */
 function augment(log) {
+  if (log.has('asn')) {
+    return log;
+  }
   const value = lookup(addressOf(log));
   return value ? log.set('asn', value) : log;
 }

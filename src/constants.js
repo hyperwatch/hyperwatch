@@ -24,7 +24,9 @@ const constants = {
     // optional peer dependency, see docs/configuration.md)
     asn: {
       active: false,
-      priority: 500,
+      // After cloudflare (500), which sets the client address, and any
+      // other source of asn
+      priority: 501,
       // Addresses whose lookup is kept
       cacheSize: 10000,
     },

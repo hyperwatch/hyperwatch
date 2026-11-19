@@ -35,6 +35,16 @@ describe('asn', () => {
       });
     });
 
+    it('keeps an asn set by another source', () => {
+      const set = log({ address: '8.8.8.8' }).set(
+        'asn',
+        fromJS({ number: 13335 })
+      );
+      assert.deepStrictEqual(asn.augment(set).get('asn').toJS(), {
+        number: 13335,
+      });
+    });
+
     it('falls back to the request address', () => {
       const result = asn.augment(log({ requestAddress: '2001:4860::1' }));
       assert.strictEqual(result.getIn(['asn', 'number']), 15169);
