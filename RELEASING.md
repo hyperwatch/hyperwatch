@@ -6,7 +6,7 @@ Releases are made by GitHub Actions workflows, from `main` only: anything not me
 
 - [**Refresh the published lists**](.github/workflows/refresh.yml) (run by hand, before a release) opens the pull request that updates the address lists and keys operators publish.
 - [**Prepare a release**](.github/workflows/release-prepare.yml) (run by hand) opens the pull request `version X.Y.Z`: `package.json` and `package-lock.json` bumped, and the release notes drafted in `CHANGELOG.md`.
-- [**Release**](.github/workflows/release.yml) (on each push to `main`) releases `package.json`'s version when it isn't released yet: the checks, `npm publish`, an annotated tag `vX.Y.Z` on the commit that set the version, and a GitHub release with its notes.
+- [**Release**](.github/workflows/release.yml) (on each push to `main`) releases `package.json`'s version when it isn't released yet: the checks, `npm publish`, an annotated tag `vX.Y.Z` on the last commit of the version pull request, and a GitHub release with its notes.
 
 `node scripts/release.js` holds what they share (`changes`, `prepare`, `verify`, `pack`, `notes`, `data-changes`: see its header). It never commits, tags, pushes or publishes.
 
@@ -59,14 +59,14 @@ Push the notes to the branch, mark the pull request ready, and merge it once CI 
 
 ## 3. The release
 
-Merging starts the Release workflow (`gh run watch`). From the commit that set the version, it:
+Merging starts the Release workflow (`gh run watch`). From the last commit the version pull request put on `main` (whatever the merge method; the version commit itself if it was pushed without a pull request), it:
 
 1. checks the notes (`release.js verify`), then runs `npm test`, `lint`, `prettier:check`, `type:check`, `types:test`, `depcheck`, and checks the package contents (`release.js pack`: only what the `files` whitelist of `package.json` allows, plus what npm always adds);
 2. publishes to npm, with [trusted publishing](https://docs.npmjs.com/trusted-publishers) (no token);
 3. tags the commit `vX.Y.Z`;
 4. creates the GitHub release `X.Y.Z`, with the version's section of `CHANGELOG.md` and a link to npm.
 
-Each step is skipped when already done: if one fails, fix the cause and rerun the workflow (`gh workflow run release.yml`), it finishes what's missing. Check the result with `npm view @hyperwatch/hyperwatch dist-tags`: `latest` should be the new version.
+Each step is skipped when already done: if one fails, fix the cause and rerun the workflow on `main` (`gh workflow run release.yml`; from another branch it does nothing), it finishes what's missing. Check the result with `npm view @hyperwatch/hyperwatch dist-tags`: `latest` should be the new version.
 
 ### Setup, once
 

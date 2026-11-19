@@ -1,9 +1,10 @@
 # Releases package.json's version when it isn't released yet: on each push
 # to main (a merged "version X.Y.Z" pull request, see release-prepare.yml),
-# or by hand to resume a release that failed. Built from the commit that set
-# the version: checks, npm publish, the tag vX.Y.Z on that commit, and the
-# GitHub release with the version's notes from CHANGELOG.md. Each step is
-# skipped when already done, so a rerun finishes what's missing.
+# or by hand on main to resume a release that failed. Built from the last
+# commit of the pull request that set the version: checks, npm publish, the
+# tag vX.Y.Z on that commit, and the GitHub release with the version's notes
+# from CHANGELOG.md. Each step is skipped when already done, so a rerun
+# finishes what's missing.
 #
 # Publishing uses npm's trusted publishing (OIDC): no token. It's set up on
 # npmjs.com, in the package's settings: GitHub Actions,
@@ -25,6 +26,8 @@ concurrency:
 
 jobs:
   release:
+    # A manual run from another branch releases nothing: only main ships
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -47,10 +50,22 @@ jobs:
             echo "$version is released"
             exit 0
           fi
-          # The commit that set the version, the one released
-          commit=$(git log -1 --format=%H -G "\"version\": \"${version//./\\.}\"" -- package.json)
-          if [ "$(git show "$commit:package.json" | node -p "JSON.parse(require('fs').readFileSync(0)).version")" != "$version" ]; then
+          # The commit that set the version
+          bump=$(git log -1 --format=%H -G "\"version\": \"${version//./\\.}\"" -- package.json)
+          if [ "$(git show "$bump:package.json" | node -p "JSON.parse(require('fs').readFileSync(0)).version")" != "$version" ]; then
             echo "No commit sets the version to $version"
+            exit 1
+          fi
+          # The release is the last commit its pull request put on main, the
+          # notes rewritten after the bump included, whatever the merge
+          # method (squash, rebase or merge commit); the bump itself when it
+          # was pushed without a pull request
+          commit=$(gh api "repos/$GITHUB_REPOSITORY/commits/$bump/pulls" \
+            --jq '[.[] | select(.merged_at and .base.ref == "main")][0].merge_commit_sha // empty')
+          commit=${commit:-$bump}
+          # Only what is on main ships
+          if ! git merge-base --is-ancestor "$commit" origin/main; then
+            echo "$commit isn't on main"
             exit 1
           fi
           echo "Releasing $version from $commit"
