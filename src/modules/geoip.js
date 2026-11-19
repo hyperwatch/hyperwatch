@@ -1,5 +1,8 @@
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
 const { default: flag } = require('country-code-emoji');
-const geoip = require('geoip-lite');
 const { fromJS } = require('immutable');
 
 const constants = require('../constants');
@@ -8,8 +11,9 @@ const logger = require('../lib/logger');
 const pipeline = require('../lib/pipeline');
 
 // What a log keeps of the lookup by default: it's copied into logs, history
-// and aggregator entries, and these are the fields shown
-const DEFAULT_FIELDS = ['country', 'region', 'city'];
+// and aggregator entries. The country only: it needs geoip-lite's country
+// tables (6.5 MB in memory), region and city its city tables (110 MB)
+const DEFAULT_FIELDS = ['country'];
 
 /**
  * The fields of the lookup kept in logs: `modules.geoip.fields`, a list of
@@ -41,6 +45,84 @@ function fieldsFor(config = {}) {
 /** @type {string[] | null} */
 let fields = DEFAULT_FIELDS;
 
+// What geoip-lite's country tables give: every other field needs its city
+// tables
+const COUNTRY_FIELDS = ['country', 'range'];
+
+/**
+ * Whether fields need geoip-lite's city tables (about 110 MB in memory,
+ * against 6.5 MB for the country tables)
+ * @param {string[] | null} fields null: all
+ * @returns {boolean}
+ */
+const needsCities = (fields) =>
+  !fields || fields.some((field) => !COUNTRY_FIELDS.includes(field));
+
+/**
+ * geoip-lite, as loaded by geoipLite()
+ * @typedef {{ lookup: (ip: string) => GeoipLookup | null }} Geoip
+ */
+
+/** @type {{ geoip: Geoip, cities: boolean } | null} */
+let loaded = null;
+
+const GEOIP_FILES = ['geoip-country.dat', 'geoip-country6.dat'];
+
+/**
+ * geoip-lite with its country tables only. It reads its tables when
+ * required, from `global.geodatadir`, and falls back to the country tables
+ * when the city tables aren't there: it's given a directory with only
+ * those, removed once read.
+ * @returns {Geoip}
+ */
+function requireCountries() {
+  const main = require.resolve('geoip-lite');
+  /** @type {{ geodatadir?: string }} */
+  const global = /** @type {any} */ (globalThis);
+  const previous = global.geodatadir;
+  // Where geoip-lite would read its tables (see its lib/geoip.js)
+  const source = path.resolve(
+    path.dirname(main),
+    previous || process.env.GEODATADIR || '../data/'
+  );
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hyperwatch-geoip-'));
+  try {
+    for (const file of GEOIP_FILES) {
+      fs.copyFileSync(path.join(source, file), path.join(dir, file));
+    }
+    global.geodatadir = dir;
+    return require('geoip-lite');
+  } finally {
+    if (previous === undefined) {
+      delete global.geodatadir;
+    } else {
+      global.geodatadir = previous;
+    }
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * geoip-lite, loaded with the tables the fields need: the city tables only
+ * when a field isn't in the country tables
+ * @returns {Geoip}
+ */
+function geoipLite() {
+  const cities = needsCities(fields);
+  if (loaded && (loaded.cities || !cities)) {
+    return loaded.geoip;
+  }
+  if (loaded) {
+    // Fields needing the city tables after a load without them (tests)
+    delete require.cache[require.resolve('geoip-lite')];
+  }
+  loaded = {
+    geoip: cities ? require('geoip-lite') : requireCountries(),
+    cities,
+  };
+  return loaded.geoip;
+}
+
 /**
  * What geoip-lite knows of an address (declared here, so the published types
  * don't need geoip-lite's)
@@ -61,7 +143,7 @@ let fields = DEFAULT_FIELDS;
  * @returns {GeoipLookup | null}
  */
 function lookup(ip) {
-  return geoip.lookup(ip);
+  return geoipLite().lookup(ip);
 }
 
 /**
@@ -113,6 +195,8 @@ const country = (log, output) => {
 
 function init() {
   fields = fieldsFor(constants.modules.geoip);
+  // Loaded now rather than at the first log
+  geoipLite();
 
   pipeline.getNode('main').map(augment).registerNode('main');
 
@@ -120,10 +204,13 @@ function init() {
     after: 'address',
     color: 'grey',
   });
-  aggregator.defaultFormatter.insertFormat('city', city, {
-    after: 'country',
-    color: 'grey',
-  });
+  // A column only when logs have the city
+  if (!fields || fields.includes('city')) {
+    aggregator.defaultFormatter.insertFormat('city', city, {
+      after: 'country',
+      color: 'grey',
+    });
+  }
   logger.defaultFormatter.insertFormat('country', country, {
     after: 'address',
     color: 'grey',
@@ -135,6 +222,7 @@ module.exports = {
   init,
   augment,
   fieldsFor,
+  needsCities,
 };
 
 /** @typedef {import('../types').Log} Log */
