@@ -12,6 +12,15 @@ const wsServer = require('./ws-server');
 const app = express();
 const httpServer = http.createServer(app);
 
+// Open connections, closed at stop: live log streams never end their
+// responses, and WebSocket clients stay connected
+/** @type {Set<import('net').Socket>} */
+const sockets = new Set();
+httpServer.on('connection', (socket) => {
+  sockets.add(socket);
+  socket.on('close', () => sockets.delete(socket));
+});
+
 httpServer.on('upgrade', (request, socket, head) => {
   wsServer.handleUpgrade(request, socket, head);
 });
@@ -33,8 +42,9 @@ function start() {
 }
 
 /**
- * Stops listening, when start() made the server listen: nothing to do for an
- * app that mounts Hyperwatch in its own server
+ * Stops listening and closes the open connections (live streams, WebSocket
+ * clients), when start() made the server listen: nothing to do for an app
+ * that mounts Hyperwatch in its own server
  * @returns {Promise<void>}
  */
 function stop() {
@@ -43,6 +53,9 @@ function stop() {
   }
   return new Promise((resolve) => {
     httpServer.close(() => resolve());
+    for (const socket of sockets) {
+      socket.destroy();
+    }
   });
 }
 

@@ -199,6 +199,48 @@ describe('hyperwatch.stop', () => {
 });
 
 describe('hyperwatch.app', () => {
+  it('stops even when a client keeps a connection open', async () => {
+    const net = require('net');
+    const { app } = hyperwatch;
+    // A free port, for PORT
+    const probe = net.createServer();
+    await new Promise((resolve) => probe.listen(0, resolve));
+    const listening = probe.address().port;
+    await new Promise((resolve) => probe.close(resolve));
+    const port = process.env.PORT;
+    const log = console.log;
+    process.env.PORT = String(listening);
+    console.log = () => {};
+    try {
+      await app.start();
+      // A response that never ends, like a live log stream
+      app.api.get('/test-never-ends', (req, res) => {
+        res.write('started');
+      });
+      const client = net.connect(listening);
+      // Reset by the server at stop
+      client.on('error', () => {});
+      await new Promise((resolve) => client.on('connect', resolve));
+      client.write('GET /test-never-ends HTTP/1.1\r\nHost: localhost\r\n\r\n');
+      await new Promise((resolve) => client.once('data', resolve));
+      const closed = new Promise((resolve) => client.on('close', resolve));
+      await Promise.race([
+        app.stop(),
+        new Promise((resolve, reject) =>
+          setTimeout(() => reject(new Error('stop() hung')), 2000)
+        ),
+      ]);
+      await closed;
+    } finally {
+      if (port === undefined) {
+        delete process.env.PORT;
+      } else {
+        process.env.PORT = port;
+      }
+      console.log = log;
+    }
+  });
+
   it('starts listening, then stops, and stopping again does nothing', async () => {
     const { app } = hyperwatch;
     const port = process.env.PORT;
