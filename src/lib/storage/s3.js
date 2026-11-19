@@ -163,6 +163,8 @@ function createS3Storage(config = {}, { client } = {}) {
       followRegionRedirects: true,
       endpoint: s3.endpoint || undefined,
       forcePathStyle: s3.forcePathStyle || undefined,
+      // Without credentials, the SDK's default chain (AWS_* variables…)
+      credentials: s3.credentials || undefined,
       // Retrying an upload after losing its response could leave an older
       // attempt running after the retry succeeds and the next dump starts.
       maxAttempts: 1,
@@ -256,6 +258,24 @@ createS3Storage.validate = (config) => {
   const s3 = config.s3 || {};
   if (!s3.bucket) {
     throw new Error('persistence.s3.bucket is required with the s3 backend');
+  }
+  const { credentials } = s3;
+  if (
+    credentials !== undefined &&
+    credentials !== null &&
+    typeof credentials !== 'function' &&
+    !(
+      typeof credentials === 'object' &&
+      typeof credentials.accessKeyId === 'string' &&
+      credentials.accessKeyId &&
+      typeof credentials.secretAccessKey === 'string' &&
+      credentials.secretAccessKey
+    )
+  ) {
+    // The message never includes the values
+    throw new Error(
+      'persistence.s3.credentials must be { accessKeyId, secretAccessKey } or a credentials provider function'
+    );
   }
   sdk();
 };

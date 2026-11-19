@@ -151,6 +151,31 @@ describe('s3 storage', () => {
     storage.close();
   });
 
+  it('uses the configured credentials instead of the default chain', async () => {
+    const credentials = {
+      accessKeyId: 'AKIDEXAMPLE',
+      secretAccessKey: 'secret',
+    };
+    const storage = createS3Storage({ s3: { bucket: 'bucket', credentials } });
+    const resolved = await storage.client.config.credentials();
+    assert.strictEqual(resolved.accessKeyId, 'AKIDEXAMPLE');
+    assert.strictEqual(resolved.secretAccessKey, 'secret');
+    await storage.close();
+  });
+
+  it('accepts a credentials provider', async () => {
+    const provider = async () => ({
+      accessKeyId: 'AKIDPROVIDED',
+      secretAccessKey: 'provided',
+    });
+    const storage = createS3Storage({
+      s3: { bucket: 'bucket', credentials: provider },
+    });
+    const resolved = await storage.client.config.credentials();
+    assert.strictEqual(resolved.accessKeyId, 'AKIDPROVIDED');
+    await storage.close();
+  });
+
   it('disables SDK retries so an earlier upload attempt cannot outlive a successful retry', async () => {
     const storage = createS3Storage({ s3: { bucket: 'bucket' } });
     assert.strictEqual(await storage.client.config.maxAttempts(), 1);
@@ -325,6 +350,38 @@ describe('s3 persistence configuration', () => {
       normalize({ enabled: true, backend: 's3', s3: { bucket: 'b' } }).backend,
       's3'
     );
+  });
+
+  it('checks credentials without showing them', () => {
+    for (const credentials of [
+      'AKIDEXAMPLE:secret',
+      { accessKeyId: 'AKIDEXAMPLE' },
+      { accessKeyId: 'AKIDEXAMPLE', secretAccessKey: '' },
+    ]) {
+      assert.throws(
+        () =>
+          normalize({
+            enabled: true,
+            backend: 's3',
+            s3: { bucket: 'b', credentials },
+          }),
+        (err) =>
+          /persistence\.s3\.credentials must be/.test(err.message) &&
+          !err.message.includes('AKIDEXAMPLE') &&
+          !err.message.includes('secret:')
+      );
+    }
+    for (const credentials of [
+      { accessKeyId: 'AKIDEXAMPLE', secretAccessKey: 'secret' },
+      async () => ({ accessKeyId: 'a', secretAccessKey: 'b' }),
+      undefined,
+    ]) {
+      normalize({
+        enabled: true,
+        backend: 's3',
+        s3: { bucket: 'b', credentials },
+      });
+    }
   });
 
   it('reads forcePathStyle from environment strings', () => {

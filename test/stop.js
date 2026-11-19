@@ -145,4 +145,77 @@ describe('hyperwatch.stop', () => {
       app.stop = original.appStop;
     }
   });
+
+  it('starts and stops a mounted Hyperwatch without its own server', async () => {
+    const { constants, lib, app, modules } = hyperwatch;
+    const original = {
+      enabled: constants.persistence.enabled,
+      modulesStart: modules.start,
+      persistenceStart: lib.persistence.start,
+      persistenceStop: lib.persistence.stop,
+      pipelineStart: lib.pipeline.start,
+      pipelineStop: lib.pipeline.stop,
+      appStart: app.start,
+    };
+    const calls = [];
+
+    try {
+      constants.persistence.enabled = true;
+      modules.start = () => {};
+      lib.persistence.start = async () => calls.push('persistence.start');
+      lib.persistence.stop = async () => calls.push('persistence.stop');
+      lib.pipeline.start = () => calls.push('pipeline.start');
+      lib.pipeline.stop = async () => calls.push('pipeline.stop');
+      app.start = () => calls.push('app.start');
+      // start() needs init() to have run once
+      const warn = console.warn;
+      console.warn = () => {};
+      try {
+        hyperwatch.init();
+      } finally {
+        console.warn = warn;
+      }
+
+      await hyperwatch.start({ listen: false });
+      // The real app.stop(): the server never listened
+      await hyperwatch.stop();
+
+      assert.deepStrictEqual(calls, [
+        'persistence.start',
+        'pipeline.start',
+        'pipeline.stop',
+        'persistence.stop',
+      ]);
+    } finally {
+      constants.persistence.enabled = original.enabled;
+      modules.start = original.modulesStart;
+      lib.persistence.start = original.persistenceStart;
+      lib.persistence.stop = original.persistenceStop;
+      lib.pipeline.start = original.pipelineStart;
+      lib.pipeline.stop = original.pipelineStop;
+      app.start = original.appStart;
+    }
+  });
+});
+
+describe('hyperwatch.app', () => {
+  it('starts listening, then stops, and stopping again does nothing', async () => {
+    const { app } = hyperwatch;
+    const port = process.env.PORT;
+    const log = console.log;
+    process.env.PORT = '0';
+    console.log = () => {};
+    try {
+      await app.start();
+      await app.stop();
+      await app.stop();
+    } finally {
+      if (port === undefined) {
+        delete process.env.PORT;
+      } else {
+        process.env.PORT = port;
+      }
+      console.log = log;
+    }
+  });
 });

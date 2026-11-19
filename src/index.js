@@ -34,8 +34,11 @@ function init(config = {}) {
 /**
  * Starts the modules, restores the persistence when enabled, then the inputs
  * and the API.
+ * @param {{ listen?: boolean }} [options] `listen: false` for an app that
+ *   mounts Hyperwatch in its own server (`app.mount()`): everything starts
+ *   but the standalone server, which would listen on its own port
  */
-async function start() {
+async function start({ listen = true } = {}) {
   if (!initialized) {
     console.warn(`Can't start, Hyperwatch was not initialized.`);
     return;
@@ -57,9 +60,13 @@ async function start() {
       return;
     }
   }
-  return Promise.all([app.start(), pipeline.start()]);
+  return Promise.all([listen ? app.start() : undefined, pipeline.start()]);
 }
 
+/**
+ * Stops the modules and the inputs, ends the log files, persists when
+ * enabled, then stops the standalone server if it listens
+ */
 async function stop() {
   stopping = true;
   persistence.stopSnapshots();

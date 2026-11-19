@@ -173,13 +173,14 @@ A custom storage can replace the backend with `hyperwatch.lib.persistence.setSto
 
 The `s3` backend keeps the documents in one S3 bucket (or an S3-compatible store). It needs `@aws-sdk/client-s3`, an optional peer dependency: `npm install @aws-sdk/client-s3`.
 
-| Constant name                 | Type    | Default | Description                                                                                            |
-| ----------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------ |
-| persistence.s3.bucket         | string  | `null`  | The bucket, required                                                                                   |
-| persistence.s3.prefix         | string  | `''`    | Optional key prefix, e.g. `watch/`, to share a bucket                                                  |
-| persistence.s3.region         | string  | `null`  | The bucket's region (`AWS_REGION`, then `us-east-1`, when not set). A wrong one works after a redirect |
-| persistence.s3.endpoint       | string  | `null`  | For S3-compatible stores (MinIO, Cloudflare R2…)                                                       |
-| persistence.s3.forcePathStyle | boolean | `false` | Path-style URLs, which MinIO needs                                                                     |
+| Constant name                 | Type    | Default | Description                                                                                             |
+| ----------------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| persistence.s3.bucket         | string  | `null`  | The bucket, required                                                                                    |
+| persistence.s3.prefix         | string  | `''`    | Optional key prefix, e.g. `watch/`, to share a bucket                                                   |
+| persistence.s3.region         | string  | `null`  | The bucket's region (`AWS_REGION`, then `us-east-1`, when not set). A wrong one works after a redirect  |
+| persistence.s3.endpoint       | string  | `null`  | For S3-compatible stores (MinIO, Cloudflare R2…)                                                        |
+| persistence.s3.forcePathStyle | boolean | `false` | Path-style URLs, which MinIO needs                                                                      |
+| persistence.s3.credentials    | object  | `null`  | `{ accessKeyId, secretAccessKey, sessionToken? }` or a credentials provider function, from code (below) |
 
 ```sh
 hyperwatch_persistence__enabled=1
@@ -189,6 +190,26 @@ hyperwatch_persistence__s3__region=eu-west-1
 AWS_ACCESS_KEY_ID=…
 AWS_SECRET_ACCESS_KEY=…
 ```
+
+Without `persistence.s3.credentials`, the AWS SDK's default chain finds the credentials: the `AWS_*` variables above, a profile, an instance role… An app that keeps its settings elsewhere than in `process.env`, or uses other keys for its other buckets, passes them to `init()` instead:
+
+```javascript
+hyperwatch.init({
+  persistence: {
+    enabled: true,
+    backend: 's3',
+    s3: {
+      bucket: 'my-hyperwatch-bucket',
+      credentials: {
+        accessKeyId: config.hyperwatch.s3.accessKeyId,
+        secretAccessKey: config.hyperwatch.s3.secretAccessKey,
+      },
+    },
+  },
+});
+```
+
+The firewall lists, stored with the persistence backend, use them too. Hyperwatch never shows or logs them.
 
 - **Credentials** come from the AWS SDK's default chain (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, instance roles…), never from the Hyperwatch configuration.
 - **Permissions:** `s3:GetObject` and `s3:PutObject` on `arn:aws:s3:::<bucket>/*` (or `<bucket>/<prefix>*`), and unconditional `s3:ListBucket` on `arn:aws:s3:::<bucket>`. Hyperwatch never lists the bucket, but without `ListBucket` S3 answers `403 AccessDenied` instead of `404 NoSuchKey` for a missing object, so every document of a new namespace would be counted as failed. A `StringLike` condition on `s3:prefix` doesn't fix this: it requires a prefix parameter on a listing request, which `GetObject` doesn't supply. Prefer one bucket and one user per environment, as in the policy below. For a shared bucket, restrict `GetObject` and `PutObject` to each environment's prefix; unconditional `ListBucket` still allows that user to list other environments' object keys. If that visibility is unacceptable, use separate buckets, or keep prefix-restricted listing permissions and accept that missing documents are reported as failed reads:

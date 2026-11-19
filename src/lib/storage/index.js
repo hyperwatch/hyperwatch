@@ -25,7 +25,13 @@
  * @property {string} [backend] `file` (default) or `s3`
  * @property {string} [namespace] A directory or key prefix per instance
  * @property {string} [path] The file backend's directory
- * @property {{ bucket?: string, prefix?: string, region?: string, endpoint?: string, forcePathStyle?: boolean }} [s3]
+ * @property {{ bucket?: string, prefix?: string, region?: string, endpoint?: string, forcePathStyle?: boolean, credentials?: S3Credentials }} [s3]
+ */
+
+/**
+ * S3 credentials: keys, or a provider function as the AWS SDK takes
+ * (`fromIni()`…). Without them, the SDK's default chain (AWS_* variables…)
+ * @typedef {{ accessKeyId: string, secretAccessKey: string, sessionToken?: string } | (() => Promise<{ accessKeyId: string, secretAccessKey: string, sessionToken?: string }>)} S3Credentials
  */
 
 /** @typedef {import('../../types').Abortable} Abortable */

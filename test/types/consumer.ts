@@ -69,6 +69,8 @@ app.mount(express(), {
 });
 
 const started: Promise<unknown> = hyperwatch.start();
+// Mounted in the app's own server: no standalone server
+const mounted: Promise<unknown> = hyperwatch.start({ listen: false });
 const stopped: Promise<void> = hyperwatch.stop();
 // An app typed `Application`, building its own logs
 const application: express.Application = express();
@@ -101,6 +103,7 @@ node
   .registerNode('public');
 
 void started;
+void mounted;
 void stopped;
 void modules;
 
