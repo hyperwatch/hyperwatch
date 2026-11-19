@@ -35,16 +35,22 @@ hyperwatch.app.mount(app, {
 
 // Other middleware and application routes
 
-hyperwatch.modules.start();
-// Modules that load data first (e.g. firewall lists from S3) are ready
-// before the inputs start and requests come in
-hyperwatch.modules.ready().then(() => {
-  hyperwatch.pipeline.start();
+// Modules (and persistence, when enabled) are ready before the inputs start
+// and requests come in. `listen: false`: the app's server serves Hyperwatch,
+// which doesn't start its own
+hyperwatch.start({ listen: false }).then(() => {
   server.listen(PORT);
+});
+
+// At shutdown: stops the modules and inputs, ends the log files, saves the
+// persistence snapshot
+process.on('SIGTERM', async () => {
+  await hyperwatch.stop();
+  server.close();
 });
 ```
 
-Don't call `hyperwatch.start()`: it would start the standalone Hyperwatch server.
+`hyperwatch.start()` without `{ listen: false }` would also start the standalone Hyperwatch server, on its own port. `hyperwatch.stop()` stops that server only if it listens.
 
 ## `hyperwatch.app.mount(app, options)`
 
