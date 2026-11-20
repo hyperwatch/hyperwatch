@@ -1,0 +1,186 @@
+# Refreshes the address lists and Web Bot Auth keys that operators publish,
+# and the robot categories from the robots database (src/data), and opens or
+# updates the pull request "Refresh the published IP ranges…" with what was
+# added and removed, before each release (see RELEASING.md). Lists copied by
+# hand aren't fetched: compare them on the branch.
+name: Refresh the published lists
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  # To run CI on the branch (see below)
+  actions: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+
+    env:
+      BRANCH: refresh-published-lists
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # To compare the refresh branch with main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: npm
+      - run: npm ci
+
+      # A list or an agent that can't be fetched keeps its current file: the
+      # others are still refreshed, and the failures go in the pull request
+      - name: Fetch
+        id: fetch
+        run: |
+          # Their exit status is what says a refresh failed; the ": failed"
+          # lines say which list
+          ips=0
+          node scripts/fetch-ips.js 2>&1 | tee fetch-ips.log || ips=$?
+          keys=0
+          node scripts/fetch-webbotauth-keys.js 2>&1 | tee fetch-keys.log || keys=$?
+          # The robot categories, from the database's main; its report goes
+          # in the pull request
+          categories=0
+          if git clone -q --depth 1 https://github.com/hyperwatch/database "$RUNNER_TEMP/database"; then
+            node scripts/robot-categories.js "$RUNNER_TEMP/database" > categories.log 2>&1 || categories=$?
+          else
+            echo 'The robots database: failed (git clone)' > categories.log
+            categories=1
+          fi
+          cat categories.log
+          # A new database commit alone changes nothing
+          node -e '
+            const { execFileSync } = require("child_process");
+            const { categoryChanges } = require("./scripts/lib/data-changes");
+            const file = "src/data/robot-categories.json";
+            const read = (text) => JSON.parse(text);
+            const before = read(execFileSync("git", ["show", `HEAD:${file}`]));
+            const after = read(require("fs").readFileSync(file, "utf8"));
+            if (categoryChanges(before, after).length === 0) {
+              execFileSync("git", ["checkout", "--", file]);
+            }
+          '
+          npx prettier --write src/data > /dev/null
+          failed=$(grep -h -E ': failed' fetch-ips.log fetch-keys.log | sed 's/^/- /' || true)
+          if [ "$ips" -ne 0 ] && ! grep -q ': failed' fetch-ips.log; then
+            failed="$failed"$'\n'"- scripts/fetch-ips.js exited with status $ips"
+          fi
+          if [ "$keys" -ne 0 ] && ! grep -q ': failed' fetch-keys.log; then
+            failed="$failed"$'\n'"- scripts/fetch-webbotauth-keys.js exited with status $keys"
+          fi
+          if [ "$categories" -ne 0 ]; then
+            failed="$failed"$'\n'"- scripts/robot-categories.js: $(tail -1 categories.log)"
+          fi
+          failed=$(echo "$failed" | sed '/^$/d')
+          {
+            echo 'failed<<EOF'
+            echo "$failed"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+          rm fetch-ips.log fetch-keys.log
+
+      - name: Changes
+        id: changes
+        run: |
+          node scripts/release.js data-changes > changes.md
+          cat changes.md
+          if [ -n "$(git status --porcelain -- src/data)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.changes.outputs.changed
+        run: npm test
+
+      - name: Open or update the pull request
+        if: steps.changes.outputs.changed
+        env:
+          FAILED: ${{ steps.fetch.outputs.failed }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title=$(head -1 changes.md)
+          {
+            echo "Ran \`scripts/fetch-ips.js\`, \`scripts/fetch-webbotauth-keys.js\` and \`scripts/robot-categories.js\` (on the robots database's \`main\`) and committed the result, formatted with prettier. \`npm test\` passes: the identity tests read their addresses from these files."
+            echo
+            tail -n +2 changes.md
+            if [ -n "$(git status --porcelain -- src/data/robot-categories.json)" ]; then
+              echo
+              echo '<details><summary>The robot categories script'"'"'s report (RELEASING.md says what to look for)</summary>'
+              echo
+              echo '```'
+              cat categories.log
+              echo '```'
+              echo
+              echo '</details>'
+            fi
+            if [ -n "$FAILED" ]; then
+              echo
+              echo "Couldn't be fetched, current files kept:"
+              echo
+              echo "$FAILED"
+            fi
+            echo
+            echo "Lists copied by hand (RELEASING.md) aren't fetched: compare them with their sources on this branch."
+          } > body.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # Commits added by hand to the branch (the lists copied by hand)
+          # would be lost: refuse to replace them
+          # (a lookup that fails stops the run: it isn't "no branch")
+          lease=
+          if remote=$(git ls-remote --exit-code --heads origin "$BRANCH"); then
+            lease=$(echo "$remote" | awk '{ print $1 }')
+            git fetch -q origin "$BRANCH"
+            others=$(git log --format='%an' "origin/main..$lease" | grep -v -x 'github-actions\[bot\]' || true)
+            if [ -n "$others" ]; then
+              echo "::error::$BRANCH has commits made by hand: merge or close its pull request first, or retry the failed fetches on the branch (node scripts/fetch-ips.js <name>)"
+              exit 1
+            fi
+          elif [ $? -ne 2 ]; then
+            exit 1
+          fi
+          git switch -C "$BRANCH"
+          git add src/data
+          git commit -qm "$title"
+          # Replaces only the branch inspected above: a push made since then
+          # makes this one fail
+          git push --force-with-lease="$BRANCH:$lease" origin "$BRANCH"
+          pr=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --title "$title" --body-file body.md
+          elif ! gh pr create --base main --head "$BRANCH" --title "$title" --body-file body.md; then
+            # Needs "Allow GitHub Actions to create and approve pull
+            # requests" in the repository's settings
+            url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/compare/main...$BRANCH?expand=1"
+            echo "Open the pull request: $url" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          # A push made with the workflow's token starts no CI run (and
+          # its pull request's runs may wait for approval): run CI on the
+          # branch, for the checks the pull request needs
+          gh workflow run ci.yml --ref "$BRANCH"
+
+      - name: Nothing changed
+        if: ${{ !steps.changes.outputs.changed }}
+        run: echo "The lists that could be fetched are unchanged" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      # A refresh with failures isn't complete, changes or not: the run fails
+      # after reporting them (in the pull request too, when one was updated)
+      - name: Failures
+        if: steps.fetch.outputs.failed
+        env:
+          FAILED: ${{ steps.fetch.outputs.failed }}
+        run: |
+          {
+            echo "Couldn't be fetched, current files kept:"
+            echo
+            echo "$FAILED"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
+          exit 1

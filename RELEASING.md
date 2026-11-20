@@ -2,26 +2,23 @@
 
 How to release a new version of `@hyperwatch/hyperwatch`.
 
-Releases are cut from `origin/main` only: anything not merged into `main` doesn't ship. Each release is one commit `version X.Y.Z` that bumps the version and adds the release notes to [CHANGELOG.md](CHANGELOG.md), an annotated tag `vX.Y.Z` on it, a publish to npm, and a GitHub release with the same notes.
+Releases are made by GitHub Actions workflows, from `main` only: anything not merged into `main` doesn't ship.
 
-You need push access to `main`, publish rights on the npm package (with 2FA), and the [GitHub CLI](https://cli.github.com/).
+- [**Refresh the published lists**](.github/workflows/refresh.yml) (run by hand, before a release) opens the pull request that updates the address lists and keys operators publish, and the robot categories.
+- [**Prepare a release**](.github/workflows/release-prepare.yml) (run by hand) opens the pull request `version X.Y.Z`: `package.json` and `package-lock.json` bumped, and the release notes drafted in `CHANGELOG.md`.
+- [**Release**](.github/workflows/release.yml) (on each push to `main`) releases `package.json`'s version when it isn't released yet: the checks, `npm publish`, an annotated tag `vX.Y.Z` on the last commit of the version pull request, and a GitHub release with its notes.
+
+`node scripts/release.js` holds what they share (`changes`, `prepare`, `verify`, `pack`, `notes`, `data-changes`: see its header). It never commits, tags, pushes or publishes.
 
 ## Before you start: refresh the published ranges, keys and categories
 
-Several identities are checked against address lists their operators publish (`src/data/*-ips.json`). Refresh them all before each release, so it ships with current ranges. Do it in a separate worktree, with dependencies installed (the updater needs them):
+Several identities are checked against address lists their operators publish (`src/data/*-ips.json`), Web Bot Auth signatures against the agents' keys (`src/data/webbotauth-keys.json`), and the category of each identity's robots comes from the [robots database](https://github.com/hyperwatch/database) (`src/data/robot-categories.json`). Refresh them before each release, so it ships with current ranges, keys and categories:
 
 ```bash
-git fetch origin
-git worktree add -b refresh-ranges ../hyperwatch-refresh origin/main
-cd ../hyperwatch-refresh
-npm ci
-node scripts/fetch-ips.js
-node scripts/fetch-webbotauth-keys.js
-npx prettier --write src/data
-git status --short src/data
+gh workflow run refresh.yml
 ```
 
-`scripts/fetch-webbotauth-keys.js` refreshes the keys of the Web Bot Auth agents in `src/data/webbotauth-keys.json` the same way. `scripts/fetch-ips.js` fetches every list in `src/data/ip-list-sources.json`. A list that can't be fetched or parsed, is empty, or has an invalid entry keeps its current file; the script names it at the end and exits with a non-zero status. If one failed, stop: retry later (`node scripts/fetch-ips.js <name>` refreshes only that list), or find out why, rather than release with a list that wasn't refreshed.
+The [**Refresh the published lists**](.github/workflows/refresh.yml) workflow runs `scripts/fetch-ips.js`, `scripts/fetch-webbotauth-keys.js` and `scripts/robot-categories.js` (on a clone of the database's `main`), then `npm test`, and opens (or updates) the pull request named after what changed ("Refresh the published IP ranges", "Refresh the Web Bot Auth keys", "Refresh the robot categories", or a title naming each), from the branch `refresh-published-lists`. The pull request gives a table of the ranges and keys added and removed per file and of the categories changed per identity (`node scripts/release.js data-changes`; a new database commit alone isn't a change), and the lists, agents or categories that couldn't be refreshed, which keep their current files: retry later, or find out why, rather than release with a list that wasn't refreshed. If nothing changed, the run says so and opens nothing. If a list or an agent couldn't be fetched, the run fails after listing it, even when nothing else changed.
 
 Some lists have no updater: their operators publish them only inside a page, a table or a PDF, and a parser per page would break silently when the page changes. Compare them with their source too, by hand or by asking an agent to read each source below and update the file, then review the diff:
 
@@ -31,69 +28,26 @@ Some lists have no updater: their operators publish them only inside a page, a t
 - `360spider-ips.json`: the PDF linked from [360's spider page](https://www.so.com/help/spider_ip.html), one address per line (`pdftotext` reads it).
 - `dataforseo-ips.json`: the IPv4 and IPv6 subnets written under "IPv4:" and "IPv6:" on [DataForSEO's bot page](https://dataforseo.com/dataforseo-bot).
 - `marginalia-ips.json`: the addresses written after "IP address:" under "Crawler Fingerprint" on [Marginalia's page for webmasters](https://www.marginalia.nu/marginalia-search/for-webmasters/) (`193.183.0.162-174` as CIDRs).
-- `censys-ips.json`: the IPv4 and IPv6 ranges in the block under the list of addresses on [Censys's opt-out page](https://docs.censys.com/docs/opt-out-of-data-collection) (its ASNs aren't used).
 
-The category of each identity's robots (`src/data/robot-categories.json`) comes from the [robots database](https://github.com/hyperwatch/database). Refresh it from a clean checkout of the database's `main`:
+Do it on the refresh branch (or a branch of your own when nothing else changed), and add what changed to the pull request's table.
 
-```bash
-git clone --depth 1 https://github.com/hyperwatch/database ../hyperwatch-database
-node scripts/robot-categories.js ../hyperwatch-database
-npx prettier --write src/data
-git diff --stat src/data/robot-categories.json
-```
+When the categories changed, the pull request also holds the report of `scripts/robot-categories.js`: the identities without a category, the agent families without one under an identity whose robots differ, and what changed since the committed file. An identity can lose its category for every user agent when the database gains a robot of another kind for it (it then has one per agent family): say so under **Identities** in the release notes. The script stops, and keeps the file, on a robot file it can't read, on two categories for one agent family of an identity, and on a category it doesn't know: the run then lists it as a failure. Fix the robot file in the database, or add a new category to `CATEGORIES` in `scripts/lib/robot-categories.js` and name it under **Features** (applications decide by category). To refresh by hand: `node scripts/robot-categories.js <clean checkout of the database>`.
 
-The script prints what to read before releasing: the identities without a category, the agent families without one under an identity whose robots differ, and what changed since the committed file. An identity can lose its category for every user agent when the database gains a robot of another kind for it (it then has one per agent family): say so under **Identities** in the release notes. The script stops, and keeps the file, on a robot file it can't read, on two categories for one agent family of an identity, and on a category it doesn't know: add a new category to `CATEGORIES` in `scripts/lib/robot-categories.js`, and name it under **Features** (applications decide by category). Remove the checkout afterwards.
+Merge the refresh pull request before step 1; its line lands under **Identities** in the drafted notes.
 
-If any list, key or category changed, run `npm test`, then open a PR named after what changed: "Refresh the published IP ranges", "Refresh the Web Bot Auth keys", "Refresh the robot categories", or a title naming each ("Refresh the published IP ranges and Web Bot Auth keys"). Give a table of the ranges and keys added and removed per file, and the lists left unchanged (as in [#636](https://github.com/hyperwatch/hyperwatch/pull/636)). Merge it before step 1, and mention it under **Identities** in the release notes. If nothing changed, go on.
+## 1. Prepare the pull request
 
-Then remove the refresh worktree and its branch, so the next release can create them again:
+Pick the version with [semver](https://semver.org/): raising the required Node.js version, or changing the Express major version behind `hyperwatch.app.api`, is a major bump. `node scripts/release.js changes` lists what changed since the last release, on npm and as a tag, to decide. Then run the workflow:
 
 ```bash
-cd -
-git worktree remove ../hyperwatch-refresh
-git branch -D refresh-ranges
+gh workflow run release-prepare.yml -f version=X.Y.Z
 ```
 
-## 1. Prepare a clean worktree
+It pushes the branch `release-vX.Y.Z` and opens the draft pull request `version X.Y.Z`. If the repository doesn't allow GitHub Actions to create pull requests (Settings → Actions → General), the run's summary gives the link to open it.
 
-Release from a separate worktree, so your usual checkout and whatever branch it's on stay untouched:
+## 2. Rewrite the release notes
 
-```bash
-git fetch origin
-git worktree add ../hyperwatch-release origin/main
-cd ../hyperwatch-release
-```
-
-## 2. Check the tree
-
-```bash
-npm ci
-npm test
-npm run lint
-npm run prettier:check
-npm run type:check
-npm run types:test
-```
-
-Fix anything that fails on `main` first, through a normal PR.
-
-## 3. Check the package contents
-
-```bash
-npm pack --dry-run
-```
-
-The file list should only contain what the `files` whitelist in `package.json` allows (`bin`, `config`, `docs`, `src`, `start.js`, and `types`, the declarations `prepack` generates; `scripts/` holds maintainer tools and doesn't ship), plus the files npm always adds (`hyperwatch.js`, `LICENSE`, `README.md`, `package.json`). Make sure no local files or secrets slipped in.
-
-## 4. Write the release notes and pick the version
-
-List what changed since the last release:
-
-```bash
-git log --no-merges vX.Y.Z..origin/main
-```
-
-Write the notes in Markdown, in these sections (skip the empty ones):
+The notes are drafted in `CHANGELOG.md`, under `## X.Y.Z (YYYY-MM-DD)`: PR links in full, dependabot bumps in one line under **Dependencies & tooling**, refreshes of the published lists under **Identities**, the rest under **To sort**. Rewrite them in these sections, with `###` headings (skip the empty ones):
 
 - **Breaking changes**
 - **Features**
@@ -101,55 +55,28 @@ Write the notes in Markdown, in these sections (skip the empty ones):
 - **Identities**
 - **Dependencies & tooling**, with the dependabot bumps summarized in one line
 
-Link PR numbers in full, as `([#NNN](https://github.com/hyperwatch/hyperwatch/pull/NNN))`: GitHub doesn't turn a bare `#NNN` into a link in a Markdown file.
+Write for the package's users: what changed for them, not how; leave out what they can't see (CI, tests, refactors), or fold it into Dependencies & tooling. Link PR numbers in full, as `([#NNN](https://github.com/hyperwatch/hyperwatch/pull/NNN))`: GitHub doesn't turn a bare `#NNN` into a link in a Markdown file.
 
-Choose the version with [semver](https://semver.org/). Raising the required Node.js version, or changing the Express major version behind `hyperwatch.app.api`, is a major bump.
+Push the notes to the branch, mark the pull request ready, and merge it once CI passes. The `release-notes` check (and the release) refuses notes that still have a "To sort" section. Any merge method works: the tag is created after the merge, on the commit it put on `main`.
 
-## 5. Update the changelog and bump the version
+## 3. The release
 
-Add the notes at the top of `CHANGELOG.md`, under a `## X.Y.Z (YYYY-MM-DD)` heading, with one `###` heading per section. Then:
+Merging starts the Release workflow (`gh run watch`). From the last commit the version pull request put on `main` (whatever the merge method; the version commit itself if it was pushed without a pull request), it:
 
-```bash
-npm version X.Y.Z --no-git-tag-version
-git commit -am "version X.Y.Z"
-git tag -a vX.Y.Z -m "version X.Y.Z"
-```
+1. checks the notes (`release.js verify`), then runs `npm test`, `lint`, `prettier:check`, `type:check` and `depcheck`;
+2. packs the package once, checks the tarball's contents (`release.js pack`: only what the `files` whitelist of `package.json` allows, plus what npm always adds) and type-tests its declarations (`types:test`);
+3. publishes that tarball to npm, with [trusted publishing](https://docs.npmjs.com/trusted-publishers) (no token);
+4. tags the commit `vX.Y.Z`;
+5. creates the GitHub release `X.Y.Z`, with the version's section of `CHANGELOG.md` and a link to npm.
 
-This updates `package.json` and `package-lock.json`, commits them with `CHANGELOG.md` as `version X.Y.Z`, and creates the tag `vX.Y.Z`. `npm version` refuses to commit and tag when the working tree has other changes, hence `--no-git-tag-version` and the manual commit and tag, which match what it would create.
+Each step is skipped when already done: if one fails, fix the cause and rerun the workflow on `main` (`gh workflow run release.yml`; from another branch it does nothing), it finishes what's missing. Once the version is on npm, a rerun only checks the notes again before the tag and the GitHub release. Check the result with `npm view @hyperwatch/hyperwatch dist-tags`: `latest` should be the new version.
 
-## 6. Push to main
+### Setup, once
 
-```bash
-git push --atomic origin HEAD:main vX.Y.Z
-```
+- npm trusted publishing: on npmjs.com, in the package's settings, add a trusted publisher: GitHub Actions, `hyperwatch/hyperwatch`, workflow `release.yml`.
+- Optionally, in the repository's settings (Actions → General), "Allow GitHub Actions to create and approve pull requests", so that the refresh and prepare workflows open their pull requests themselves.
 
-`--atomic` pushes the commit and the tag together or not at all. Without it, if `main` moved since step 1, the branch update is rejected but the tag is still pushed, on a commit that isn't on `main`. If the push is rejected, drop the local tag and version commit (`git tag -d vX.Y.Z && git fetch origin && git reset --hard origin/main`) and start again from step 2, since the release notes may need the new commits.
-
-Push the version commit straight to `main`. Don't open a PR that gets squash- or rebase-merged: that rewrites the commit, and the tag ends up pointing at a commit that isn't on `main` (this happened with `v4.3.1`). If it really has to go through a PR, merge it with a merge commit and push the tag after the merge.
-
-## 7. Publish to npm
-
-```bash
-npm publish
-```
-
-Check the result with `npm view @hyperwatch/hyperwatch dist-tags`: `latest` should be the new version.
-
-## 8. Create the GitHub release
-
-Save the release's section of `CHANGELOG.md`, without its `## X.Y.Z` heading, to a file outside the worktree (an untracked file there would block the cleanup in step 9), then:
-
-```bash
-gh release create vX.Y.Z --repo hyperwatch/hyperwatch --title "X.Y.Z" --notes-file ../hyperwatch-vX.Y.Z-notes.md --latest --verify-tag
-```
-
-## 9. Clean up
-
-```bash
-cd -
-git worktree remove ../hyperwatch-release
-git worktree prune
-```
+The refresh and prepare workflows push with the workflow's token, which starts no workflow: they run CI on their branch themselves (`ci.yml` accepts `workflow_dispatch`), for the checks the pull request needs.
 
 ## After the release
 
