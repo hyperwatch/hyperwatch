@@ -109,8 +109,8 @@ const constants = {
     // Seconds before a phase gives up: restoring at start, each periodic
     // dump, and the final dump plus closing the storage at stop
     deadlines: { load: 60, dump: 60, stop: 20 },
-    // With backend 's3'. Needs @aws-sdk/client-s3, credentials from the
-    // AWS SDK (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY…)
+    // With backend 's3'. Needs @aws-sdk/client-s3. Credentials: `credentials`
+    // (from code), else the AWS SDK's default chain (AWS_ACCESS_KEY_ID…)
     s3: {
       bucket: null,
       // Optional, before <namespace>/<name>.json

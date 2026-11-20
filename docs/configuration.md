@@ -237,7 +237,7 @@ hyperwatch.init({
 
 The firewall lists, stored with the persistence backend, use them too. Hyperwatch never shows or logs them.
 
-- **Credentials** come from the AWS SDK's default chain (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, instance roles…), never from the Hyperwatch configuration.
+- **Credentials:** `persistence.s3.credentials` when given to `init()` (above), otherwise the AWS SDK's default chain (`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`, a profile, instance roles…).
 - **Permissions:** `s3:GetObject` and `s3:PutObject` on `arn:aws:s3:::<bucket>/*` (or `<bucket>/<prefix>*`), and unconditional `s3:ListBucket` on `arn:aws:s3:::<bucket>`. Hyperwatch never lists the bucket, but without `ListBucket` S3 answers `403 AccessDenied` instead of `404 NoSuchKey` for a missing object, so every document of a new namespace would be counted as failed. A `StringLike` condition on `s3:prefix` doesn't fix this: it requires a prefix parameter on a listing request, which `GetObject` doesn't supply. Prefer one bucket and one user per environment, as in the policy below. For a shared bucket, restrict `GetObject` and `PutObject` to each environment's prefix; unconditional `ListBucket` still allows that user to list other environments' object keys. If that visibility is unacceptable, use separate buckets, or keep prefix-restricted listing permissions and accept that missing documents are reported as failed reads:
 
   ```json
