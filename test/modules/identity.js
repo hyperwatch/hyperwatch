@@ -1283,6 +1283,152 @@ describe('identity aggregator', () => {
   });
 });
 
+describe('category', () => {
+  // Identified by a forward-confirmed hostname
+  const named = (family, hostname, more = {}) =>
+    identity.augment(
+      fromJS({
+        request: { address: '203.0.113.7', headers: {} },
+        address: { value: '203.0.113.7', hostname },
+        hostname: { value: hostname, verified: true },
+        agent: { family },
+        ...more,
+      })
+    );
+  // Identified by a verified Web Bot Auth signature
+  const signed = (family, agent) =>
+    identity.augment(
+      fromJS({
+        request: { address: '203.0.113.7', headers: {} },
+        address: { value: '203.0.113.7' },
+        agent: { family },
+        webbotauth: { agent, verified: true, reason: 'verified' },
+      })
+    );
+  const both = (result) => [result.get('identity'), result.get('category')];
+
+  it('is the category of all the robots of an identity', () => {
+    assert.deepStrictEqual(both(named('PingdomBot', 's4211.pingdom.com')), [
+      'Pingdom',
+      'monitoring',
+    ]);
+    // Whatever the agent family: Googlebot's image crawler, and its renderer
+    // identified by hostname only
+    for (const family of ['Googlebot', 'Googlebot-Image', 'Chrome']) {
+      assert.deepStrictEqual(
+        both(named(family, 'crawl-66-249-66-1.googlebot.com')),
+        ['Googlebot', 'search-engine']
+      );
+    }
+  });
+
+  it('is the category of the agent family when the robots of an identity differ', () => {
+    const hostname = 'ip-203-0-113-7.a.ahrefs.com';
+    assert.deepStrictEqual(both(named('AhrefsBot', hostname)), [
+      'Ahrefs',
+      'seo',
+    ]);
+    assert.deepStrictEqual(both(named('YepBot', hostname)), [
+      'Ahrefs',
+      'search-engine',
+    ]);
+  });
+
+  it('is absent for a family the database does not list under such an identity', () => {
+    // Claude-Web is identified like ClaudeBot, and has no robot file
+    const address = claudeBotIps[0].split('/')[0];
+    const claude = (family) => identity.augment(log({ family, address }));
+    assert.deepStrictEqual(both(claude('ClaudeBot')), [
+      'Claude',
+      'ai-training',
+    ]);
+    assert.deepStrictEqual(both(claude('Claude-User')), [
+      'Claude',
+      'ai-assistant',
+    ]);
+    assert.deepStrictEqual(both(claude('Claude-Web')), ['Claude', undefined]);
+  });
+
+  it('never comes from the family of another operator', () => {
+    // Signed by Exa's user fetcher, claiming Pingdom's user agent: Exa, and
+    // not a monitoring robot
+    assert.deepStrictEqual(
+      both(signed('PingdomBot', 'https://exauser.crawler.exa.ai')),
+      ['Exa', undefined]
+    );
+    // Same with a browser's
+    assert.deepStrictEqual(
+      both(signed('Chrome', 'https://exauser.crawler.exa.ai')),
+      ['Exa', undefined]
+    );
+  });
+
+  it('follows the agent family claimed among the operator of a signature', () => {
+    assert.deepStrictEqual(
+      both(signed('ExaUser', 'https://exauser.crawler.exa.ai')),
+      ['Exa', 'ai-assistant']
+    );
+    // The signer is the user fetcher's, the user agent the search crawler's:
+    // the category is the claimed robot's
+    assert.deepStrictEqual(
+      both(signed('ExaSearchBot', 'https://exauser.crawler.exa.ai')),
+      ['Exa', 'ai-search']
+    );
+  });
+
+  it('is the category of a robot identified by its signature whatever its user agent', () => {
+    assert.deepStrictEqual(both(signed('Chrome', 'https://chatgpt.com')), [
+      'ChatGPT Agent',
+      'ai-assistant',
+    ]);
+  });
+
+  it('is absent for an identity without robot file', () => {
+    assert.deepStrictEqual(both(named('PayPal', 'notify.paypal.com')), [
+      'PayPal',
+      undefined,
+    ]);
+  });
+
+  it('is absent without identity, and removed if it came with the log', () => {
+    const none = identity.augment(
+      log({ family: 'Chrome', address: '203.0.113.7' })
+    );
+    assert.deepStrictEqual(both(none), [undefined, undefined]);
+    assert.ok(!none.has('category'));
+
+    const stale = identity.augment(
+      log({ family: 'Chrome', address: '203.0.113.7' }).set('category', 'seo')
+    );
+    assert.ok(!stale.has('category'));
+  });
+
+  it("leaves an application's own identity and category", () => {
+    const own = identity.augment(
+      log({ family: 'node-fetch', address: '203.0.113.7' })
+        .set('identity', 'Our Renderer')
+        .set('category', 'internal')
+    );
+    assert.deepStrictEqual(both(own), ['Our Renderer', 'internal']);
+  });
+
+  it('replaces the category that came with the log when it gives the identity', () => {
+    // Given another identity, without category: the old category goes
+    const paypal = named('PayPal', 'notify.paypal.com', {
+      identity: 'Somebody',
+      category: 'seo',
+    });
+    assert.deepStrictEqual(both(paypal), ['PayPal', undefined]);
+    assert.ok(!paypal.has('category'));
+    // Given another identity, with a category
+    const pingdom = named('PingdomBot', 's4211.pingdom.com', {
+      identity: 'Somebody',
+      category: 'seo',
+    });
+    assert.deepStrictEqual(both(pingdom), ['Pingdom', 'monitoring']);
+  });
+});
+
 describe('identity filter', () => {
   const named = fromJS({ identity: 'Bing', address: { value: '1.1.1.1' } });
   const unnamed = fromJS({ address: { value: '1.1.1.1' } });
