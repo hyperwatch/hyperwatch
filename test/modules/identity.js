@@ -634,6 +634,8 @@ describe('identity', () => {
       ['LinkCheckerBot', 'linkcheckerbot-ips', 'LinkChecker'],
       ['HyperSearchBot', 'hypersearchbot-ips', 'EcoGPT'],
       ['search.marginalia.nu', 'marginalia-ips', 'Marginalia'],
+      ['CensysInspect', 'censys-ips', 'Censys'],
+      ['GenomeCrawlerd', 'deepfield-ips', 'Deepfield'],
       ['DataForSeoBot', 'dataforseo-ips', 'DataForSeo'],
       ['LinkupBot', 'linkupbot-ips', 'Linkup'],
       [
@@ -675,6 +677,7 @@ describe('identity', () => {
       ['Pinterestbot', '54.236.1.10', '54.236.2.10', 'Pinterest'],
       ['YouBot', '68.67.112.106', '68.67.113.106', 'You.com'],
       ['IdarusBot', '141.94.42.166', '141.94.42.167', 'Idarus'],
+      ['ForestEngine', '151.245.151.9', '151.245.152.9', 'Forest'],
       ['ICC-Crawler', '202.180.34.186', '202.180.34.187', 'NICT'],
       ['ICC-Crawler', '61.86.246.72', '61.86.246.73', 'NICT'],
     ];
@@ -818,6 +821,17 @@ describe('identity', () => {
       ['bot-103-131-71-52.coccoc.com', 'Coc Coc'],
       ['crawl.211-249-46-35.web.naver.com', 'Naver'],
       ['crawl-149-56-160-138.dataproviderbot.com', 'Dataprovider.com'],
+      ['9.0.2.192.censys-scanner.com', 'Censys'],
+      ['flower.census.shodan.io', 'Shodan'],
+      ['azpdabc123.stretchoid.com', 'Stretchoid'],
+      // Any depth under binaryedge.ninja
+      ['us-east-1.barium.li.prod.binaryedge.ninja', 'BinaryEdge'],
+      ['scanner.binaryedge.ninja', 'BinaryEdge'],
+      ['192-0-2-9.infrawat.ch', 'Infrawatch'],
+      ['sh-chi-us-gp1-wk101.internet-census.org', 'Internet Census'],
+      ['survey07.hackertarget.io', 'HackerTarget'],
+      ['cerebro-sdc-prod-1.kaspersky-labs.com', 'Kaspersky'],
+      ['planetlab1.gino-research.net.in.tum.de', 'TUM'],
     ];
 
     for (const [hostname, expected] of cases) {
@@ -877,6 +891,12 @@ describe('identity', () => {
       ['YandexBot', 'mail.yandex.com'],
       ['SeznamBot', 'www.seznam.cz'],
       ['Chrome', 'mail.googlebot.com'],
+      // A domain suffix (.binaryedge.ninja) matches names under it only
+      ['Chrome', 'binaryedge.ninja'],
+      ['Chrome', 'evilbinaryedge.ninja'],
+      ['Chrome', 'scanner.binaryedge.ninja.example.com'],
+      ['Chrome', 'www.stretchoid.com'],
+      ['Chrome', 'mail.kaspersky-labs.com'],
     ]) {
       it(`should not identify ${family} from ${hostname}`, () => {
         const result = identity.augment(
