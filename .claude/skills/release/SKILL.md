@@ -7,8 +7,9 @@ description: Release a new version of @hyperwatch/hyperwatch with its GitHub Act
 
 [RELEASING.md](../../../RELEASING.md) is the procedure and the "Release management" section of [AGENTS.md](../../../AGENTS.md) the rules (what to agree on with the maintainer, never merge). Read both first, every time. The workflows do the mechanical steps; this is what's left to you. Work in worktrees: never switch branches in the main checkout.
 
-1. **Refresh the published lists.** Run the Refresh workflow (`gh workflow run refresh.yml`, then `gh run watch`). In its pull request (or on its branch, through the link in the run's summary):
-   - lists or agents that couldn't be fetched: retry the workflow later, or find out why;
+1. **Refresh the published lists and categories.** Run the Refresh workflow (`gh workflow run refresh.yml`, then `gh run watch`). In its pull request (or on its branch, through the link in the run's summary):
+   - lists, agents or categories that couldn't be refreshed: retry the workflow later, or find out why;
+   - the robot categories' report, when they changed: what RELEASING.md says to look for (an identity losing its category, a new category);
    - the lists copied by hand: read each source listed in RELEASING.md, update the files that changed, and add them to the pull request's table, or say they are unchanged.
 
    The maintainer merges it before the release.

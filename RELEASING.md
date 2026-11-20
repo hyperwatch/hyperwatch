@@ -4,21 +4,21 @@ How to release a new version of `@hyperwatch/hyperwatch`.
 
 Releases are made by GitHub Actions workflows, from `main` only: anything not merged into `main` doesn't ship.
 
-- [**Refresh the published lists**](.github/workflows/refresh.yml) (run by hand, before a release) opens the pull request that updates the address lists and keys operators publish.
+- [**Refresh the published lists**](.github/workflows/refresh.yml) (run by hand, before a release) opens the pull request that updates the address lists and keys operators publish, and the robot categories.
 - [**Prepare a release**](.github/workflows/release-prepare.yml) (run by hand) opens the pull request `version X.Y.Z`: `package.json` and `package-lock.json` bumped, and the release notes drafted in `CHANGELOG.md`.
 - [**Release**](.github/workflows/release.yml) (on each push to `main`) releases `package.json`'s version when it isn't released yet: the checks, `npm publish`, an annotated tag `vX.Y.Z` on the last commit of the version pull request, and a GitHub release with its notes.
 
 `node scripts/release.js` holds what they share (`changes`, `prepare`, `verify`, `pack`, `notes`, `data-changes`: see its header). It never commits, tags, pushes or publishes.
 
-## Before you start: refresh the published ranges and keys
+## Before you start: refresh the published ranges, keys and categories
 
-Several identities are checked against address lists their operators publish (`src/data/*-ips.json`), and Web Bot Auth signatures against the agents' keys (`src/data/webbotauth-keys.json`). Refresh them before each release, so it ships with current ranges and keys:
+Several identities are checked against address lists their operators publish (`src/data/*-ips.json`), Web Bot Auth signatures against the agents' keys (`src/data/webbotauth-keys.json`), and the category of each identity's robots comes from the [robots database](https://github.com/hyperwatch/database) (`src/data/robot-categories.json`). Refresh them before each release, so it ships with current ranges, keys and categories:
 
 ```bash
 gh workflow run refresh.yml
 ```
 
-The [**Refresh the published lists**](.github/workflows/refresh.yml) workflow runs `scripts/fetch-ips.js` and `scripts/fetch-webbotauth-keys.js`, then `npm test`, and opens (or updates) the pull request "Refresh the published IP ranges", "Refresh the Web Bot Auth keys" or both, from the branch `refresh-published-lists`. The pull request gives a table of the ranges and keys added and removed per file (`node scripts/release.js data-changes`), and the lists or agents that couldn't be fetched, which keep their current files: retry later, or find out why, rather than release with a list that wasn't refreshed. If nothing changed, the run says so and opens nothing. If a list or an agent couldn't be fetched, the run fails after listing it, even when nothing else changed.
+The [**Refresh the published lists**](.github/workflows/refresh.yml) workflow runs `scripts/fetch-ips.js`, `scripts/fetch-webbotauth-keys.js` and `scripts/robot-categories.js` (on a clone of the database's `main`), then `npm test`, and opens (or updates) the pull request named after what changed ("Refresh the published IP ranges", "Refresh the Web Bot Auth keys", "Refresh the robot categories", or a title naming each), from the branch `refresh-published-lists`. The pull request gives a table of the ranges and keys added and removed per file and of the categories changed per identity (`node scripts/release.js data-changes`; a new database commit alone isn't a change), and the lists, agents or categories that couldn't be refreshed, which keep their current files: retry later, or find out why, rather than release with a list that wasn't refreshed. If nothing changed, the run says so and opens nothing. If a list or an agent couldn't be fetched, the run fails after listing it, even when nothing else changed.
 
 Some lists have no updater: their operators publish them only inside a page, a table or a PDF, and a parser per page would break silently when the page changes. Compare them with their source too, by hand or by asking an agent to read each source below and update the file, then review the diff:
 
@@ -30,6 +30,8 @@ Some lists have no updater: their operators publish them only inside a page, a t
 - `marginalia-ips.json`: the addresses written after "IP address:" under "Crawler Fingerprint" on [Marginalia's page for webmasters](https://www.marginalia.nu/marginalia-search/for-webmasters/) (`193.183.0.162-174` as CIDRs).
 
 Do it on the refresh branch (or a branch of your own when nothing else changed), and add what changed to the pull request's table.
+
+When the categories changed, the pull request also holds the report of `scripts/robot-categories.js`: the identities without a category, the agent families without one under an identity whose robots differ, and what changed since the committed file. An identity can lose its category for every user agent when the database gains a robot of another kind for it (it then has one per agent family): say so under **Identities** in the release notes. The script stops, and keeps the file, on a robot file it can't read, on two categories for one agent family of an identity, and on a category it doesn't know: the run then lists it as a failure. Fix the robot file in the database, or add a new category to `CATEGORIES` in `scripts/lib/robot-categories.js` and name it under **Features** (applications decide by category). To refresh by hand: `node scripts/robot-categories.js <clean checkout of the database>`.
 
 Merge the refresh pull request before step 1; its line lands under **Identities** in the drafted notes.
 

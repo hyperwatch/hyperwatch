@@ -1,8 +1,8 @@
-# Refreshes the address lists and Web Bot Auth keys that operators publish
-# (src/data), and opens or updates the pull request "Refresh the published
-# IP ranges…" with what was added and removed, before each release (see
-# RELEASING.md). Lists copied by hand aren't fetched: compare them on the
-# branch.
+# Refreshes the address lists and Web Bot Auth keys that operators publish,
+# and the robot categories from the robots database (src/data), and opens or
+# updates the pull request "Refresh the published IP ranges…" with what was
+# added and removed, before each release (see RELEASING.md). Lists copied by
+# hand aren't fetched: compare them on the branch.
 name: Refresh the published lists
 
 on:
@@ -47,6 +47,28 @@ jobs:
           node scripts/fetch-ips.js 2>&1 | tee fetch-ips.log || ips=$?
           keys=0
           node scripts/fetch-webbotauth-keys.js 2>&1 | tee fetch-keys.log || keys=$?
+          # The robot categories, from the database's main; its report goes
+          # in the pull request
+          categories=0
+          if git clone -q --depth 1 https://github.com/hyperwatch/database "$RUNNER_TEMP/database"; then
+            node scripts/robot-categories.js "$RUNNER_TEMP/database" > categories.log 2>&1 || categories=$?
+          else
+            echo 'The robots database: failed (git clone)' > categories.log
+            categories=1
+          fi
+          cat categories.log
+          # A new database commit alone changes nothing
+          node -e '
+            const { execFileSync } = require("child_process");
+            const { categoryChanges } = require("./scripts/lib/data-changes");
+            const file = "src/data/robot-categories.json";
+            const read = (text) => JSON.parse(text);
+            const before = read(execFileSync("git", ["show", `HEAD:${file}`]));
+            const after = read(require("fs").readFileSync(file, "utf8"));
+            if (categoryChanges(before, after).length === 0) {
+              execFileSync("git", ["checkout", "--", file]);
+            }
+          '
           npx prettier --write src/data > /dev/null
           failed=$(grep -h -E ': failed' fetch-ips.log fetch-keys.log | sed 's/^/- /' || true)
           if [ "$ips" -ne 0 ] && ! grep -q ': failed' fetch-ips.log; then
@@ -54,6 +76,9 @@ jobs:
           fi
           if [ "$keys" -ne 0 ] && ! grep -q ': failed' fetch-keys.log; then
             failed="$failed"$'\n'"- scripts/fetch-webbotauth-keys.js exited with status $keys"
+          fi
+          if [ "$categories" -ne 0 ]; then
+            failed="$failed"$'\n'"- scripts/robot-categories.js: $(tail -1 categories.log)"
           fi
           failed=$(echo "$failed" | sed '/^$/d')
           {
@@ -83,9 +108,19 @@ jobs:
         run: |
           title=$(head -1 changes.md)
           {
-            echo "Ran \`scripts/fetch-ips.js\` and \`scripts/fetch-webbotauth-keys.js\` and committed the result, formatted with prettier. \`npm test\` passes: the identity tests read their addresses from these files."
+            echo "Ran \`scripts/fetch-ips.js\`, \`scripts/fetch-webbotauth-keys.js\` and \`scripts/robot-categories.js\` (on the robots database's \`main\`) and committed the result, formatted with prettier. \`npm test\` passes: the identity tests read their addresses from these files."
             echo
             tail -n +2 changes.md
+            if [ -n "$(git status --porcelain -- src/data/robot-categories.json)" ]; then
+              echo
+              echo '<details><summary>The robot categories script'"'"'s report (RELEASING.md says what to look for)</summary>'
+              echo
+              echo '```'
+              cat categories.log
+              echo '```'
+              echo
+              echo '</details>'
+            fi
             if [ -n "$FAILED" ]; then
               echo
               echo "Couldn't be fetched, current files kept:"

@@ -29,7 +29,7 @@ describe('data changes', () => {
         '| `one-ips.json` | + `203.0.113.0/24`; − `198.51.100.0/24` |',
         '| `new-ips.json` | + `2001:db8::/32` |',
         '',
-        'Some entries were removed: check them.',
+        'Some entries were removed or replaced: check them.',
         'The other fetched lists are unchanged.',
       ].join('\n')
     );
@@ -57,6 +57,50 @@ describe('data changes', () => {
     );
   });
 
+  it('gives the robot categories that changed per identity', () => {
+    const before = {
+      database: 'a',
+      identities: { Ahrefs: 'seo', Bing: 'search-engine', Gone: 'other' },
+    };
+    const after = {
+      database: 'b',
+      identities: {
+        Ahrefs: { AhrefsBot: 'seo', YepBot: 'search-engine' },
+        Bing: 'search-engine',
+        New: 'archive',
+      },
+    };
+    assert.deepStrictEqual(
+      dataChanges([{ name: 'robot-categories.json', before, after }]).split(
+        '\n'
+      ),
+      [
+        '| List | Change |',
+        '|---|---|',
+        '| `robot-categories.json` (`Ahrefs`) | `seo` → per family (AhrefsBot: `seo`, YepBot: `search-engine`) |',
+        '| `robot-categories.json` (`Gone`) | `other` → none |',
+        '| `robot-categories.json` (`New`) | none → `archive` |',
+        '',
+        'Some entries were removed or replaced: check them.',
+        'The other fetched lists are unchanged.',
+      ]
+    );
+  });
+
+  it('ignores a new database commit alone', () => {
+    const identities = { Bing: 'search-engine' };
+    assert.strictEqual(
+      dataChanges([
+        {
+          name: 'robot-categories.json',
+          before: { database: 'a', identities },
+          after: { database: 'b', identities },
+        },
+      ]),
+      null
+    );
+  });
+
   it('is null when nothing changed', () => {
     assert.strictEqual(
       dataChanges([{ name: 'x-ips.json', before: ['a'], after: ['a'] }]),
@@ -76,6 +120,18 @@ describe('data changes', () => {
     assert.strictEqual(
       refreshTitle(['meta-ips.json', 'webbotauth-keys.json']),
       'Refresh the published IP ranges and Web Bot Auth keys'
+    );
+    assert.strictEqual(
+      refreshTitle(['robot-categories.json']),
+      'Refresh the robot categories'
+    );
+    assert.strictEqual(
+      refreshTitle([
+        'meta-ips.json',
+        'webbotauth-keys.json',
+        'robot-categories.json',
+      ]),
+      'Refresh the published IP ranges, Web Bot Auth keys and robot categories'
     );
   });
 });

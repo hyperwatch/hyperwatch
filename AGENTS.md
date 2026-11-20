@@ -29,7 +29,7 @@ The identity module sets `category` next to `identity`: the kind of robot the [r
 - A category is a fact about a robot, not a judgement: Hyperwatch doesn't rank categories or pick "the most important" one. An identity whose robots differ has a category per agent family, and none for other families.
 - The agent family only counts under the verified identity. Never look a category up by family alone: a request signed by one operator can send another's user agent.
 - A new or renamed identity in `src/modules/identity.js` needs its robot file in the database (`hyperwatch.identity`) to get a category. `test/scripts/robot-categories.js` fails when the file names an identity the module no longer sets, and when a rule is written in a way `scanIdentities()` can't read.
-- Before a release, refresh it ([RELEASING.md](RELEASING.md), "Before you start").
+- Before a release, refresh it: the Refresh workflow does ([RELEASING.md](RELEASING.md), "Before you start").
 
 ## Types
 
