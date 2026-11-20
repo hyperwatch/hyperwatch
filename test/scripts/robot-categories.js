@@ -336,14 +336,17 @@ describe('robot categories', () => {
       }
     });
 
-    it('gives a category to most identities', () => {
-      const without = [...identities].filter(
-        (id) => !Object.hasOwn(data.identities, id)
-      );
-      // Notifications (PayPal, Wise) and identities without robot file
-      assert.ok(without.length < identities.size / 10, without.join(', '));
+    // No minimum share of the identities: a rule can come before the robot's
+    // file in the database, and the script lists the identities without a
+    // category at each release.
+    it('has the category of identities of the database', () => {
       assert.strictEqual(
         lookup(data.identities, 'Googlebot', 'Chrome'),
+        'search-engine'
+      );
+      assert.strictEqual(lookup(data.identities, 'Ahrefs', 'AhrefsBot'), 'seo');
+      assert.strictEqual(
+        lookup(data.identities, 'Ahrefs', 'YepBot'),
         'search-engine'
       );
     });
