@@ -2,6 +2,30 @@
 
 Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases). Versions before 5.0.0 have no entry: see the git history.
 
+## 5.8.0 (2026-11-20)
+
+### Breaking changes
+
+- `geoip` keeps only the `country` in logs by default, and loads geoip-lite's country tables only (6.5 MB in memory instead of about 110 MB). Logs no longer have `geoip.region` or `geoip.city`, and aggregator tables no longer have a `city` column, unless `modules.geoip.fields` asks for them (`["country", "region", "city"]`, or `"all"`). ([#749](https://github.com/hyperwatch/hyperwatch/pull/749))
+
+### Features
+
+- New `asn` module: logs get the autonomous system of the client address, `asn: { number, organization, country }`, from [@hyperwatch/iptoasn](https://github.com/hyperwatch/iptoasn) (an optional peer dependency to install alongside: nothing is downloaded at run time). `/asns` counts requests and addresses per AS, `/addresses` gets an `asn` column, and `byNumber()` gives the value of an AS number. A log that already has an `asn` keeps it. ([#748](https://github.com/hyperwatch/hyperwatch/pull/748))
+- New `forward-proxy` module: an address in the published egress ranges of a corporate web gateway (Zscaler, a new list `zscaler-ips.json`) gets the gateway in `address.proxy`, and the address it forwards for, from `X-Forwarded-For`, in `address.forwarded`. `/addresses` gets a `proxy` column. ([#757](https://github.com/hyperwatch/hyperwatch/pull/757))
+- An identified request also gets `category`, the kind of robot it is in the [robots database](https://github.com/hyperwatch/database) (`search-engine`, `seo`, `ai-training`, `research`…), so that applications can decide by kind of robot. Generated into `src/data/robot-categories.json`; an identity whose robots differ has a category per agent family. ([#760](https://github.com/hyperwatch/hyperwatch/pull/760), [#763](https://github.com/hyperwatch/hyperwatch/pull/763))
+- Mounted in an Express application, `hyperwatch.start({ listen: false })` runs every step of `start()` but the standalone server, and `hyperwatch.stop()` stops the modules and the pipeline, ends the log files and saves the persistence snapshot. `persistence.s3.credentials` takes keys or a credentials provider, also used by the firewall lists stored there. ([#754](https://github.com/hyperwatch/hyperwatch/pull/754))
+- Filtered history views (`/logs/<node>?address=…`, `/history/<node>.json`) start reading the log files at the hour the filters were last seen, instead of the newest file, so a client seen hours ago is found. `/logs/<node>` says where the search started and stopped, with a link to older logs. ([#751](https://github.com/hyperwatch/hyperwatch/pull/751))
+
+### Identities
+
+- New identities for internet scanners, from their operators' own infrastructure, whatever the user agent: **Censys** (a forward-confirmed `*.*.*.*.censys-scanner.com` hostname, or CensysInspect from its published ranges, copied by hand), **Shodan**, **Stretchoid**, **BinaryEdge**, **Infrawatch**, **Internet Census**, **HackerTarget**, **Kaspersky** (CEREBRO) and **TUM** (GINO), by forward-confirmed hostname; **Deepfield** (GenomeCrawlerd, from Nokia's published list) and **Forest** (ForestEngine, from its only range). A hostname pattern starting with a dot matches any name under that domain. ([#756](https://github.com/hyperwatch/hyperwatch/pull/756))
+- A verified Web Bot Auth signature of `https://www.meta.com` gives the new identity **Meta Agent**, whatever the user agent: these requests come from outside Meta's network, unlike the `meta-webindexer` crawler, which stays **Meta**. ([#745](https://github.com/hyperwatch/hyperwatch/pull/745), [#753](https://github.com/hyperwatch/hyperwatch/pull/753))
+- Published ranges and keys refreshed: Meta (7 ranges added), PerplexityBot (8 addresses added), GitHub (4 ranges added) and a new Naver key. ([#762](https://github.com/hyperwatch/hyperwatch/pull/762))
+
+### Dependencies & tooling
+
+- `@hyperwatch/iptoasn` is an optional peer dependency (for the `asn` module). Releases are made by GitHub Actions workflows, from `main`: the published lists and categories are refreshed by a workflow too, and the package is published with npm provenance (`RELEASING.md`). Dependabot bumps of `@aws-sdk/client-s3`, `immutable`, `lint-staged`, `eslint`, `prettier` and `ws`. ([#758](https://github.com/hyperwatch/hyperwatch/pull/758), [#741](https://github.com/hyperwatch/hyperwatch/pull/741), [#742](https://github.com/hyperwatch/hyperwatch/pull/742), [#743](https://github.com/hyperwatch/hyperwatch/pull/743), [#744](https://github.com/hyperwatch/hyperwatch/pull/744), [#750](https://github.com/hyperwatch/hyperwatch/pull/750), [#752](https://github.com/hyperwatch/hyperwatch/pull/752), [#759](https://github.com/hyperwatch/hyperwatch/pull/759))
+
 ## 5.7.0 (2026-11-16)
 
 ### Features
