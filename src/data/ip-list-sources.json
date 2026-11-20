@@ -313,5 +313,22 @@
     "about": "Nokia Deepfield's GenomeCrawlerd: https://www.nokia.com/genomecrawler/ links to its list.",
     "urls": ["https://genome.deepfield.net/crawlers.txt"],
     "format": "lines"
+  },
+  {
+    "name": "zscaler-ips",
+    "about": "Zscaler's cloud enforcement node ranges (CENR), the egress of its web gateway, in every cloud",
+    "urls": [
+      "https://config.zscaler.com/api/zscaler.net/cenr/json",
+      "https://config.zscaler.com/api/zscalerone.net/cenr/json",
+      "https://config.zscaler.com/api/zscalertwo.net/cenr/json",
+      "https://config.zscaler.com/api/zscalerthree.net/cenr/json",
+      "https://config.zscaler.com/api/zscloud.net/cenr/json",
+      "https://config.zscaler.com/api/zscalerbeta.net/cenr/json",
+      "https://config.zscaler.com/api/zscalergov.net/cenr/json",
+      "https://config.zscaler.com/api/zscalerten.net/cenr/json"
+    ],
+    "format": "nested",
+    "key": "range",
+    "bothFamilies": true
   }
 ]

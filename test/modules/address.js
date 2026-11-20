@@ -3,6 +3,7 @@ const assert = require('assert');
 const { fromJS } = require('immutable');
 
 const html = require('../../src/app/html');
+const constants = require('../../src/constants');
 const aggregatorLib = require('../../src/lib/aggregator');
 const { now } = require('../../src/lib/util');
 const address = require('../../src/modules/address');
@@ -24,9 +25,13 @@ describe('address aggregator', () => {
     // The agent column, as the agent module adds it, only for this aggregator
     const { defaultFormatter } = aggregatorLib;
     defaultFormatter.insertFormat('agent', agentFormat);
+    // The proxy columns, with the forward-proxy module active
+    const forwardProxy = constants.modules['forward-proxy'];
+    forwardProxy.active = true;
     try {
       address.start();
     } finally {
+      forwardProxy.active = false;
       defaultFormatter.formats = defaultFormatter.formats.filter(
         ([key]) => key !== 'agent'
       );
@@ -156,5 +161,40 @@ describe('address aggregator', () => {
       '2.2.2.2',
     ]);
     assert.strictEqual(order('signatureCount24h')[0], '2.2.2.2');
+  });
+
+  it('counts the distinct addresses a gateway forwarded for', () => {
+    const behind = (forwarded) =>
+      fromJS({
+        request: { address: '159.254.250.1' },
+        address: {
+          value: '159.254.250.1',
+          proxy: 'Zscaler',
+          forwarded,
+        },
+        executionTime: 1,
+      });
+    aggregator.processLog(behind('192.0.2.1'));
+    aggregator.processLog(behind('192.0.2.2'));
+    aggregator.processLog(behind('192.0.2.1'));
+    aggregator.processLog(log('1.1.1.1', 'sig-a'));
+
+    const entry = aggregator.entries.find(
+      (e) => e.get('identifier') === '159.254.250.1'
+    );
+    const text = aggregator.formatter.formatObject(entry, 'text');
+    assert.strictEqual(text.proxy, 'Zscaler');
+    assert.strictEqual(text.forwardedCount24h, 2);
+    assert.strictEqual(
+      String(aggregator.formatter.formatObject(entry, 'html').proxy),
+      'Zscaler <span class="grey">(2 behind)</span>'
+    );
+    const other = aggregator.entries.find(
+      (e) => e.get('identifier') === '1.1.1.1'
+    );
+    assert.strictEqual(
+      aggregator.formatter.formatObject(other, 'text').proxy,
+      ''
+    );
   });
 });

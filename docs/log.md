@@ -61,3 +61,15 @@ Modules add their own fields to logs (`geoip`, `agent`, `identity`…). A few fi
 | asn           | Map    | The autonomous system announcing the client address: `{ number, organization?, country? }`, only `number` required. Filled by `asn` from its table. Addresses no AS announces get no `asn`, never `0` |
 
 A source that sets `asn` itself (e.g. from a CDN header) runs before `asn` (priority 501), and `asn` keeps its value.
+
+## Address
+
+What the modules add to a log, in `address`:
+
+| Attribute | Type   | Description                                                                                                                                                                                                                                                                                                                                                           |
+| --------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| value     | string | The client address (`address` module): the one set by an earlier module (`cloudflare`), else `request.address`                                                                                                                                                                                                                                                        |
+| proxy     | string | `forward-proxy` module: when `value` is in the published egress ranges of a corporate web gateway, its name (`Zscaler`). Many organizations share these addresses                                                                                                                                                                                                     |
+| forwarded | string | With `proxy`, the address the gateway forwards for: in `X-Forwarded-For`, the one just before the last occurrence of `value`, appended by the site's CDN (or the header's single entry, when the gateway connected directly: Zscaler replaces the header it receives). Zscaler writes the organization's public address there. A hint: `value` stays the verified one |
+
+For `forward-proxy`, `X-Forwarded-For` from any other address is ignored: any client can write it. On `/addresses`, the `proxy` column shows the gateway and, in HTML, how many distinct addresses it forwarded for in the last 24 hours (`forwardedCount24h`, also a sort).

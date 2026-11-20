@@ -2,6 +2,7 @@ const { is } = require('immutable');
 
 const api = require('../app/api');
 const html = require('../app/html');
+const constants = require('../constants');
 const { Aggregator } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
 const { touch, prune, countRecent } = require('../lib/recent-map');
@@ -18,6 +19,9 @@ const signatureCount24h = (entry) => countRecent(entry.get('signatures'));
 
 /** @type {Aggregator | undefined} */
 let aggregator;
+
+/** @type {Sorter} */
+const forwardedCount24h = (entry) => countRecent(entry.get('forwarded'));
 
 /** @param {Log} log */
 function fill(log) {
@@ -67,14 +71,31 @@ function start() {
       );
     }
 
+    // Behind a forward proxy's egress (forward-proxy module): the distinct
+    // addresses it forwarded for
+    const forwarded = /** @type {string | undefined} */ (
+      log.getIn(['address', 'forwarded'])
+    );
+    if (forwarded) {
+      entry = entry.update(
+        'forwarded',
+        (/** @type {RecentMap | undefined} */ map) => touch(map, forwarded)
+      );
+    }
+
     return entry;
   };
 
   aggregator.setEnricher(enricher);
 
-  aggregator.setEntryGc((entry) =>
-    entry.has('signatures') ? entry.update('signatures', prune) : entry
-  );
+  aggregator.setEntryGc((entry) => {
+    for (const key of ['signatures', 'forwarded']) {
+      if (entry.has(key)) {
+        entry = entry.update(key, prune);
+      }
+    }
+    return entry;
+  });
 
   // Identity and agent come from the latest log with one
   const { formatter } = aggregator;
@@ -115,6 +136,31 @@ function start() {
       : address;
   });
 
+  const forwardProxy = constants.modules['forward-proxy'];
+  if (forwardProxy && forwardProxy.active) {
+    // The forward proxy an address is an egress of (forward-proxy module), and
+    // how many addresses it forwarded for: one row, many clients
+    aggregator.formatter.insertFormat(
+      'proxy',
+      (entry, output) => {
+        const proxy = /** @type {string} */ (
+          entry.getIn(['address', 'proxy']) || ''
+        );
+        const count = forwardedCount24h(entry);
+        return output === 'html' && proxy && count
+          ? safeHtml(
+              `${toHtml(proxy)} <span class="grey">(${count} behind)</span>`
+            )
+          : proxy;
+      },
+      { after: 'address' }
+    );
+    aggregator.formatter.insertFormat('forwardedCount24h', forwardedCount24h, {
+      before: 'count15m',
+    });
+    aggregator.sorters.forwardedCount24h = forwardedCount24h;
+  }
+
   aggregator.formatter.insertFormat('signatureCount15m', signatureCount15m, {
     before: 'count15m',
   });
@@ -137,6 +183,7 @@ function start() {
     identityFilter: true,
     columns: [
       'address',
+      'proxy',
       'hostname',
       'country',
       'asn',

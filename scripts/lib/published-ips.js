@@ -114,6 +114,29 @@ function parseKeys(keys) {
   };
 }
 
+// JSON where the ranges are the `key` values of objects at any depth
+// (Zscaler's cloud enforcement node ranges, per continent and city)
+function parseNested(key) {
+  return (text) => {
+    const values = [];
+    const walk = (node) => {
+      if (Array.isArray(node)) {
+        node.forEach(walk);
+      } else if (node && typeof node === 'object') {
+        for (const [name, value] of Object.entries(node)) {
+          if (name === key && typeof value === 'string') {
+            values.push(value);
+          } else {
+            walk(value);
+          }
+        }
+      }
+    };
+    walk(JSON.parse(text));
+    return values;
+  };
+}
+
 // AWS's ip-ranges.json, the ranges of one service, IPv4 first
 function parseAwsService(service) {
   return (text) => {
@@ -169,6 +192,7 @@ const parsers = {
   keys: ({ keys }) => parseKeys(keys),
   lines: () => parseLines,
   listAfter: ({ marker }) => parseListAfter(marker),
+  nested: ({ key }) => parseNested(key),
   prefixes: () => parsePrefixes,
   results: ({ service }) => parseResults(service),
   // Meta's routes in RADb
@@ -266,6 +290,7 @@ module.exports = {
   parseKeys,
   parseLines,
   parseListAfter,
+  parseNested,
   parsePrefixes,
   parseResults,
   parseRoutes,
