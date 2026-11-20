@@ -2,6 +2,31 @@
 
 Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases). Versions before 5.0.0 have no entry: see the git history.
 
+## 5.8.0 (2026-11-20)
+
+### To sort: Breaking changes, Features, Fixes, Identities
+
+- Refresh the robot categories ([#763](https://github.com/hyperwatch/hyperwatch/pull/763))
+- Refresh and release through GitHub Actions ([#758](https://github.com/hyperwatch/hyperwatch/pull/758))
+- forward-proxy: mark the egress of corporate web gateways (Zscaler) ([#757](https://github.com/hyperwatch/hyperwatch/pull/757))
+- test: robot categories don't require a share of the identities ([#761](https://github.com/hyperwatch/hyperwatch/pull/761))
+- identity: the category of a robot, from the robots database ([#760](https://github.com/hyperwatch/hyperwatch/pull/760))
+- Add an asn module: the network of client addresses ([#748](https://github.com/hyperwatch/hyperwatch/pull/748))
+- identity: internet scanners from their own infrastructure ([#756](https://github.com/hyperwatch/hyperwatch/pull/756))
+- history: start disk searches where the filters were last seen, and say where they stopped ([#751](https://github.com/hyperwatch/hyperwatch/pull/751))
+- geoip: the country by default, with geoip-lite's country tables only ([#749](https://github.com/hyperwatch/hyperwatch/pull/749))
+- Mounted apps: start({ listen: false }), stop() without a server, S3 credentials ([#754](https://github.com/hyperwatch/hyperwatch/pull/754))
+- identity: Meta Agent for signatures of https://www.meta.com ([#753](https://github.com/hyperwatch/hyperwatch/pull/753))
+- webbotauth: Meta (meta-webindexer) as a known agent ([#745](https://github.com/hyperwatch/hyperwatch/pull/745))
+
+### Identities
+
+- Refresh the published IP ranges and Web Bot Auth keys ([#762](https://github.com/hyperwatch/hyperwatch/pull/762))
+
+### Dependencies & tooling
+
+- Dependabot bumps of `@aws-sdk/client-s3` (3.1170.0), `immutable` (5.2.1), `lint-staged` (17.6.1), `eslint` (10.15.0), `prettier` (3.10.1), `ws` (8.23.0). ([#741](https://github.com/hyperwatch/hyperwatch/pull/741), [#742](https://github.com/hyperwatch/hyperwatch/pull/742), [#743](https://github.com/hyperwatch/hyperwatch/pull/743), [#744](https://github.com/hyperwatch/hyperwatch/pull/744), [#750](https://github.com/hyperwatch/hyperwatch/pull/750), [#752](https://github.com/hyperwatch/hyperwatch/pull/752), [#759](https://github.com/hyperwatch/hyperwatch/pull/759))
+
 ## 5.7.0 (2026-11-16)
 
 ### Features
