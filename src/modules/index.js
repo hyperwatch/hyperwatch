@@ -28,6 +28,8 @@ function get(module) {
       return require('./address');
     case 'agent':
       return require('./agent');
+    case 'asn':
+      return require('./asn');
     case 'cloudflare':
       return require('./cloudflare');
     case 'dnsbl':

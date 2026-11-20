@@ -46,6 +46,7 @@ function start() {
       'geoip',
       'hostname',
       'agent',
+      'asn',
       'language',
       'signature',
     ]) {
@@ -138,6 +139,7 @@ function start() {
       'address',
       'hostname',
       'country',
+      'asn',
       'lastIdentity',
       'count',
       'execTime',

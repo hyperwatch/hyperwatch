@@ -50,3 +50,14 @@ The name of the header must be lower-cased.
 | Attribute | Type    | Required? | Description                           |
 | --------- | ------- | --------- | ------------------------------------- |
 | status    | integer | yes       | The HTTP status code for the response |
+
+## Shared fields
+
+Modules add their own fields to logs (`geoip`, `agent`, `identity`…). A few fields can come from more than one source. A specific source sets them first, by running earlier (a lower `priority`), and the generic one only fills what's still missing:
+
+| Attribute     | Type   | Description                                                                                                                                                                                           |
+| ------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| address.value | string | The client address. Set by `cloudflare` (from `cf-connecting-ip`), filled by `address` from `request.address`                                                                                         |
+| asn           | Map    | The autonomous system announcing the client address: `{ number, organization?, country? }`, only `number` required. Filled by `asn` from its table. Addresses no AS announces get no `asn`, never `0` |
+
+A source that sets `asn` itself (e.g. from a CDN header) runs before `asn` (priority 501), and `asn` keeps its value.

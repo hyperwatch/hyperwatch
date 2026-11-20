@@ -20,6 +20,16 @@ const constants = {
       active: false,
       priority: 500,
     },
+    // The autonomous system of addresses, from @hyperwatch/iptoasn (an
+    // optional peer dependency, see docs/configuration.md)
+    asn: {
+      active: false,
+      // After cloudflare (500), which sets the client address, and any
+      // other source of asn
+      priority: 501,
+      // Addresses whose lookup is kept
+      cacheSize: 10000,
+    },
     agent: {
       active: false,
       priority: 501,
