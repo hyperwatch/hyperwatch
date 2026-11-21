@@ -3,9 +3,9 @@
  * one bucket. Plain JSON, not compressed.
  *
  * `@aws-sdk/client-s3` is an optional peer dependency, only required when
- * this backend is selected. Credentials come from the AWS SDK's default
- * chain (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY, roles…), never from the
- * Hyperwatch configuration.
+ * this backend is selected. Credentials: `s3.credentials` (keys or a
+ * provider, given to `init()` from code), else the AWS SDK's default chain
+ * (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY, roles…).
  */
 const SDK = '@aws-sdk/client-s3';
 
