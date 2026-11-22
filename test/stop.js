@@ -241,6 +241,71 @@ describe('hyperwatch.app', () => {
     }
   });
 
+  it('closes its WebSocket clients and live streams when mounted, so the host server can close', async () => {
+    const http = require('http');
+    const express = require('express');
+    const WebSocket = require('ws');
+    const { app } = hyperwatch;
+    const log = console.log;
+    console.log = () => {};
+    const stream = { map() {} };
+    const host = express();
+    const server = http.createServer(host);
+    const originalSetInterval = global.setInterval;
+    try {
+      // No heartbeat for this test's stream
+      global.setInterval = () => undefined;
+      try {
+        app.websocket.streamToWebsocket('/test-stop-ws', stream);
+      } finally {
+        global.setInterval = originalSetInterval;
+      }
+      app.api.streamToHttp('/test-stop-http', stream, {
+        format: () => '',
+      });
+      app.mount(host, { server, path: '/_hyperwatch' });
+      await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+      const { port } = server.address();
+
+      const client = new WebSocket(
+        `ws://127.0.0.1:${port}/_hyperwatch/test-stop-ws`
+      );
+      await new Promise((resolve, reject) => {
+        client.on('open', resolve);
+        client.on('error', reject);
+      });
+      const wsClosed = new Promise((resolve) => client.on('close', resolve));
+
+      // Resolves once the stream is open, with its end (wrapped, not adopted)
+      const { ended: streamEnded } = await new Promise((resolve, reject) => {
+        http
+          .get(`http://127.0.0.1:${port}/_hyperwatch/test-stop-http`, (res) => {
+            res.resume();
+            resolve({ ended: new Promise((end) => res.on('end', end)) });
+          })
+          .on('error', reject);
+      });
+
+      await app.stop();
+      await Promise.race([
+        Promise.all([
+          wsClosed,
+          streamEnded,
+          new Promise((resolve) => {
+            server.close(resolve);
+            server.closeIdleConnections();
+          }),
+        ]),
+        new Promise((resolve, reject) =>
+          setTimeout(() => reject(new Error('the host server hung')), 1000)
+        ),
+      ]);
+    } finally {
+      console.log = log;
+      server.closeAllConnections();
+    }
+  });
+
   it('starts listening, then stops, and stopping again does nothing', async () => {
     const { app } = hyperwatch;
     const port = process.env.PORT;

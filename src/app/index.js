@@ -5,6 +5,7 @@ const express = require('express');
 const constants = require('../constants');
 
 const api = require('./api');
+const liveStreams = require('./live-streams');
 const mount = require('./mount');
 const websocket = require('./websocket');
 const wsServer = require('./ws-server');
@@ -42,12 +43,14 @@ function start() {
 }
 
 /**
- * Stops listening and closes the open connections (live streams, WebSocket
- * clients), when start() made the server listen: nothing to do for an app
- * that mounts Hyperwatch in its own server
+ * Closes what Hyperwatch opened: the WebSocket clients and the live log
+ * streams, mounted or standalone, so the server serving them can close; then
+ * stops listening when start() made Hyperwatch's own server listen
  * @returns {Promise<void>}
  */
 function stop() {
+  wsServer.closeClients();
+  liveStreams.endAll();
   if (!httpServer.listening) {
     return Promise.resolve();
   }

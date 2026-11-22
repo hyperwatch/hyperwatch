@@ -65,7 +65,8 @@ async function start({ listen = true } = {}) {
 
 /**
  * Stops the modules and the inputs, ends the log files, persists when
- * enabled, then stops the standalone server if it listens
+ * enabled, then closes the WebSocket clients and live log streams, and stops
+ * the standalone server if it listens
  */
 async function stop() {
   stopping = true;

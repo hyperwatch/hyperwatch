@@ -15,6 +15,7 @@ const {
 const version = require('../version');
 
 const html = require('./html');
+const liveStreams = require('./live-streams');
 const wsServer = require('./ws-server');
 
 /** @type {import('express').Express} */
@@ -160,10 +161,12 @@ function streamToHttp(
     // [req, res, queue]: while the history is read (a promise), live logs
     // wait in the queue, so they follow it
     requests[requestId] = [req, res, null];
+    liveStreams.open.add(res);
     updateMonitoringStatus();
 
     const close = () => {
       delete requests[requestId];
+      liveStreams.open.delete(res);
       updateMonitoringStatus();
     };
 
