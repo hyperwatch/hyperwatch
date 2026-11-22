@@ -1023,6 +1023,32 @@ describe('identity', () => {
       );
     });
 
+    it("should leave Meta's signed requests from Meta's network to Meta", () => {
+      // meta-webindexer signs with https://www.meta.com from Meta's ranges
+      const fromMeta = (family, address) =>
+        identity.augment(
+          fromJS({
+            request: { address, headers: {} },
+            address: { value: address },
+            agent: { family },
+            webbotauth: {
+              agent: 'https://www.meta.com',
+              verified: true,
+              reason: 'verified',
+            },
+          })
+        );
+      for (const family of ['meta-webindexer', 'Chrome', undefined]) {
+        for (const address of ['2a03:2880:f806:a::', '57.141.2.18']) {
+          assert.strictEqual(fromMeta(family, address).get('identity'), 'Meta');
+        }
+      }
+      assert.strictEqual(
+        fromMeta('meta-webindexer', '2606:54c1:1::1').get('identity'),
+        'Meta Agent'
+      );
+    });
+
     it('should not identify a verified signature of another agent', () => {
       assert.strictEqual(
         signed('Chrome', 'https://example.com').get('identity'),
