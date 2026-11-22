@@ -43,14 +43,14 @@ hyperwatch.start({ listen: false }).then(() => {
 });
 
 // At shutdown: stops the modules and inputs, ends the log files, saves the
-// persistence snapshot
+// persistence snapshot, closes the WebSocket clients and the live log streams
 process.on('SIGTERM', async () => {
   await hyperwatch.stop();
   server.close();
 });
 ```
 
-`hyperwatch.start()` without `{ listen: false }` would also start the standalone Hyperwatch server, on its own port. `hyperwatch.stop()` stops that server only if it listens.
+`hyperwatch.start()` without `{ listen: false }` would also start the standalone Hyperwatch server, on its own port. `hyperwatch.stop()` closes the connections Hyperwatch opened in either case (WebSocket clients, live log streams), so the host's `server.close()` can complete; it stops the standalone server only if it listens.
 
 ## `hyperwatch.app.mount(app, options)`
 

@@ -149,6 +149,17 @@ function dispatch(app, req, socket, head) {
 }
 
 /**
+ * Closes the WebSocket connections open on every route, at stop: upgraded
+ * sockets are out of reach of the HTTP server (closeAllConnections() doesn't
+ * close them), mounted or standalone
+ */
+function closeClients() {
+  for (const client of wss.clients) {
+    client.terminate();
+  }
+}
+
+/**
  * A WebSocket connection, as handlers use it (a WebSocket of the ws package)
  * @typedef {object} WebSocketClient
  * @property {number} readyState
@@ -180,6 +191,7 @@ module.exports = {
   handleUpgrade,
   middleware,
   dispatch,
+  closeClients,
   parseTarget,
   reject,
 };
