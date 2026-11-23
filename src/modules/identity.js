@@ -414,6 +414,11 @@ function identify(log) {
       /** @type {string} */ (log.getIn(['webbotauth', 'agent']))
     );
     if (signer) {
+      // Meta's crawler signs with Meta's agent key too: from Meta's network,
+      // it stays Meta
+      if (signer === 'Meta Agent' && address && metaCidrs(address)) {
+        return log.set('identity', 'Meta');
+      }
       return log.set('identity', signer);
     }
   }
