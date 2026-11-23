@@ -104,3 +104,5 @@ hyperwatch apache_syslog_example.js
 Now, you can point your browser to the `/status` page on the IP/port where Hyperwatch is running (e.g. `http://localhost:3000/status`). If you see traffic going through your input, congrats you made it!
 
 To watch the logs live at `/logs/main` and explore aggregations such as `/addresses` or `/identities`, activate the corresponding modules. See [Global Configuration](../configuration.md#modules).
+
+If Apache is behind Cloudflare, or the server can't run a current Node.js, see [Relay a legacy Apache server behind Cloudflare to a current Hyperwatch](./apache_cloudflare_relay.md).
