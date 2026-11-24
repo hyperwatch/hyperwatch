@@ -2,6 +2,27 @@
 
 Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases). Versions before 5.0.0 have no entry: see the git history.
 
+## 5.9.0 (2026-11-24)
+
+### Features
+
+- Logs get `route`, the route the request matched as the application declares it, in its framework's syntax (OpenTelemetry's `http.route`): `{ path, name? }`, for example `{ "path": "/v1/:collectiveSlug.json" }`. The Express input sets it by default, with the router's mount path in front (`/api/users/:id`); no `route` when no route matched (404s, static files). An application sets or overrides it with `req.hyperwatch.route` before the response ends (`{ name }` alone keeps the Express path, `null` means no route). Other inputs keep the `route` a log already has. Limits are in `docs/input.md`. ([#776](https://github.com/hyperwatch/hyperwatch/pull/776))
+- `registerAggregator()` and `aggregatorView()` take `nav: { group, label }`: related sections show once in the top navigation, under the group's name, and a second line on their pages lists the members by label. Sections without a group are unchanged; `registerSection()` refuses a group named like another section or a built-in one. ([#775](https://github.com/hyperwatch/hyperwatch/pull/775))
+
+### Fixes
+
+- `stop()` closes the WebSocket clients of the live views and the live log responses, also when Hyperwatch is mounted in a host's own server: before, one open live view kept the host's `server.close()` from completing. A host only needs `await hyperwatch.stop()` before closing its own server. ([#768](https://github.com/hyperwatch/hyperwatch/pull/768))
+- Requests signed with the `https://www.meta.com` key from Meta's own ranges (`meta-webindexer`) are **Meta** again, not **Meta Agent**, which stays for signed requests from outside Meta's network. ([#769](https://github.com/hyperwatch/hyperwatch/pull/769))
+- Docs: `persistence.s3.credentials` given to `init()` is used first, then the AWS SDK's default chain. ([#765](https://github.com/hyperwatch/hyperwatch/pull/765))
+
+### Identities
+
+- Published ranges and keys refreshed: Google's user-triggered fetchers (8 ranges added) and Naver (a key removed). ([#777](https://github.com/hyperwatch/hyperwatch/pull/777))
+
+### Dependencies & tooling
+
+- Dependabot bumps of `@aws-sdk/client-s3` (3.1174.0). ([#766](https://github.com/hyperwatch/hyperwatch/pull/766), [#774](https://github.com/hyperwatch/hyperwatch/pull/774))
+
 ## 5.8.0 (2026-11-20)
 
 ### Breaking changes
