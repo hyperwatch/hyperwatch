@@ -23,25 +23,125 @@ const followScript = read('scripts/follow.js');
 const order = ['addresses', 'identities', 'logs', 'pipeline'];
 // Section name → the page its navigation link opens
 const sections = new Map();
-// Section name → its place in the navigation, for sections not in `order`
+// Section or group name → its place in the navigation, for sections not in
+// `order`
 const positions = new Map();
+// Group name → its members (section name → label), in registration order
+/** @type {Map<string, Map<string, string>>} */
+const groups = new Map();
+// Section name → its group
+/** @type {Map<string, string>} */
+const sectionGroups = new Map();
+// Section name → the place it asks for, for members of a group: the group
+// takes the place of its first member
+const memberPositions = new Map();
 // Aggregator sections, whose links keep the selected period
 const periodSections = new Set();
 // Aggregator pages with an identity filter (see aggregatorView)
 const identityFilterSections = new Set();
 
 /**
+ * Where a section goes in the top navigation.
+ * - before / after: next to another section or group, by default before logs
+ * - group: one top link for several sections, named after the group and
+ *   opening its first member; a member's page lists the group's members on
+ *   a second line, by their label (the section name by default). The group
+ *   takes the place of its first member: before / after of later members
+ *   are ignored. A group can't have the name of another section (but one of
+ *   its own members) or of a built-in section, and built-in sections can't
+ *   be in a group: registerSection throws.
+ * @typedef {object} NavOptions
+ * @property {string} [before]
+ * @property {string} [after]
+ * @property {string} [group]
+ * @property {string} [label]
+ */
+
+/**
  * A link in the navigation
  * @param {string} name
  * @param {string} [href]
- * @param {{ before: string } | { after: string }} [position] For a section
- *   that isn't in `order`
+ * @param {NavOptions} [options] For a section that isn't in `order`
  */
-function registerSection(name, href = name, position = { before: 'logs' }) {
+function registerSection(name, href = name, options = {}) {
+  const { before, after, group, label = name } = options;
+  const builtIn = (/** @type {string} */ section) =>
+    section === 'status' || order.includes(section);
+  if (group) {
+    if (builtIn(name)) {
+      throw new Error(`The ${name} section can't be in a navigation group`);
+    }
+    if (
+      builtIn(group) ||
+      (group !== name &&
+        sections.has(group) &&
+        sectionGroups.get(group) !== group)
+    ) {
+      throw new Error(
+        `The navigation group ${group} has the name of another section`
+      );
+    }
+  }
+  // Outside the group of its name, while that group has other members
+  if (
+    group !== name &&
+    groups.has(name) &&
+    [.../** @type {Map<string, string>} */ (groups.get(name)).keys()].some(
+      (member) => member !== name
+    )
+  ) {
+    throw new Error(`The ${name} section has the name of a navigation group`);
+  }
+  // A section registered again leaves its previous group
+  const previous = sectionGroups.get(name);
+  if (previous && previous !== group) {
+    leaveGroup(name, previous);
+  }
   sections.set(name, href);
   // status is the home link, not a section of its own
-  if (name !== 'status' && !order.includes(name)) {
+  if (builtIn(name)) {
+    return;
+  }
+  const position = before ? { before } : after ? { after } : { before: 'logs' };
+  if (!group) {
     positions.set(name, position);
+    return;
+  }
+  // Its own place, unless it's the place of its group
+  if (!groups.has(name)) {
+    positions.delete(name);
+  }
+  if (!groups.has(group)) {
+    groups.set(group, new Map());
+  }
+  /** @type {Map<string, string>} */ (groups.get(group)).set(name, label);
+  sectionGroups.set(name, group);
+  memberPositions.set(name, position);
+  placeGroup(group);
+}
+
+// A group goes where its first member asks
+/** @param {string} group */
+function placeGroup(group) {
+  const members = /** @type {Map<string, string>} */ (groups.get(group));
+  positions.set(group, memberPositions.get(members.keys().next().value));
+}
+
+// A section leaves its group; a group without members leaves the navigation
+/**
+ * @param {string} name
+ * @param {string} group
+ */
+function leaveGroup(name, group) {
+  const members = /** @type {Map<string, string>} */ (groups.get(group));
+  members.delete(name);
+  sectionGroups.delete(name);
+  memberPositions.delete(name);
+  if (members.size === 0) {
+    groups.delete(group);
+    positions.delete(group);
+  } else {
+    placeGroup(group);
   }
 }
 
@@ -123,13 +223,18 @@ function isUnder(pathname, path) {
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 
-// The navigation's sections, in order: the registered ones of `order`, and
-// the others placed before or after their anchor, among registered sections
-// only, once that anchor is placed (it can be placed itself, and registered
-// later). Sections placed after the same anchor keep their registration order.
-// A section whose anchor isn't registered, or never gets placed, goes last.
+// The navigation's entries (sections and groups), in order: the registered
+// sections of `order`, and the others placed before or after their anchor,
+// among registered sections only, once that anchor is placed (it can be
+// placed itself, and registered later). An anchor in a group is the group.
+// Entries placed after the same anchor keep their registration order. An
+// entry whose anchor isn't registered, or never gets placed, goes last.
 function navSections() {
-  const names = order.filter((name) => sections.has(name));
+  const names = order.filter(
+    (name) => sections.has(name) && !sectionGroups.has(name)
+  );
+  /** @param {string} name */
+  const entry = (name) => sectionGroups.get(name) || name;
   const lastAfter = new Map();
   let pending = [...positions];
   let placed = true;
@@ -138,14 +243,15 @@ function navSections() {
     /** @type {[string, any][]} */
     const waiting = [];
     for (const [name, position] of pending) {
-      const { before, after } = position;
+      const before = position.before && entry(position.before);
+      const after = position.after && entry(position.after);
       const anchor = before || after;
       const index = before
         ? names.indexOf(before)
         : names.indexOf(lastAfter.get(after) || after);
       if (index === -1) {
         // Wait for a registered anchor; one that isn't registered goes last
-        if (sections.has(anchor)) {
+        if (anchor !== name && (sections.has(anchor) || groups.has(anchor))) {
           waiting.push([name, position]);
         } else {
           names.push(name);
@@ -175,30 +281,87 @@ function nav(req) {
       : '<span>hyperwatch</span>',
   ];
   for (const name of navSections()) {
-    // Active under its name, or under the page its link opens (an href that
-    // doesn't start with the name, e.g. admin/reports)
-    const href = sections.get(name);
-    const active =
-      isUnder(req.path, `/${name}`) ||
-      isUnder(req.path, `/${href.split(/[?#]/)[0]}`);
-    // Aggregator pages keep the period and identity filter
-    const query = new URLSearchParams();
-    if (periodSections.has(name) && periodOf(req) === '24h') {
-      query.set('period', '24h');
-    }
-    if (identityFilterSections.has(name) && identityFilterOf(req) !== 'all') {
-      query.set('filter', identityFilterOf(req));
-    }
-    const search = query.toString();
+    const members = groups.get(name);
+    // A group opens its first member, and is active on any member's page
+    const target = members ? members.keys().next().value || name : name;
+    const active = members
+      ? [...members.keys()].some((member) => isActiveSection(req, member))
+      : isActiveSection(req, name);
     links.push(
-      link(
-        `${href}${search ? `?${search}` : ''}`,
-        name,
-        active ? 'active' : null
-      )
+      link(sectionHref(req, target), escapeHtml(name), active ? 'active' : null)
     );
   }
   return `<nav>${links.join('')}</nav>`;
+}
+
+// Active under its name, or under the page its link opens (an href that
+// doesn't start with the name, e.g. admin/reports)
+/**
+ * @param {Request} req
+ * @param {string} name
+ */
+function isActiveSection(req, name) {
+  return activeMatch(req, name) > 0;
+}
+
+// The length of the path a section is active under on this page (the
+// longest of its name and its link's page), 0 when it isn't active
+/**
+ * @param {Request} req
+ * @param {string} name
+ */
+function activeMatch(req, name) {
+  const paths = [`/${name}`, `/${sections.get(name).split(/[?#]/)[0]}`];
+  return Math.max(
+    0,
+    ...paths.filter((path) => isUnder(req.path, path)).map((p) => p.length)
+  );
+}
+
+// The link of a section: aggregator pages keep the period and identity filter
+/**
+ * @param {Request} req
+ * @param {string} name
+ */
+function sectionHref(req, name) {
+  const query = new URLSearchParams();
+  if (periodSections.has(name) && periodOf(req) === '24h') {
+    query.set('period', '24h');
+  }
+  if (identityFilterSections.has(name) && identityFilterOf(req) !== 'all') {
+    query.set('filter', identityFilterOf(req));
+  }
+  const search = query.toString();
+  return `${sections.get(name)}${search ? `?${search}` : ''}`;
+}
+
+// The second line of navigation on the page of a group's member: the
+// group's members, separated by ·, the current one bold: the member whose
+// page is the most specific match (admin/reports rather than admin)
+/** @param {Request} req */
+function groupNav(req) {
+  let current = null;
+  let longest = 0;
+  // Among all sections: none on the page of a section outside groups
+  for (const name of sections.keys()) {
+    const match = activeMatch(req, name);
+    if (match > longest) {
+      current = name;
+      longest = match;
+    }
+  }
+  if (!current || !sectionGroups.has(current)) {
+    return '';
+  }
+  const members = /** @type {Map<string, string>} */ (
+    groups.get(/** @type {string} */ (sectionGroups.get(current)))
+  );
+  const links = [...members].map(([name, label]) =>
+    name === current
+      ? `<strong>${escapeHtml(label)}</strong>`
+      : link(sectionHref(req, name), escapeHtml(label))
+  );
+  return `<div class="subnav">${links.join(separator('·'))}</div>`;
 }
 
 // The opening part of a page, up to and including the navigation
@@ -226,7 +389,7 @@ function head(req, { title, bodyClass, header = '' } = {}) {
 </head>
 <body${bodyClass ? ` class="${bodyClass}"` : ''}><header>${nav(
     req
-  )}${header}</header>`;
+  )}${groupNav(req)}${header}</header>`;
 }
 
 /**
@@ -454,7 +617,8 @@ function shortenLastSeen(rows) {
 /**
  * The HTML view of an aggregator: render(req, { rows, sorters, sort }).
  * - nav: link the page in the top navigation: true (before logs), or
- *   { before: name } / { after: name } of another section
+ *   { before: name } / { after: name } of another section, and
+ *   { group: name, label } to share one link with other pages (see NavOptions)
  * - identityFilter: switch between all, identified and unidentified entries
  *   (?filter=), for aggregators whose entries have an identity
  * - columns: the columns of the table, in order. A column without a period
@@ -464,7 +628,7 @@ function shortenLastSeen(rows) {
  */
 /**
  * @typedef {object} AggregatorViewOptions
- * @property {boolean | { before: string } | { after: string }} [nav]
+ * @property {boolean | NavOptions} [nav]
  * @property {boolean} [identityFilter]
  * @property {string[]} [columns]
  */
@@ -735,6 +899,7 @@ function streamSearchNotice(req, search) {
 module.exports = {
   aggregatorView,
   baseAddress,
+  groupNav,
   hasSection,
   head,
   logsLink,

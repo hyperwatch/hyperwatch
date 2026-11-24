@@ -42,6 +42,9 @@ app.api.registerAggregator('example', new lib.aggregator.Aggregator(), {
   nav: true,
   columns: ['count'],
 });
+app.api.registerAggregator('example-v1', new lib.aggregator.Aggregator(), {
+  nav: { group: 'example', label: 'v1', after: 'logs' },
+});
 app.api.streamToHttp('/example', named, lib.formatter.Formatter.prototype);
 
 // A custom input, with the types the package exports
