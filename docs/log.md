@@ -51,6 +51,21 @@ The name of the header must be lower-cased.
 | --------- | ------- | --------- | ------------------------------------- |
 | status    | integer | yes       | The HTTP status code for the response |
 
+## Route
+
+`route` is the route the request matched, as the application declares it, in its framework's syntax. `route.path` has the meaning of OpenTelemetry's [`http.route`](https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/): for `/v1/babel.json?x=1`, an Express application with `app.get('/v1/:collectiveSlug.json', …)` logs `/v1/:collectiveSlug.json`. Counting and filtering by route then need no copy of the application's routes.
+
+| Attribute | Type   | Required? | Description                                                                              |
+| --------- | ------ | --------- | ---------------------------------------------------------------------------------------- |
+| path      | string | yes       | The route the request matched, as declared in the application                            |
+| name      | string | no        | The name the application gives the route, in frameworks with named routes (`users.show`) |
+
+```json
+"route": { "path": "/v1/:collectiveSlug.json" }
+```
+
+No `route` when no route matched (a 404). Hyperwatch doesn't rewrite it: a path keeps its case and its trailing slash, and a route declared as a regular expression is logged as the expression. The [Express input](./input.md#express) sets `path`, and the application can set both. Inputs reading logs from another process keep the `route` the log has.
+
 ## Shared fields
 
 Modules add their own fields to logs (`geoip`, `agent`, `identity`…). A few fields can come from more than one source. A specific source sets them first, by running earlier (a lower `priority`), and the generic one only fills what's still missing:

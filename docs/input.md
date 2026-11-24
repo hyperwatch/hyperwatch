@@ -99,6 +99,39 @@ pipeline.registerInput(expressInput);
 
 **Note**: With the `app` option, the input calls `app.use()` only when the pipeline starts. Routes registered on the app before that run first, and their requests are not logged, even if they are declared after `input.express.create()`. Prefer mounting `middleware()` yourself, as above.
 
+When a route handled the request, the log gets its [`route`](./log.md#route). Its `path` is what OpenTelemetry's Express instrumentation sets in `http.route`: `req.baseUrl` (the path of the router the route is in) followed by the route's path, as declared:
+
+| Declared as                               | `route.path`                  |
+| ----------------------------------------- | ----------------------------- |
+| `app.get('/v1/:collectiveSlug.json', …)`  | `/v1/:collectiveSlug.json`    |
+| `router.get('/users/:id', …)` in `/api`   | `/api/users/:id`              |
+| `app.get(/^\/(?<slug>[^/]+)\.json$/i, …)` | `/^\/(?<slug>[^/]+)\.json$/i` |
+| `app.get(['/a/:id', '/b/:id'], …)`        | `/a/:id,/b/:id`               |
+
+There is no `route` when no route matched (a 404, a static file). Express has no named routes: `route.name` is only set by the application (below).
+
+`req.baseUrl` is the requested path, not the pattern the router is mounted with: under `app.use('/:slug', router)`, `route.path` has the slug of each request, and a request to `/API/users/1` logs `/API/users/:id`. Hyperwatch doesn't patch Express to read the patterns: set the route yourself there.
+
+`route` is the one of the last route that handled the request: Express never clears `req.route`, and doesn't say when a route hands the request on. A route calling `next()` (the item wasn't found) or `next(err)` keeps it in the log of the response the following middleware sends, the 404 or the error, and a route in a router loses the router's path there (`req.baseUrl` is back to the parent's). Set it to `null` in your 404 and error handlers:
+
+```javascript
+app.use((req, res) => {
+  req.hyperwatch.route = null;
+  res.status(404).send('Not found');
+});
+```
+
+The application can set `req.hyperwatch.route` before the response ends: its `path` and `name` win over what Express gives (`null`: no route).
+
+```javascript
+app.get(/^\/(?<slug>[^/]+)\.json$/i, (req, res) => {
+  req.hyperwatch.route = { path: '/:slug.json', name: 'collective.json' };
+  // …
+});
+```
+
+Setting only `name` keeps the path read from Express. For example, to name routes, to give a route declared as a regular expression a readable path, for the rewrite that matched in a Next.js custom server, or for the upstream route of a proxy.
+
 Behind a proxy, `request.address` is the proxy's unless Express trusts it: see [Behind a proxy](./express-embedding.md#behind-a-proxy).
 
 To log the traffic of an application running in a separate process, use the [Hyperwatch Express Logger](https://www.npmjs.com/package/@hyperwatch/express-logger) middleware with the HTTP, WebSocket or syslog input (see the [tutorial](./tutorials/express_input.md)).
