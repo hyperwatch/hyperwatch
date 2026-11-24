@@ -2,6 +2,24 @@
 
 Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases). Versions before 5.0.0 have no entry: see the git history.
 
+## 5.9.0 (2026-11-24)
+
+### To sort: Breaking changes, Features, Fixes, Identities
+
+- Navigation groups: one top link, members on a second line ([#775](https://github.com/hyperwatch/hyperwatch/pull/775))
+- Logs get route, as declared in the application ([#776](https://github.com/hyperwatch/hyperwatch/pull/776))
+- identity: Meta's signed requests from Meta's network stay Meta ([#769](https://github.com/hyperwatch/hyperwatch/pull/769))
+- stop(): close the WebSocket clients and live streams when mounted ([#768](https://github.com/hyperwatch/hyperwatch/pull/768))
+- Docs: S3 credentials from init() first, then the default chain ([#765](https://github.com/hyperwatch/hyperwatch/pull/765))
+
+### Identities
+
+- Refresh the published IP ranges and Web Bot Auth keys ([#777](https://github.com/hyperwatch/hyperwatch/pull/777))
+
+### Dependencies & tooling
+
+- Dependabot bumps of `@aws-sdk/client-s3` (3.1174.0). ([#766](https://github.com/hyperwatch/hyperwatch/pull/766), [#774](https://github.com/hyperwatch/hyperwatch/pull/774))
+
 ## 5.8.0 (2026-11-20)
 
 ### Breaking changes
