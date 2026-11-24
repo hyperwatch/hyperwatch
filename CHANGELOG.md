@@ -4,17 +4,20 @@ Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases)
 
 ## 5.9.0 (2026-11-24)
 
-### To sort: Breaking changes, Features, Fixes, Identities
+### Features
 
-- Navigation groups: one top link, members on a second line ([#775](https://github.com/hyperwatch/hyperwatch/pull/775))
-- Logs get route, as declared in the application ([#776](https://github.com/hyperwatch/hyperwatch/pull/776))
-- identity: Meta's signed requests from Meta's network stay Meta ([#769](https://github.com/hyperwatch/hyperwatch/pull/769))
-- stop(): close the WebSocket clients and live streams when mounted ([#768](https://github.com/hyperwatch/hyperwatch/pull/768))
-- Docs: S3 credentials from init() first, then the default chain ([#765](https://github.com/hyperwatch/hyperwatch/pull/765))
+- Logs get `route`, the route the request matched as the application declares it, in its framework's syntax (OpenTelemetry's `http.route`): `{ path, name? }`, for example `{ "path": "/v1/:collectiveSlug.json" }`. The Express input sets it by default, with the router's mount path in front (`/api/users/:id`); no `route` when no route matched (404s, static files). An application sets or overrides it with `req.hyperwatch.route` before the response ends (`{ name }` alone keeps the Express path, `null` means no route). Other inputs keep the `route` a log already has. Limits are in `docs/input.md`. ([#776](https://github.com/hyperwatch/hyperwatch/pull/776))
+- `registerAggregator()` and `aggregatorView()` take `nav: { group, label }`: related sections show once in the top navigation, under the group's name, and a second line on their pages lists the members by label. Sections without a group are unchanged; `registerSection()` refuses a group named like another section or a built-in one. ([#775](https://github.com/hyperwatch/hyperwatch/pull/775))
+
+### Fixes
+
+- `stop()` closes the WebSocket clients of the live views and the live log responses, also when Hyperwatch is mounted in a host's own server: before, one open live view kept the host's `server.close()` from completing. A host only needs `await hyperwatch.stop()` before closing its own server. ([#768](https://github.com/hyperwatch/hyperwatch/pull/768))
+- Requests signed with the `https://www.meta.com` key from Meta's own ranges (`meta-webindexer`) are **Meta** again, not **Meta Agent**, which stays for signed requests from outside Meta's network. ([#769](https://github.com/hyperwatch/hyperwatch/pull/769))
+- Docs: `persistence.s3.credentials` given to `init()` is used first, then the AWS SDK's default chain. ([#765](https://github.com/hyperwatch/hyperwatch/pull/765))
 
 ### Identities
 
-- Refresh the published IP ranges and Web Bot Auth keys ([#777](https://github.com/hyperwatch/hyperwatch/pull/777))
+- Published ranges and keys refreshed: Google's user-triggered fetchers (8 ranges added) and Naver (a key removed). ([#777](https://github.com/hyperwatch/hyperwatch/pull/777))
 
 ### Dependencies & tooling
 
