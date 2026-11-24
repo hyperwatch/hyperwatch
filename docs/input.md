@@ -99,6 +99,15 @@ pipeline.registerInput(expressInput);
 
 **Note**: With the `app` option, the input calls `app.use()` only when the pipeline starts. Routes registered on the app before that run first, and their requests are not logged, even if they are declared after `input.express.create()`. Prefer mounting `middleware()` yourself, as above.
 
+When a route handled the request, the log gets its [`route`](./log.md#route): `req.baseUrl` (the path the router is mounted on) followed by the route's path (`req.route.path`), in the route format. A route declared as a regular expression is converted from the path it matched (`/^(?:\/(?<version>v1))?\/(?<slug>[^/]+?)\.json$/` gives `/v1/:slug.json` for `/v1/babel.json`). There is no `route` when no route matched, as for a 404 or a static file, and when it can't be written in the route format:
+
+- an expression matching more than fixed text outside its groups (`/^\/files\/.*$/`): put the variable parts in groups
+- an array of string paths: Express doesn't say which one matched
+
+A router mounted on a path with parameters (`app.use('/:slug', router)`) has their values in `req.baseUrl`, so its routes would be as many as the values: set the route yourself.
+
+The application can set the route itself, before the response ends: `req.hyperwatch.route = '/:slug/pages/:page'` wins over the one read from Express (`null`: no route). For example, for a Next.js custom server, the rewrite that matched; for a proxy, the upstream route. The value is normalized (see [Route](./log.md#route)): `lib.route` has the functions the input uses.
+
 Behind a proxy, `request.address` is the proxy's unless Express trusts it: see [Behind a proxy](./express-embedding.md#behind-a-proxy).
 
 To log the traffic of an application running in a separate process, use the [Hyperwatch Express Logger](https://www.npmjs.com/package/@hyperwatch/express-logger) middleware with the HTTP, WebSocket or syslog input (see the [tutorial](./tutorials/express_input.md)).

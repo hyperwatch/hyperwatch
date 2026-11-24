@@ -1,3 +1,6 @@
+const debug = require('debug')('hyperwatch:express');
+
+const route = require('../lib/route');
 const { createLog } = require('../lib/util');
 const modules = require('../modules');
 
@@ -9,6 +12,9 @@ const modules = require('../modules');
  * @property {(options?: { fast?: boolean }) => Promise<Log>} getAugmentedLog
  *   The log augmented by the active modules (`fast`: with what they have
  *   in cache only)
+ * @property {string | null} [route] The route of the request, set by the
+ *   application before the response ends: it replaces the one read from
+ *   Express (`null`: no route). See docs/log.md, "Route".
  */
 
 /**
@@ -74,6 +80,13 @@ function create({ name = 'Express Middleware', app } = {}) {
               req.hyperwatch.rawLog = req.hyperwatch.rawLog
                 .setIn(['response', 'status'], res.statusCode)
                 .set('executionTime', executionTime);
+              const value = routeOf(req);
+              if (value) {
+                req.hyperwatch.rawLog = req.hyperwatch.rawLog.set(
+                  'route',
+                  value
+                );
+              }
               if (success) {
                 success(req.hyperwatch.rawLog);
               }
@@ -88,6 +101,29 @@ function create({ name = 'Express Middleware', app } = {}) {
       );
     },
   };
+}
+
+/**
+ * The route of a request: the application's (`req.hyperwatch.route`), else
+ * the one Express matched. A route that can't be read is left out rather
+ * than losing the log.
+ * @param {import('express').Request & { hyperwatch: HyperwatchRequest }} req
+ * @returns {string | undefined}
+ */
+function routeOf(req) {
+  const own = req.hyperwatch.route;
+  if (own === null) {
+    return undefined;
+  }
+  try {
+    if (own !== undefined) {
+      return route.normalize(String(own));
+    }
+    return route.fromExpressRequest(req);
+  } catch (err) {
+    debug(`Can't read the route: %s`, err);
+    return undefined;
+  }
 }
 
 module.exports = {

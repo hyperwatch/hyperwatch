@@ -51,6 +51,30 @@ The name of the header must be lower-cased.
 | --------- | ------- | --------- | ------------------------------------- |
 | status    | integer | yes       | The HTTP status code for the response |
 
+## Route
+
+`route` is the route pattern the request matched, in the application: `/v1/:collectiveSlug.json` for `/v1/babel.json?x=1`. It's set when the application knows it, so counting and filtering by route don't need a copy of the application's routes.
+
+| Attribute | Type   | Required? | Description                                                                 |
+| --------- | ------ | --------- | --------------------------------------------------------------------------- |
+| route     | string | no        | The route pattern the request matched. Missing when no route matched (404s) |
+
+The format, so that values from different applications compare:
+
+- The pattern with `:name` for each parameter, as Express and path-to-regexp write it.
+- A parameter that can only take a few fixed values keeps its value (`/v1/…`, `.json` / `.csv`, `members/all|users|organizations`), any other one shows its name: the number of values per application stays bounded.
+- Literal segments lowercased, no trailing slash, no query string. `*` for a wildcard.
+- No `route` when nothing matched, rather than a made-up value.
+
+The [Express input](./input.md#express) sets it (see there), and an application can set its own. Inputs reading logs from another process keep a `route` the log has. `lib.route` writes values in this format:
+
+| Function                       | Description                                                                                                                                                                                                                                                                               |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `normalize(route)`             | Lowercases the literal parts, drops the query string and the trailing slash                                                                                                                                                                                                               |
+| `fromPattern(pattern, params)` | An Express pattern (`/:slug{.:format}`, `/files/*path`, Express 4's `/:format(json\|csv)?`), with the parameters the request matched: an optional part is kept when one of its parameters has a value                                                                                     |
+| `fromRegExp(regexp, path)`     | A route declared as a regular expression, from the path it matched: a named group becomes `:name` (an unnamed one its number from 0), a group limited to fixed words keeps its value. `undefined` when the expression matches more than fixed text outside its groups (`/^\/files\/.*$/`) |
+| `fromExpressRequest(req)`      | The route of an Express request (`req.baseUrl` and `req.route`), as the Express input reads it                                                                                                                                                                                            |
+
 ## Shared fields
 
 Modules add their own fields to logs (`geoip`, `agent`, `identity`…). A few fields can come from more than one source. A specific source sets them first, by running earlier (a lower `priority`), and the generic one only fills what's still missing:

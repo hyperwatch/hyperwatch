@@ -4,6 +4,7 @@ const formatter = require('./formatter');
 const logger = require('./logger');
 const persistence = require('./persistence');
 const pipeline = require('./pipeline');
+const route = require('./route');
 const util = require('./util');
 
 module.exports = {
@@ -13,5 +14,6 @@ module.exports = {
   logger,
   persistence,
   pipeline: /** @type {import('./pipeline').Root} */ (pipeline),
+  route,
   util,
 };
