@@ -55,10 +55,10 @@ The name of the header must be lower-cased.
 
 `route` has the meaning of OpenTelemetry's [`http.route`](https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/): the route the request matched, as the application declares it, in its framework's syntax. For `/v1/babel.json?x=1`, an Express application with `app.get('/v1/:collectiveSlug.json', …)` logs `/v1/:collectiveSlug.json`. Counting and filtering by route then need no copy of the application's routes.
 
-| Attribute | Type   | Required? | Description                                                                                         |
-| --------- | ------ | --------- | --------------------------------------------------------------------------------------------------- |
-| route     | string | no        | The route the request matched, as declared in the application. Missing when no route matched (404s) |
-| handler   | string | no        | The name of what served the request (a function, a controller, a page). Missing when it has no name |
+| Attribute | Type   | Required? | Description                                                                                                                     |
+| --------- | ------ | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| route     | string | no        | The route the request matched, as declared in the application. Missing when no route matched (404s)                             |
+| handler   | string | no        | The name of the function handling the route (in Express, the route's last function for the method). Missing when it has no name |
 
 Hyperwatch doesn't rewrite them: a route keeps its case and its trailing slash, and a route declared as a regular expression is logged as the expression. An application wanting other values sets them itself. The [Express input](./input.md#express) sets both. Inputs reading logs from another process keep the `route` and `handler` the log has.
 

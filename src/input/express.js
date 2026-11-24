@@ -13,10 +13,10 @@ const modules = require('../modules');
  *   in cache only)
  * @property {string | null} [route] The route of the request, set by the
  *   application before the response ends: it replaces the one read from
- *   Express (`null`: no route). See docs/log.md, "Route".
- * @property {string | null} [handler] The name of what served the request,
- *   set by the application: it replaces the one read from Express (`null`:
- *   none).
+ *   Express (`null` or `''`: no route). See docs/log.md, "Route".
+ * @property {string | null} [handler] The name of the function handling the
+ *   request, set by the application: it replaces the one read from Express
+ *   (`null` or `''`: none).
  */
 
 /**
@@ -144,7 +144,7 @@ function readRoute(req) {
   /** @type {[string, string][]} */
   const fields = [];
   const { route: ownRoute, handler: ownHandler } = req.hyperwatch;
-  /** @type {{ path?: unknown, stack?: { name?: string }[] } | undefined} */
+  /** @type {{ path?: unknown, methods?: Record<string, boolean>, stack?: { name?: string, method?: string }[] } | undefined} */
   const expressRoute = req.route;
 
   let route;
@@ -165,7 +165,16 @@ function readRoute(req) {
   if (ownHandler !== undefined) {
     handler = ownHandler === null ? undefined : String(ownHandler);
   } else if (expressRoute && Array.isArray(expressRoute.stack)) {
-    const last = expressRoute.stack[expressRoute.stack.length - 1];
+    // The functions of the request's method (and of `.all()`), as Express
+    // picks them: a route can have several methods (`app.route(path)`)
+    let method = String(req.method || '').toLowerCase();
+    if (method === 'head' && !(expressRoute.methods || {}).head) {
+      method = 'get';
+    }
+    const layers = expressRoute.stack.filter(
+      (layer) => !layer.method || layer.method === method
+    );
+    const last = layers[layers.length - 1];
     const name = last && last.name;
     handler = name && name !== '<anonymous>' ? name : undefined;
   }

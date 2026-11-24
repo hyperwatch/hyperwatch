@@ -46,7 +46,25 @@ describe('Express input', () => {
     const router = express.Router();
     const user = (req, res) => res.status(404).send('missing');
     router.get('/users/:id', user);
+    const fail = (req, res, next) => next(new Error('fail'));
+    router.get('/fail', fail);
     app.use('/api', router);
+    const getUser = (req, res) => res.send('get');
+    const updateUser = (req, res) => res.send('put');
+    const anyUser = (req, res, next) => next();
+    app.route('/users/:id').all(anyUser).get(getUser).put(updateUser);
+    const notFound = (req, res, next) => next();
+    app.get('/items/:id', notFound);
+    app.get('/cleared/:id', notFound);
+    app.use((req, res) => {
+      if (req.path.startsWith('/cleared/')) {
+        req.hyperwatch.route = null;
+        req.hyperwatch.handler = '';
+      }
+      res.status(404).send('Not found');
+    });
+    // eslint-disable-next-line no-unused-vars
+    app.use((err, req, res, next) => res.status(500).send('Error'));
 
     server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -57,9 +75,9 @@ describe('Express input', () => {
     await new Promise((resolve) => server.close(resolve));
   });
 
-  async function logOf(path) {
+  async function logOf(path, method = 'GET') {
     const count = logs.length;
-    await (await fetch(`${baseUrl}${path}`)).text();
+    await (await fetch(`${baseUrl}${path}`, { method })).text();
     // `finish` can come after the client has the response
     for (let i = 0; i < 50 && logs.length === count; i++) {
       await new Promise((resolve) => setTimeout(resolve, 5));
@@ -115,6 +133,31 @@ describe('Express input', () => {
       handler: 'own',
     });
     assert.deepStrictEqual(await logOf('/none'), {
+      route: undefined,
+      handler: undefined,
+    });
+  });
+
+  it("names the handler of the request's method", async () => {
+    assert.strictEqual((await logOf('/users/1')).handler, 'getUser');
+    assert.strictEqual((await logOf('/users/1', 'HEAD')).handler, 'getUser');
+    assert.strictEqual((await logOf('/users/1', 'PUT')).handler, 'updateUser');
+  });
+
+  it('keeps the last route of a request handed on with next()', async () => {
+    // Documented: Express doesn't say when a route hands the request on
+    assert.deepStrictEqual(await logOf('/items/9'), {
+      route: '/items/:id',
+      handler: 'notFound',
+    });
+    assert.deepStrictEqual(await logOf('/api/fail'), {
+      route: '/fail',
+      handler: 'fail',
+    });
+  });
+
+  it('lets a 404 handler clear them, with null or an empty string', async () => {
+    assert.deepStrictEqual(await logOf('/cleared/9'), {
       route: undefined,
       handler: undefined,
     });
