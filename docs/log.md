@@ -53,14 +53,18 @@ The name of the header must be lower-cased.
 
 ## Route
 
-`route` has the meaning of OpenTelemetry's [`http.route`](https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/): the route the request matched, as the application declares it, in its framework's syntax. For `/v1/babel.json?x=1`, an Express application with `app.get('/v1/:collectiveSlug.json', …)` logs `/v1/:collectiveSlug.json`. Counting and filtering by route then need no copy of the application's routes.
+`route` is the route the request matched, as the application declares it, in its framework's syntax. `route.path` has the meaning of OpenTelemetry's [`http.route`](https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/): for `/v1/babel.json?x=1`, an Express application with `app.get('/v1/:collectiveSlug.json', …)` logs `/v1/:collectiveSlug.json`. Counting and filtering by route then need no copy of the application's routes.
 
-| Attribute | Type   | Required? | Description                                                                                                                     |
-| --------- | ------ | --------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| route     | string | no        | The route the request matched, as declared in the application. Missing when no route matched (404s)                             |
-| handler   | string | no        | The name of the function handling the route (in Express, the route's last function for the method). Missing when it has no name |
+| Attribute | Type   | Required? | Description                                                                              |
+| --------- | ------ | --------- | ---------------------------------------------------------------------------------------- |
+| path      | string | yes       | The route the request matched, as declared in the application                            |
+| name      | string | no        | The name the application gives the route, in frameworks with named routes (`users.show`) |
 
-Hyperwatch doesn't rewrite them: a route keeps its case and its trailing slash, and a route declared as a regular expression is logged as the expression. An application wanting other values sets them itself. The [Express input](./input.md#express) sets both. Inputs reading logs from another process keep the `route` and `handler` the log has.
+```json
+"route": { "path": "/v1/:collectiveSlug.json" }
+```
+
+No `route` when no route matched (a 404). Hyperwatch doesn't rewrite it: a path keeps its case and its trailing slash, and a route declared as a regular expression is logged as the expression. The [Express input](./input.md#express) sets `path`, and the application can set both. Inputs reading logs from another process keep the `route` the log has.
 
 ## Shared fields
 

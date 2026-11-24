@@ -1,4 +1,5 @@
 const debug = require('debug')('hyperwatch:express');
+const { Map } = require('immutable');
 
 const { createLog } = require('../lib/util');
 const modules = require('../modules');
@@ -11,12 +12,10 @@ const modules = require('../modules');
  * @property {(options?: { fast?: boolean }) => Promise<Log>} getAugmentedLog
  *   The log augmented by the active modules (`fast`: with what they have
  *   in cache only)
- * @property {string | null} [route] The route of the request, set by the
- *   application before the response ends: it replaces the one read from
- *   Express (`null` or `''`: no route). See docs/log.md, "Route".
- * @property {string | null} [handler] The name of the function handling the
- *   request, set by the application: it replaces the one read from Express
- *   (`null` or `''`: none).
+ * @property {{ path?: string | null, name?: string | null } | null} [route]
+ *   The route of the request, set by the application before the response
+ *   ends: its fields replace the ones read from Express (`null`: no route).
+ *   See docs/log.md, "Route".
  */
 
 /**
@@ -82,8 +81,12 @@ function create({ name = 'Express Middleware', app } = {}) {
               req.hyperwatch.rawLog = req.hyperwatch.rawLog
                 .setIn(['response', 'status'], res.statusCode)
                 .set('executionTime', executionTime);
-              for (const [field, value] of routeOf(req)) {
-                req.hyperwatch.rawLog = req.hyperwatch.rawLog.set(field, value);
+              const route = routeOf(req);
+              if (route) {
+                req.hyperwatch.rawLog = req.hyperwatch.rawLog.set(
+                  'route',
+                  Map(route)
+                );
               }
               if (success) {
                 success(req.hyperwatch.rawLog);
@@ -119,69 +122,63 @@ function pathText(path) {
 
 /**
  * The route of a request, with the meaning of OpenTelemetry's `http.route`:
- * the path of the Express route that handled it, as written in the
- * application, after its router's (`req.baseUrl`); the paths of an array
- * joined with `,`. And `handler`: the name of the route's last function.
- * What the application set in `req.hyperwatch` wins. Reading them never loses
- * the log: what can't be read is left out.
+ * `path`, the path of the Express route that handled it as written in the
+ * application, after its router's (`req.baseUrl`), the paths of an array
+ * joined with `,`. The fields the application set in `req.hyperwatch.route`
+ * win (`name` comes only from there). No route without a `path`. Reading it
+ * never loses the log: what can't be read is left out.
  * @param {import('express').Request & { hyperwatch: HyperwatchRequest }} req
- * @returns {[string, string][]}
+ * @returns {{ path: string, name?: string } | undefined}
  */
 function routeOf(req) {
   try {
     return readRoute(req);
   } catch (err) {
     debug(`Can't read the route: %s`, err);
-    return [];
+    return undefined;
   }
 }
 
 /**
  * @param {import('express').Request & { hyperwatch: HyperwatchRequest }} req
- * @returns {[string, string][]}
+ * @returns {{ path: string, name?: string } | undefined}
  */
 function readRoute(req) {
-  /** @type {[string, string][]} */
-  const fields = [];
-  const { route: ownRoute, handler: ownHandler } = req.hyperwatch;
-  /** @type {{ path?: unknown, methods?: Record<string, boolean>, stack?: { name?: string, method?: string }[] } | undefined} */
+  const own = req.hyperwatch.route;
+  if (own === null) {
+    return undefined;
+  }
+  /** @type {{ path?: unknown } | undefined} */
   const expressRoute = req.route;
 
-  let route;
-  if (ownRoute !== undefined) {
-    route = ownRoute === null ? undefined : String(ownRoute);
-  } else if (expressRoute) {
+  /** @type {{ path?: unknown, name?: unknown }} */
+  const fields = {};
+  if (expressRoute) {
     const { path } = expressRoute;
     const text = Array.isArray(path)
       ? path.map((p) => pathText(p) || '').join(',')
       : pathText(path);
-    route = text === undefined ? undefined : `${req.baseUrl || ''}${text}`;
+    if (text !== undefined) {
+      fields.path = `${req.baseUrl || ''}${text}`;
+    }
   }
-  if (route) {
-    fields.push(['route', route]);
+  if (own && typeof own === 'object') {
+    for (const key of /** @type {const} */ (['path', 'name'])) {
+      if (own[key] !== undefined) {
+        fields[key] = own[key];
+      }
+    }
   }
 
-  let handler;
-  if (ownHandler !== undefined) {
-    handler = ownHandler === null ? undefined : String(ownHandler);
-  } else if (expressRoute && Array.isArray(expressRoute.stack)) {
-    // The functions of the request's method (and of `.all()`), as Express
-    // picks them: a route can have several methods (`app.route(path)`)
-    let method = String(req.method || '').toLowerCase();
-    if (method === 'head' && !(expressRoute.methods || {}).head) {
-      method = 'get';
-    }
-    const layers = expressRoute.stack.filter(
-      (layer) => !layer.method || layer.method === method
-    );
-    const last = layers[layers.length - 1];
-    const name = last && last.name;
-    handler = name && name !== '<anonymous>' ? name : undefined;
+  if (!fields.path) {
+    return undefined;
   }
-  if (handler) {
-    fields.push(['handler', handler]);
+  /** @type {{ path: string, name?: string }} */
+  const route = { path: String(fields.path) };
+  if (fields.name) {
+    route.name = String(fields.name);
   }
-  return fields;
+  return route;
 }
 
 module.exports = {

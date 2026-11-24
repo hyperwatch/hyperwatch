@@ -31,35 +31,31 @@ describe('Express input', () => {
     app.get(
       /^\/own\/(?<id>\d+)$/,
       (req, res, next) => {
-        req.hyperwatch.route = '/own/:id';
-        req.hyperwatch.handler = 'own';
+        req.hyperwatch.route = { path: '/own/:id', name: 'own.show' };
         next();
       },
       ok
     );
-    const none = (req, res) => {
-      req.hyperwatch.route = null;
-      req.hyperwatch.handler = null;
+    app.get('/named/:id', (req, res) => {
+      req.hyperwatch.route = { name: 'named.show' };
       res.send('ok');
-    };
-    app.get('/none', none);
+    });
+    app.get('/none', (req, res) => {
+      req.hyperwatch.route = null;
+      res.send('ok');
+    });
     const router = express.Router();
     const user = (req, res) => res.status(404).send('missing');
     router.get('/users/:id', user);
     const fail = (req, res, next) => next(new Error('fail'));
     router.get('/fail', fail);
     app.use('/api', router);
-    const getUser = (req, res) => res.send('get');
-    const updateUser = (req, res) => res.send('put');
-    const anyUser = (req, res, next) => next();
-    app.route('/users/:id').all(anyUser).get(getUser).put(updateUser);
     const notFound = (req, res, next) => next();
     app.get('/items/:id', notFound);
     app.get('/cleared/:id', notFound);
     app.use((req, res) => {
       if (req.path.startsWith('/cleared/')) {
         req.hyperwatch.route = null;
-        req.hyperwatch.handler = '';
       }
       res.status(404).send('Not found');
     });
@@ -84,82 +80,64 @@ describe('Express input', () => {
     }
     assert.strictEqual(logs.length, count + 1);
     const log = logs[count];
-    return { route: log.get('route'), handler: log.get('handler') };
+    const route = log.get('route');
+    return route && route.toJS();
   }
 
-  it('sets the path of a string route, and its named handler', async () => {
+  it('sets the path of a string route, and no name', async () => {
     assert.deepStrictEqual(await logOf('/v1/babel.json?x=1'), {
-      route: '/v1/:collectiveSlug.json',
-      handler: 'collectiveJson',
+      path: '/v1/:collectiveSlug.json',
     });
   });
 
   it('sets a regular expression as written', async () => {
     assert.deepStrictEqual(await logOf('/babel/members.csv'), {
-      route: String(/^\/(?<slug>[^/]+)\/members\.(?<format>json|csv)$/i),
-      handler: 'ok',
+      path: String(/^\/(?<slug>[^/]+)\/members\.(?<format>json|csv)$/i),
     });
   });
 
-  it('joins the paths of an array, no handler when anonymous', async () => {
+  it('joins the paths of an array', async () => {
     assert.deepStrictEqual(await logOf('/b/1'), {
-      route: '/a/:id,/^\\/b\\/(?<id>\\d+)$/',
-      handler: undefined,
+      path: '/a/:id,/^\\/b\\/(?<id>\\d+)$/',
     });
   });
 
   it('puts the router path first, even on a 404 the route sent', async () => {
     assert.deepStrictEqual(await logOf('/api/users/1'), {
-      route: '/api/users/:id',
-      handler: 'user',
+      path: '/api/users/:id',
     });
   });
 
   it('shows the requested text of the router path', async () => {
     // req.baseUrl is what was requested, not the mount pattern
-    assert.strictEqual((await logOf('/API/users/1')).route, '/API/users/:id');
-  });
-
-  it('sets nothing when no route matched', async () => {
-    assert.deepStrictEqual(await logOf('/nothing/here'), {
-      route: undefined,
-      handler: undefined,
+    assert.deepStrictEqual(await logOf('/API/users/1'), {
+      path: '/API/users/:id',
     });
   });
 
-  it("prefers the application's route and handler", async () => {
+  it('sets no route when no route matched', async () => {
+    assert.strictEqual(await logOf('/nothing/here'), undefined);
+  });
+
+  it("prefers the application's fields", async () => {
     assert.deepStrictEqual(await logOf('/own/1'), {
-      route: '/own/:id',
-      handler: 'own',
+      path: '/own/:id',
+      name: 'own.show',
     });
-    assert.deepStrictEqual(await logOf('/none'), {
-      route: undefined,
-      handler: undefined,
+    assert.deepStrictEqual(await logOf('/named/1'), {
+      path: '/named/:id',
+      name: 'named.show',
     });
-  });
-
-  it("names the handler of the request's method", async () => {
-    assert.strictEqual((await logOf('/users/1')).handler, 'getUser');
-    assert.strictEqual((await logOf('/users/1', 'HEAD')).handler, 'getUser');
-    assert.strictEqual((await logOf('/users/1', 'PUT')).handler, 'updateUser');
+    assert.strictEqual(await logOf('/none'), undefined);
   });
 
   it('keeps the last route of a request handed on with next()', async () => {
     // Documented: Express doesn't say when a route hands the request on
-    assert.deepStrictEqual(await logOf('/items/9'), {
-      route: '/items/:id',
-      handler: 'notFound',
-    });
-    assert.deepStrictEqual(await logOf('/api/fail'), {
-      route: '/fail',
-      handler: 'fail',
-    });
+    assert.deepStrictEqual(await logOf('/items/9'), { path: '/items/:id' });
+    assert.deepStrictEqual(await logOf('/api/fail'), { path: '/fail' });
   });
 
-  it('lets a 404 handler clear them, with null or an empty string', async () => {
-    assert.deepStrictEqual(await logOf('/cleared/9'), {
-      route: undefined,
-      handler: undefined,
-    });
+  it('lets a 404 handler clear it with null', async () => {
+    assert.strictEqual(await logOf('/cleared/9'), undefined);
   });
 });
