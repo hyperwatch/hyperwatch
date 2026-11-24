@@ -1,6 +1,5 @@
 const debug = require('debug')('hyperwatch:express');
 
-const route = require('../lib/route');
 const { createLog } = require('../lib/util');
 const modules = require('../modules');
 
@@ -15,6 +14,9 @@ const modules = require('../modules');
  * @property {string | null} [route] The route of the request, set by the
  *   application before the response ends: it replaces the one read from
  *   Express (`null`: no route). See docs/log.md, "Route".
+ * @property {string | null} [handler] The name of what served the request,
+ *   set by the application: it replaces the one read from Express (`null`:
+ *   none).
  */
 
 /**
@@ -80,12 +82,8 @@ function create({ name = 'Express Middleware', app } = {}) {
               req.hyperwatch.rawLog = req.hyperwatch.rawLog
                 .setIn(['response', 'status'], res.statusCode)
                 .set('executionTime', executionTime);
-              const value = routeOf(req);
-              if (value) {
-                req.hyperwatch.rawLog = req.hyperwatch.rawLog.set(
-                  'route',
-                  value
-                );
+              for (const [field, value] of routeOf(req)) {
+                req.hyperwatch.rawLog = req.hyperwatch.rawLog.set(field, value);
               }
               if (success) {
                 success(req.hyperwatch.rawLog);
@@ -104,26 +102,77 @@ function create({ name = 'Express Middleware', app } = {}) {
 }
 
 /**
- * The route of a request: the application's (`req.hyperwatch.route`), else
- * the one Express matched. A route that can't be read is left out rather
- * than losing the log.
- * @param {import('express').Request & { hyperwatch: HyperwatchRequest }} req
+ * A path a route is declared with, as written in the application: a string
+ * as is, a regular expression as its literal (`/^\/(?<slug>[^/]+)$/i`)
+ * @param {unknown} path
  * @returns {string | undefined}
  */
-function routeOf(req) {
-  const own = req.hyperwatch.route;
-  if (own === null) {
-    return undefined;
+function pathText(path) {
+  if (typeof path === 'string') {
+    return path;
   }
+  if (path instanceof RegExp) {
+    return String(path);
+  }
+  return undefined;
+}
+
+/**
+ * The route of a request, with the meaning of OpenTelemetry's `http.route`:
+ * the path of the Express route that handled it, as written in the
+ * application, after its router's (`req.baseUrl`); the paths of an array
+ * joined with `,`. And `handler`: the name of the route's last function.
+ * What the application set in `req.hyperwatch` wins. Reading them never loses
+ * the log: what can't be read is left out.
+ * @param {import('express').Request & { hyperwatch: HyperwatchRequest }} req
+ * @returns {[string, string][]}
+ */
+function routeOf(req) {
   try {
-    if (own !== undefined) {
-      return route.normalize(String(own));
-    }
-    return route.fromExpressRequest(req);
+    return readRoute(req);
   } catch (err) {
     debug(`Can't read the route: %s`, err);
-    return undefined;
+    return [];
   }
+}
+
+/**
+ * @param {import('express').Request & { hyperwatch: HyperwatchRequest }} req
+ * @returns {[string, string][]}
+ */
+function readRoute(req) {
+  /** @type {[string, string][]} */
+  const fields = [];
+  const { route: ownRoute, handler: ownHandler } = req.hyperwatch;
+  /** @type {{ path?: unknown, stack?: { name?: string }[] } | undefined} */
+  const expressRoute = req.route;
+
+  let route;
+  if (ownRoute !== undefined) {
+    route = ownRoute === null ? undefined : String(ownRoute);
+  } else if (expressRoute) {
+    const { path } = expressRoute;
+    const text = Array.isArray(path)
+      ? path.map((p) => pathText(p) || '').join(',')
+      : pathText(path);
+    route = text === undefined ? undefined : `${req.baseUrl || ''}${text}`;
+  }
+  if (route) {
+    fields.push(['route', route]);
+  }
+
+  let handler;
+  if (ownHandler !== undefined) {
+    handler = ownHandler === null ? undefined : String(ownHandler);
+  } else if (expressRoute && Array.isArray(expressRoute.stack)) {
+    const last = expressRoute.stack[expressRoute.stack.length - 1];
+    const name = last && last.name;
+    handler = name && name !== '<anonymous>' ? name : undefined;
+  }
+  if (handler) {
+    fields.push(['handler', handler]);
+  }
+  return fields;
 }
 
 module.exports = {

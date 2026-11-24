@@ -53,27 +53,14 @@ The name of the header must be lower-cased.
 
 ## Route
 
-`route` is the route pattern the request matched, in the application: `/v1/:collectiveSlug.json` for `/v1/babel.json?x=1`. It's set when the application knows it, so counting and filtering by route don't need a copy of the application's routes.
+`route` has the meaning of OpenTelemetry's [`http.route`](https://opentelemetry.io/docs/specs/semconv/registry/attributes/http/): the route the request matched, as the application declares it, in its framework's syntax. For `/v1/babel.json?x=1`, an Express application with `app.get('/v1/:collectiveSlug.json', …)` logs `/v1/:collectiveSlug.json`. Counting and filtering by route then need no copy of the application's routes.
 
-| Attribute | Type   | Required? | Description                                                                 |
-| --------- | ------ | --------- | --------------------------------------------------------------------------- |
-| route     | string | no        | The route pattern the request matched. Missing when no route matched (404s) |
+| Attribute | Type   | Required? | Description                                                                                         |
+| --------- | ------ | --------- | --------------------------------------------------------------------------------------------------- |
+| route     | string | no        | The route the request matched, as declared in the application. Missing when no route matched (404s) |
+| handler   | string | no        | The name of what served the request (a function, a controller, a page). Missing when it has no name |
 
-The format, so that values from different applications compare:
-
-- The pattern with `:name` for each parameter, as Express and path-to-regexp write it.
-- A parameter that can only take a few fixed values keeps its value (`/v1/…`, `.json` / `.csv`, `members/all|users|organizations`), any other one shows its name: the number of values per application stays bounded.
-- Literal segments lowercased, no trailing slash, no query string. `*` for a wildcard.
-- No `route` when nothing matched, rather than a made-up value.
-
-The [Express input](./input.md#express) sets it (see there), and an application can set its own. Inputs reading logs from another process keep a `route` the log has. `lib.route` writes values in this format:
-
-| Function                       | Description                                                                                                                                                                                                                                                                               |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `normalize(route)`             | Lowercases the literal parts, drops the query string and the trailing slash                                                                                                                                                                                                               |
-| `fromPattern(pattern, params)` | An Express pattern (`/:slug{.:format}`, `/files/*path`, Express 4's `/:format(json\|csv)?`), with the parameters the request matched: an optional part is kept when one of its parameters has a value                                                                                     |
-| `fromRegExp(regexp, path)`     | A route declared as a regular expression, from the path it matched: a named group becomes `:name` (an unnamed one its number from 0), a group limited to fixed words keeps its value. `undefined` when the expression matches more than fixed text outside its groups (`/^\/files\/.*$/`) |
-| `fromExpressRequest(req)`      | The route of an Express request (`req.baseUrl` and `req.route`), as the Express input reads it                                                                                                                                                                                            |
+Hyperwatch doesn't rewrite them: a route keeps its case and its trailing slash, and a route declared as a regular expression is logged as the expression. An application wanting other values sets them itself. The [Express input](./input.md#express) sets both. Inputs reading logs from another process keep the `route` and `handler` the log has.
 
 ## Shared fields
 

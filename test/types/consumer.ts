@@ -95,17 +95,6 @@ application.use((req, res, next) => {
 });
 pipeline.registerInput(expressInput);
 
-// The route format, for an application setting `req.hyperwatch.route`
-const routes: (string | undefined)[] = [
-  lib.route.normalize('/V1/:slug/'),
-  lib.route.fromPattern('/:slug{.:format}', { slug: 'a' }),
-  lib.route.fromRegExp(/^\/(?<slug>[^/]+)$/, '/a'),
-  lib.route.fromExpressRequest({ route: { path: '/a' }, baseUrl: '' }),
-];
-// @ts-expect-error a path, not an expression
-lib.route.fromRegExp('/a', '/a');
-void routes;
-
 // getIn() returns any, like get()
 node
   .filter((log) => !log.getIn(['request', 'url']).match(/^\/_/))

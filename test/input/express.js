@@ -10,6 +10,8 @@ describe('Express input', () => {
   let baseUrl;
   const logs = [];
 
+  const ok = (req, res) => res.send('ok');
+
   before(async () => {
     const input = expressInput.create();
     input.start({
@@ -22,22 +24,29 @@ describe('Express input', () => {
 
     const app = express();
     app.use(input.middleware());
-    app.get('/v1/:collectiveSlug.json', (req, res) => res.send('ok'));
+    const collectiveJson = (req, res) => res.send('ok');
+    app.get('/v1/:collectiveSlug.json', collectiveJson);
+    app.get(/^\/(?<slug>[^/]+)\/members\.(?<format>json|csv)$/i, ok);
+    app.get(['/a/:id', /^\/b\/(?<id>\d+)$/], (req, res) => res.send('ok'));
     app.get(
-      /^\/(?<collectiveSlug>[^/]+)\/members\/(?<type>all|users|organizations)$/,
-      (req, res) => res.send('ok')
+      /^\/own\/(?<id>\d+)$/,
+      (req, res, next) => {
+        req.hyperwatch.route = '/own/:id';
+        req.hyperwatch.handler = 'own';
+        next();
+      },
+      ok
     );
-    app.get('/own/:id', (req, res) => {
-      req.hyperwatch.route = '/Own/:Id/';
-      res.send('ok');
-    });
-    app.get('/none', (req, res) => {
+    const none = (req, res) => {
       req.hyperwatch.route = null;
+      req.hyperwatch.handler = null;
       res.send('ok');
-    });
+    };
+    app.get('/none', none);
     const router = express.Router();
-    router.get('/users/:id', (req, res) => res.status(404).send('missing'));
-    app.use('/API', router);
+    const user = (req, res) => res.status(404).send('missing');
+    router.get('/users/:id', user);
+    app.use('/api', router);
 
     server = http.createServer(app);
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -48,7 +57,7 @@ describe('Express input', () => {
     await new Promise((resolve) => server.close(resolve));
   });
 
-  async function routeOf(path) {
+  async function logOf(path) {
     const count = logs.length;
     await (await fetch(`${baseUrl}${path}`)).text();
     // `finish` can come after the client has the response
@@ -56,33 +65,58 @@ describe('Express input', () => {
       await new Promise((resolve) => setTimeout(resolve, 5));
     }
     assert.strictEqual(logs.length, count + 1);
-    return logs[count].get('route');
+    const log = logs[count];
+    return { route: log.get('route'), handler: log.get('handler') };
   }
 
-  it('sets the route of a string pattern', async () => {
-    assert.strictEqual(
-      await routeOf('/v1/babel.json?x=1'),
-      '/v1/:collectiveSlug.json'
-    );
+  it('sets the path of a string route, and its named handler', async () => {
+    assert.deepStrictEqual(await logOf('/v1/babel.json?x=1'), {
+      route: '/v1/:collectiveSlug.json',
+      handler: 'collectiveJson',
+    });
   });
 
-  it('sets the route of an expression', async () => {
-    assert.strictEqual(
-      await routeOf('/babel/members/users'),
-      '/:collectiveSlug/members/users'
-    );
+  it('sets a regular expression as written', async () => {
+    assert.deepStrictEqual(await logOf('/babel/members.csv'), {
+      route: String(/^\/(?<slug>[^/]+)\/members\.(?<format>json|csv)$/i),
+      handler: 'ok',
+    });
   });
 
-  it('prefixes the router mount path, even on a 404 the route sent', async () => {
-    assert.strictEqual(await routeOf('/api/users/1'), '/api/users/:id');
+  it('joins the paths of an array, no handler when anonymous', async () => {
+    assert.deepStrictEqual(await logOf('/b/1'), {
+      route: '/a/:id,/^\\/b\\/(?<id>\\d+)$/',
+      handler: undefined,
+    });
   });
 
-  it('sets no route when none matched', async () => {
-    assert.strictEqual(await routeOf('/nothing/here'), undefined);
+  it('puts the router path first, even on a 404 the route sent', async () => {
+    assert.deepStrictEqual(await logOf('/api/users/1'), {
+      route: '/api/users/:id',
+      handler: 'user',
+    });
   });
 
-  it("prefers the application's route", async () => {
-    assert.strictEqual(await routeOf('/own/1'), '/own/:Id');
-    assert.strictEqual(await routeOf('/none'), undefined);
+  it('shows the requested text of the router path', async () => {
+    // req.baseUrl is what was requested, not the mount pattern
+    assert.strictEqual((await logOf('/API/users/1')).route, '/API/users/:id');
+  });
+
+  it('sets nothing when no route matched', async () => {
+    assert.deepStrictEqual(await logOf('/nothing/here'), {
+      route: undefined,
+      handler: undefined,
+    });
+  });
+
+  it("prefers the application's route and handler", async () => {
+    assert.deepStrictEqual(await logOf('/own/1'), {
+      route: '/own/:id',
+      handler: 'own',
+    });
+    assert.deepStrictEqual(await logOf('/none'), {
+      route: undefined,
+      handler: undefined,
+    });
   });
 });

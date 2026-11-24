@@ -99,14 +99,30 @@ pipeline.registerInput(expressInput);
 
 **Note**: With the `app` option, the input calls `app.use()` only when the pipeline starts. Routes registered on the app before that run first, and their requests are not logged, even if they are declared after `input.express.create()`. Prefer mounting `middleware()` yourself, as above.
 
-When a route handled the request, the log gets its [`route`](./log.md#route): `req.baseUrl` (the path the router is mounted on) followed by the route's path (`req.route.path`), in the route format. A route declared as a regular expression is converted from the path it matched (`/^(?:\/(?<version>v1))?\/(?<slug>[^/]+?)\.json$/` gives `/v1/:slug.json` for `/v1/babel.json`). There is no `route` when no route matched, as for a 404 or a static file, and when it can't be written in the route format:
+When a route handled the request, the log gets its [`route`](./log.md#route), as OpenTelemetry's Express instrumentation sets `http.route`: `req.baseUrl` (the path of the router the route is in) followed by the route's path, as declared:
 
-- an expression matching more than fixed text outside its groups (`/^\/files\/.*$/`): put the variable parts in groups
-- an array of string paths: Express doesn't say which one matched
+| Declared as                               | `route`                       |
+| ----------------------------------------- | ----------------------------- |
+| `app.get('/v1/:collectiveSlug.json', …)`  | `/v1/:collectiveSlug.json`    |
+| `router.get('/users/:id', …)` in `/api`   | `/api/users/:id`              |
+| `app.get(/^\/(?<slug>[^/]+)\.json$/i, …)` | `/^\/(?<slug>[^/]+)\.json$/i` |
+| `app.get(['/a/:id', '/b/:id'], …)`        | `/a/:id,/b/:id`               |
 
-A router mounted on a path with parameters (`app.use('/:slug', router)`) has their values in `req.baseUrl`, so its routes would be as many as the values: set the route yourself.
+And `handler`: the name of the route's last function (`function collectiveJson(req, res)`, or `const collectiveJson = (req, res) => …`), left out for an anonymous one. A handler wrapped by another function (an async wrapper, a controller factory) has the name of the function Express calls. There is no `route` and no `handler` when no route matched (a 404, a static file).
 
-The application can set the route itself, before the response ends: `req.hyperwatch.route = '/:slug/pages/:page'` wins over the one read from Express (`null`: no route). For example, for a Next.js custom server, the rewrite that matched; for a proxy, the upstream route. The value is normalized (see [Route](./log.md#route)): `lib.route` has the functions the input uses.
+`req.baseUrl` is the requested path, not the pattern the router is mounted with: under `app.use('/:slug', router)`, `route` has the slug of each request, and a request to `/API/users/1` logs `/API/users/:id`. Hyperwatch doesn't patch Express to read the patterns: set the route yourself there.
+
+The application can set them before the response ends, and its values win over the ones read from Express (`null`: none):
+
+```javascript
+app.get(/^\/(?<slug>[^/]+)\.json$/i, (req, res) => {
+  req.hyperwatch.route = '/:slug.json';
+  req.hyperwatch.handler = 'collectiveJson';
+  // …
+});
+```
+
+For example, to give a route declared as a regular expression a readable name, for the rewrite that matched in a Next.js custom server, or for the upstream route of a proxy.
 
 Behind a proxy, `request.address` is the proxy's unless Express trusts it: see [Behind a proxy](./express-embedding.md#behind-a-proxy).
 
