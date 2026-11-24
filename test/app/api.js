@@ -575,6 +575,137 @@ describe('API identity filter', () => {
     );
   });
 
+  it('links a group once, its members on a second line', () => {
+    html.aggregatorView('routes-api', {
+      nav: { group: 'routes', label: 'api', after: 'pipeline' },
+      identityFilter: true,
+    });
+    // Ignored: the group is placed by its first member
+    html.aggregatorView('routes-rest', {
+      nav: { group: 'routes', label: 'rest', before: 'identities' },
+    });
+    html.aggregatorView('routes-images', { nav: { group: 'routes' } });
+    // A section placed next to a member is placed next to its group
+    html.aggregatorView('slow', { nav: { after: 'routes-rest' } });
+
+    const req = {
+      path: '/routes-rest',
+      query: { period: '24h', filter: 'identified' },
+    };
+    const nav = html.nav(req);
+    assert.match(
+      nav,
+      /<a href="pipeline">pipeline<\/a><a href="routes-api\?period=24h&amp;filter=identified" class="active">routes<\/a><a href="slow\?period=24h">slow<\/a>/
+    );
+    assert.doesNotMatch(nav, /routes-rest|routes-images/);
+    assert.strictEqual(
+      html.groupNav(req),
+      '<div class="subnav"><a href="routes-api?period=24h&amp;filter=identified">api</a><span class="grey"> · </span><strong>rest</strong><span class="grey"> · </span><a href="routes-images?period=24h">routes-images</a></div>'
+    );
+    assert.doesNotMatch(
+      html.nav({ path: '/slow', query: {} }),
+      /class="active">routes/
+    );
+    assert.strictEqual(html.groupNav({ path: '/slow', query: {} }), '');
+  });
+
+  it('shows the group on its members pages', async () => {
+    html.aggregatorView('graphql', { nav: { group: 'graphql', label: 'all' } });
+    api.registerAggregator('graphql-v1', aggregator, {
+      nav: { group: 'graphql', label: 'v1' },
+    });
+    const body = await (await fetch(`${baseUrl}/graphql-v1`)).text();
+    assert.match(body, /<a href="graphql" class="active">graphql<\/a>/);
+    assert.match(
+      body,
+      /<\/nav><div class="subnav"><a href="graphql">all<\/a><span class="grey"> · <\/span><strong>v1<\/strong><\/div><\/header>/
+    );
+  });
+
+  it('keeps a group when its own member registers after another', () => {
+    html.aggregatorView('gq-v1', { nav: { group: 'gq', after: 'pipeline' } });
+    html.aggregatorView('gq', { nav: { group: 'gq', label: 'all' } });
+    assert.match(
+      html.nav({ path: '/gq', query: {} }),
+      /<a href="gq-v1" class="active">gq<\/a>/
+    );
+    assert.match(
+      html.groupNav({ path: '/gq', query: {} }),
+      /<a href="gq-v1">gq-v1<\/a><span class="grey"> · <\/span><strong>all<\/strong>/
+    );
+  });
+
+  it('takes a section out of its group when registered again', () => {
+    html.aggregatorView('x1', { nav: { group: 'xs' } });
+    html.aggregatorView('x2', { nav: { group: 'xs' } });
+    html.aggregatorView('x1', { nav: true });
+    const nav = html.nav({ path: '/x1', query: {} });
+    assert.match(nav, /<a href="x2">xs<\/a>/);
+    assert.match(nav, /<a href="x1" class="active">x1<\/a>/);
+    assert.strictEqual(html.groupNav({ path: '/x1', query: {} }), '');
+    // Its last member gone, the group leaves the navigation
+    html.aggregatorView('x2', { nav: { group: 'ys' } });
+    assert.doesNotMatch(html.nav({ path: '/', query: {} }), />xs</);
+  });
+
+  it('refuses groups named like other sections, and built-in members', () => {
+    html.aggregatorView('standalone', { nav: true });
+    assert.throws(
+      () =>
+        html.aggregatorView('standalone-v1', { nav: { group: 'standalone' } }),
+      /group standalone has the name of another section/
+    );
+    assert.throws(
+      () => html.aggregatorView('lg', { nav: { group: 'logs' } }),
+      /group logs has the name of another section/
+    );
+    assert.throws(
+      () => html.registerSection('pipeline', 'pipeline', { group: 'meta' }),
+      /pipeline section can't be in a navigation group/
+    );
+    html.aggregatorView('grouped-v1', { nav: { group: 'grouped' } });
+    assert.throws(
+      () => html.aggregatorView('grouped', { nav: true }),
+      /grouped section has the name of a navigation group/
+    );
+  });
+
+  it('bolds the most specific member of a group', () => {
+    html.registerSection('desk', 'desk', { group: 'desks' });
+    html.registerSection('desk-reports', 'desk/reports', { group: 'desks' });
+    assert.match(
+      html.groupNav({ path: '/desk/reports', query: {} }),
+      /<a href="desk">desk<\/a><span class="grey"> · <\/span><strong>desk-reports<\/strong>/
+    );
+  });
+
+  it('refuses a section named like a group joining another group', () => {
+    html.aggregatorView('hq-v1', { nav: { group: 'hq' } });
+    assert.throws(
+      () => html.aggregatorView('hq', { nav: { group: 'other-hq' } }),
+      /hq section has the name of a navigation group/
+    );
+  });
+
+  it('has no group line on the page of a section outside groups', () => {
+    html.registerSection('office', 'office', { group: 'offices' });
+    html.registerSection('office-reports', 'office/reports');
+    assert.strictEqual(
+      html.groupNav({ path: '/office/reports', query: {} }),
+      ''
+    );
+  });
+
+  it('moves a group where its new first member asks', () => {
+    html.aggregatorView('mv-a', { nav: { group: 'mv', after: 'pipeline' } });
+    html.aggregatorView('mv-b', { nav: { group: 'mv', before: 'identities' } });
+    html.aggregatorView('mv-a', { nav: { after: 'logs' } });
+    assert.match(
+      html.nav({ path: '/', query: {} }),
+      /<a href="mv-b">mv<\/a><a href="identities/
+    );
+  });
+
   it('has no filters on other aggregators', async () => {
     const body = await (await fetch(`${baseUrl}/no-filter-test`)).text();
     assert.doesNotMatch(body, /Unidentified/);
