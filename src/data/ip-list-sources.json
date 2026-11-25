@@ -232,6 +232,12 @@
     "format": "lines"
   },
   {
+    "name": "poliasbot-ips",
+    "about": "Polias's PoliasBot, linked from https://polias.eu/bot",
+    "urls": ["https://polias.eu/bot/ips.json"],
+    "format": "prefixes"
+  },
+  {
     "name": "qwantbot-ips",
     "urls": ["https://help.qwant.com/qwantbot.json"],
     "format": "prefixes"

@@ -634,6 +634,7 @@ describe('identity', () => {
       ['LinkCheckerBot', 'linkcheckerbot-ips', 'LinkChecker'],
       ['HyperSearchBot', 'hypersearchbot-ips', 'EcoGPT'],
       ['search.marginalia.nu', 'marginalia-ips', 'Marginalia'],
+      ['PoliasBot', 'poliasbot-ips', 'Polias'],
       ['CensysInspect', 'censys-ips', 'Censys'],
       ['GenomeCrawlerd', 'deepfield-ips', 'Deepfield'],
       ['DataForSeoBot', 'dataforseo-ips', 'DataForSeo'],
