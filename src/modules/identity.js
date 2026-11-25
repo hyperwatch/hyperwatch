@@ -50,6 +50,7 @@ const openaiSearchbotIps = require('../data/openai-searchbot-ips.json');
 const perplexityUserIps = require('../data/perplexity-user-ips.json');
 const perplexityBotIps = require('../data/perplexitybot-ips.json');
 const pingdomIps = require('../data/pingdom-ips.json');
+const poliasbotIps = require('../data/poliasbot-ips.json');
 const qwantbotIps = require('../data/qwantbot-ips.json');
 const reflectionbotIps = require('../data/reflectionbot-ips.json');
 const riverbotIps = require('../data/riverbot-ips.json');
@@ -176,6 +177,7 @@ const halobotCidrs = compileRanges(halobotIps);
 const hubspotCidrs = compileRanges(hubspotIps);
 const hypersearchbotCidrs = compileRanges(hypersearchbotIps);
 const marginaliaCidrs = compileRanges(marginaliaIps);
+const poliasbotCidrs = compileRanges(poliasbotIps);
 const censysCidrs = compileRanges(censysIps);
 const deepfieldCidrs = compileRanges(deepfieldIps);
 const ibouCidrs = compileRanges(ibouIps);
@@ -866,6 +868,12 @@ function identify(log) {
       // https://www.marginalia.nu/marginalia-search/for-webmasters/
       return address && marginaliaCidrs(address)
         ? log.set('identity', 'Marginalia')
+        : log;
+    case 'PoliasBot':
+      // https://polias.eu/bot: its list (its extra rented servers aren't
+      // listed and stay unidentified)
+      return address && poliasbotCidrs(address)
+        ? log.set('identity', 'Polias')
         : log;
     case 'ClueWeb-Crawler':
       // https://boston.lti.cs.cmu.edu/CMU-ClueWeb-Crawler/ (from "CMU SCS IP
