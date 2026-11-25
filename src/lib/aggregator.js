@@ -1,6 +1,7 @@
 const { List, Map, Set, fromJS, is } = require('immutable');
 
 const { Formatter, address, identity } = require('../lib/formatter');
+const { sharedFields } = require('../lib/shared');
 const { Speed } = require('../lib/speed');
 const {
   aggregateCount,
@@ -312,9 +313,11 @@ class Aggregator {
   load(data) {
     for (const item of data) {
       const { speed, ...rest } = item;
-      // fromJS deep-converts everything to Immutable structures.
+      // fromJS deep-converts everything to Immutable structures, but keeps
+      // the shared values (agent, language…) as they are: one per value for
+      // all entries, as logs have them.
       // Signature headers must stay as a plain object (used with Object.entries).
-      let entry = /** @type {Entry} */ (fromJS(rest));
+      let entry = /** @type {Entry} */ (fromJS(sharedFields(rest)));
       if (entry.hasIn(['signature', 'headers'])) {
         entry = entry.setIn(['signature', 'headers'], rest.signature.headers);
       }

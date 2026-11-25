@@ -34,7 +34,7 @@
     "prettier:check": "npm run prettier -- --list-different",
     "prettier:write": "npm run prettier -- --write",
     "start": "node start",
-    "test": "mocha --recursive",
+    "test": "mocha --recursive --expose-gc",
     "type:check": "tsc -p .",
     "types": "node -e \"require('fs').rmSync('types', { recursive: true, force: true })\" && tsc -p tsconfig.types.json",
     "types:test": "node scripts/test-types.js"

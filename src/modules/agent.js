@@ -1,10 +1,10 @@
 const useragent = require('@hyperwatch/useragent');
-const { fromJS } = require('immutable');
 
 const aggregator = require('../lib/aggregator');
 const cache = require('../lib/cache');
 const logger = require('../lib/logger');
 const pipeline = require('../lib/pipeline');
+const { sharedFromJS } = require('../lib/shared');
 const { safeHtml } = require('../lib/util');
 
 /**
@@ -39,7 +39,8 @@ async function augment(log) {
   if (userAgentString) {
     const agent = await lookup(userAgentString);
     if (agent) {
-      log = log.set('agent', fromJS(agent));
+      // One value per agent, shared by the logs and entries that have it
+      log = log.set('agent', sharedFromJS('agent', agent));
     }
   }
 

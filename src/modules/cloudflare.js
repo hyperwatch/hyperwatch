@@ -1,4 +1,5 @@
 const pipeline = require('../lib/pipeline');
+const { sharedFromJS } = require('../lib/shared');
 
 /**
  * @param {Log} log
@@ -48,7 +49,14 @@ function augment(log) {
 
   const dataCenter = getDataCenter(log);
   if (dataCenter) {
-    log = log.setIn(['cloudflare', 'data-center'], dataCenter);
+    // One value per data center, shared, unless the log has other
+    // cloudflare fields
+    log = log.has('cloudflare')
+      ? log.setIn(['cloudflare', 'data-center'], dataCenter)
+      : log.set(
+          'cloudflare',
+          sharedFromJS('cloudflare', { 'data-center': dataCenter })
+        );
   }
 
   return log;
