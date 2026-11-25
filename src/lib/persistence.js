@@ -244,6 +244,9 @@ class Persistence {
   constructor() {
     /** @type {Record<string, Persistable>} */
     this.documents = Object.create(null);
+    // Bytes of each document at its latest load and dump (/memory.json)
+    /** @type {Record<string, { load?: number, dump?: number }>} */
+    this.sizes = Object.create(null);
     /** @type {Storage | null} */
     this.storage = null;
     // Released when the dump in progress is over, see dump()
@@ -356,7 +359,9 @@ class Persistence {
       } finally {
         stats.stages.restore += since(start);
       }
-      counted(stats, Buffer.byteLength(body));
+      const bytes = Buffer.byteLength(body);
+      counted(stats, bytes);
+      this.sizes[name] = { ...this.sizes[name], load: bytes };
     });
 
     return this.record('load', stats, since(started));
@@ -443,7 +448,9 @@ class Persistence {
       this.pendingWrites.set(name, settled);
       try {
         await bounded(write, signal);
-        counted(stats, Buffer.byteLength(body));
+        const bytes = Buffer.byteLength(body);
+        counted(stats, bytes);
+        this.sizes[name] = { ...this.sizes[name], dump: bytes };
       } catch (err) {
         failed(stats, name, err, signal);
       } finally {

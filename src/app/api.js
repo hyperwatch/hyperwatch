@@ -16,6 +16,7 @@ const version = require('../version');
 
 const html = require('./html');
 const liveStreams = require('./live-streams');
+const memory = require('./memory');
 const wsServer = require('./ws-server');
 
 /** @type {import('express').Express} */
@@ -67,6 +68,9 @@ app.get('/nodes{.:format}', (req, res) => {
     res.redirect(`${req.baseUrl}/pipeline`);
   }
 });
+
+// What holds memory: process, heap, aggregators and history (JSON only)
+app.get('/memory.json', memory.handler);
 
 // The pipeline tree: inputs, nodes and what runs on them
 html.registerSection('pipeline');
