@@ -1,9 +1,7 @@
-const { is } = require('immutable');
-
 const api = require('../app/api');
 const html = require('../app/html');
 const constants = require('../constants');
-const { Aggregator } = require('../lib/aggregator');
+const { Aggregator, defaultEnricher } = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
 const { touch, prune, countRecent } = require('../lib/recent-map');
 const { safeHtml, toHtml } = require('../lib/util');
@@ -42,22 +40,7 @@ function start() {
 
   /** @type {Enricher} */
   const enricher = (entry, log) => {
-    for (const field of [
-      'address',
-      'identity',
-      'cloudflare',
-      'dnsbl',
-      'geoip',
-      'hostname',
-      'agent',
-      'asn',
-      'language',
-      'signature',
-    ]) {
-      if (log.has(field) && !is(log.get(field), entry.get(field))) {
-        entry = entry.set(field, log.get(field));
-      }
-    }
+    entry = defaultEnricher(entry, log);
 
     // Distinct signature IDs with last-seen time, pruned to 24h; backs both
     // the 15m and 24h counts

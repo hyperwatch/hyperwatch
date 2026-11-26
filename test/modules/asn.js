@@ -3,6 +3,7 @@ const assert = require('assert');
 const { parse } = require('@hyperwatch/iptoasn');
 const { fromJS } = require('immutable');
 
+const { Aggregator } = require('../../src/lib/aggregator');
 const asn = require('../../src/modules/asn');
 
 const TSV = [
@@ -164,6 +165,20 @@ describe('asn', () => {
       const row = asn.aggregator.formatter.formatObject(entry, 'text');
       assert.strictEqual(row.asn, 'AS15169');
       assert.strictEqual(row.addressCount24h, 3);
+    });
+
+    it('is kept by aggregators with the default enricher', () => {
+      // As /identities: entries keyed by identity, the default enricher
+      const aggregator = new Aggregator();
+      aggregator.processLog(
+        fromJS({
+          identity: 'Google',
+          address: { value: '8.8.8.8' },
+          asn: { number: 15169, organization: 'GOOGLE - Google LLC' },
+        })
+      );
+      const entry = aggregator.entries.first();
+      assert.strictEqual(entry.getIn(['asn', 'number']), 15169);
     });
   });
 });
