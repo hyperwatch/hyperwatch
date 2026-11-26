@@ -359,8 +359,9 @@ function registerAggregator(name, aggregator, htmlOptions = {}) {
 
   app.get(`/${name}/:identifier{.json}`, (req, res, next) => {
     // The page of another aggregator (graphql/v1 under graphql, in any
-    // format), whichever registered first
-    const nested = `${name}/${req.params.identifier}`;
+    // format), whichever registered first. From the path: {.json} takes the
+    // suffix off the identifier, and a name may end in .json
+    const nested = req.path.slice(1);
     const format = nested.match(/\.(?:json|csv)$/);
     if (
       aggregators.has(nested) ||

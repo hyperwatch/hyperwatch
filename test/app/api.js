@@ -1035,6 +1035,16 @@ describe('API aggregator names with /', () => {
     assert.match(nav, /<a href="first">first<\/a>/);
   });
 
+  it('serves a nested aggregator whose name ends in .json', async () => {
+    api.registerAggregator('suffix', aggregator);
+    api.registerAggregator('suffix/v1.json', aggregator);
+    const page = await fetch(`${baseUrl}/suffix/v1.json`);
+    assert.strictEqual(page.status, 200);
+    assert.match(page.headers.get('content-type'), /text\/html/);
+    const json = await fetch(`${baseUrl}/suffix/v1.json.json`);
+    assert.deepStrictEqual(await json.json(), []);
+  });
+
   it('passes only its own formats to a nested aggregator', async () => {
     assert.strictEqual((await fetch(`${baseUrl}/nest/v1.xml`)).status, 404);
     assert.strictEqual(
