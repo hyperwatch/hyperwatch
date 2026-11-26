@@ -140,3 +140,73 @@ describe('Aggregator identifier', () => {
     );
   });
 });
+
+describe('Aggregator status speeds', () => {
+  const log = (key, status) =>
+    fromJS({ key, executionTime: 10, response: { status } });
+  const aggregator = () => {
+    const a = new Aggregator();
+    a.setIdentifier((entry) => entry.get('key'));
+    return a;
+  };
+  const speedKeys = (a, key) =>
+    [
+      ...a.entries
+        .find((e) => e.get('identifier') === key)
+        .get('speed')
+        .keys(),
+    ].sort();
+
+  it('creates the 2xx and 4xx speeds at their first hit', () => {
+    const a = aggregator();
+    a.processLog(log('a', 304));
+    assert.deepStrictEqual(speedKeys(a, 'a'), ['per_hour', 'per_minute']);
+    // Counted as 0 without them
+    const entry = a.entries.first();
+    assert.strictEqual(a.sorters['2xx15m'](entry), 0);
+    assert.strictEqual(a.sorters['4xx24h'](entry), 0);
+
+    a.processLog(log('a', 200));
+    a.processLog(log('a', 404));
+    a.processLog(log('a', 404));
+    assert.deepStrictEqual(speedKeys(a, 'a'), [
+      '2xx_per_hour',
+      '2xx_per_minute',
+      '4xx_per_hour',
+      '4xx_per_minute',
+      'per_hour',
+      'per_minute',
+    ]);
+    const updated = a.entries.first();
+    assert.strictEqual(a.sorters.count15m(updated), 4);
+    assert.strictEqual(a.sorters['2xx15m'](updated), 1);
+    assert.strictEqual(a.sorters['4xx24h'](updated), 2);
+  });
+
+  it('restores the status speeds that had hits only', () => {
+    const source = aggregator();
+    source.processLog(log('a', 200));
+    const dumped = JSON.parse(JSON.stringify(source.dump()));
+    // As documents of earlier versions have them: all four, empty ones too
+    const empty = (windowSize, size) => ({
+      windowSize,
+      size,
+      counters: {},
+      sums: {},
+      started: null,
+      latest: null,
+    });
+    dumped[0].speed['4xx_per_minute'] = empty(60, 15);
+    dumped[0].speed['4xx_per_hour'] = empty(3600, 24);
+
+    const restored = aggregator();
+    restored.load(dumped);
+    assert.deepStrictEqual(speedKeys(restored, 'a'), [
+      '2xx_per_hour',
+      '2xx_per_minute',
+      'per_hour',
+      'per_minute',
+    ]);
+    assert.strictEqual(restored.sorters['2xx24h'](restored.entries.first()), 1);
+  });
+});

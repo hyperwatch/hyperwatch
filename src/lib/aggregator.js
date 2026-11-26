@@ -27,6 +27,13 @@ const lastSeen = (entry, output) => {
     : iso;
 };
 
+// The status speeds (2xx_per_minute…): period, window size and windows
+/** @type {[string, number, number][]} */
+const STATUS_SPEEDS = [
+  ['per_minute', 60, 15],
+  ['per_hour', 3600, 24],
+];
+
 // The hits of the speed `key` of an entry, 0 if it has none
 /**
  * @param {string} key
@@ -194,11 +201,7 @@ class Aggregator {
         .setIn(
           [id, 'speed', 'per_hour'],
           new Speed(3600, 24).hit(undefined, executionTime)
-        )
-        .setIn([id, 'speed', '2xx_per_minute'], new Speed(60, 15))
-        .setIn([id, 'speed', '2xx_per_hour'], new Speed(3600, 24))
-        .setIn([id, 'speed', '4xx_per_minute'], new Speed(60, 15))
-        .setIn([id, 'speed', '4xx_per_hour'], new Speed(3600, 24));
+        );
     } else {
       this.entries = this.entries
         .updateIn([id, 'speed', 'per_minute'], (/** @type {any} */ speed) =>
@@ -209,22 +212,22 @@ class Aggregator {
         );
     }
 
-    if (status >= 200 && status < 300) {
-      this.entries = this.entries
-        .updateIn([id, 'speed', '2xx_per_minute'], (/** @type {any} */ speed) =>
-          speed.hit()
-        )
-        .updateIn([id, 'speed', '2xx_per_hour'], (/** @type {any} */ speed) =>
-          speed.hit()
+    // The 2xx and 4xx speeds from their first hit: most entries only ever
+    // see one kind of status, and an entry without one counts 0 (statusCount)
+    const kind =
+      status >= 200 && status < 300
+        ? '2xx'
+        : status >= 400 && status < 500
+          ? '4xx'
+          : null;
+    if (kind) {
+      for (const [period, windowSize, size] of STATUS_SPEEDS) {
+        this.entries = this.entries.updateIn(
+          [id, 'speed', `${kind}_${period}`],
+          (/** @type {any} */ speed) =>
+            (speed || new Speed(windowSize, size)).hit()
         );
-    } else if (status >= 400 && status < 500) {
-      this.entries = this.entries
-        .updateIn([id, 'speed', '4xx_per_minute'], (/** @type {any} */ speed) =>
-          speed.hit()
-        )
-        .updateIn([id, 'speed', '4xx_per_hour'], (/** @type {any} */ speed) =>
-          speed.hit()
-        );
+      }
     }
 
     this.entries = this.entries.updateIn([id], (entry) =>
@@ -331,31 +334,17 @@ class Aggregator {
       }
       entry = entry
         .setIn(['speed', 'per_minute'], Speed.fromJSON(speed.per_minute))
-        .setIn(['speed', 'per_hour'], Speed.fromJSON(speed.per_hour))
-        .setIn(
-          ['speed', '2xx_per_minute'],
-          speed['2xx_per_minute']
-            ? Speed.fromJSON(speed['2xx_per_minute'])
-            : new Speed(60, 15)
-        )
-        .setIn(
-          ['speed', '2xx_per_hour'],
-          speed['2xx_per_hour']
-            ? Speed.fromJSON(speed['2xx_per_hour'])
-            : new Speed(3600, 24)
-        )
-        .setIn(
-          ['speed', '4xx_per_minute'],
-          speed['4xx_per_minute']
-            ? Speed.fromJSON(speed['4xx_per_minute'])
-            : new Speed(60, 15)
-        )
-        .setIn(
-          ['speed', '4xx_per_hour'],
-          speed['4xx_per_hour']
-            ? Speed.fromJSON(speed['4xx_per_hour'])
-            : new Speed(3600, 24)
-        );
+        .setIn(['speed', 'per_hour'], Speed.fromJSON(speed.per_hour));
+      // Status speeds that had hits only (documents of earlier versions have
+      // all four, most never hit)
+      for (const kind of ['2xx', '4xx']) {
+        for (const [period] of STATUS_SPEEDS) {
+          const key = `${kind}_${period}`;
+          if (speed[key] && speed[key].started) {
+            entry = entry.setIn(['speed', key], Speed.fromJSON(speed[key]));
+          }
+        }
+      }
       this.entries = this.entries.set(rest.id, entry);
     }
     // Drop members that went stale while the process was down
@@ -367,8 +356,8 @@ class Aggregator {
 
 /**
  * An entry of an aggregator: `id`, `identifier`, `speed` (a Map of Speed by
- * window: `per_minute`, `per_hour`, `2xx_per_minute`…) and what the enricher
- * copies from the logs
+ * window: `per_minute`, `per_hour`, and `2xx_per_minute`… once the entry had
+ * a response of that status) and what the enricher copies from the logs
  * @typedef {import('immutable').Map<string, any>} Entry
  */
 
