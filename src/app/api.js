@@ -257,17 +257,32 @@ const aggregators = new Map();
  */
 const getAggregator = (name) => aggregators.get(name);
 
+// Segments of letters, digits, '.', '_' and '-', separated by '/'
+const AGGREGATOR_NAME = /^[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/;
+
 /**
  * Serves an aggregator at `/<name>` (HTML, `.json`, `.csv`), and saves it
- * with the persistence.
+ * with the persistence. The name may contain '/' (graphql/v1), but not
+ * under a built-in page (logs/…).
  * @param {string} name
  * @param {import('../lib/aggregator').Aggregator} aggregator
  * @param {import('./html').AggregatorViewOptions} [htmlOptions]
  */
 function registerAggregator(name, aggregator, htmlOptions = {}) {
+  if (!AGGREGATOR_NAME.test(name)) {
+    throw new Error(`Invalid aggregator name: "${name}"`);
+  }
+  if (html.isUnderBuiltIn(name)) {
+    throw new Error(`The ${name} aggregator is under a built-in page`);
+  }
   const htmlView = html.aggregatorView(name, htmlOptions);
   aggregators.set(name, aggregator);
-  persistence.register(name, aggregator);
+  // Names without '/' keep their document; graphql/v1 is saved as
+  // graphql_2f_v1
+  persistence.register(
+    name.includes('/') ? persistence.safeName(name) : name,
+    aggregator
+  );
   app.get(`/${name}{.:format}`, (req, res) => {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
@@ -312,7 +327,7 @@ function registerAggregator(name, aggregator, htmlOptions = {}) {
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader(
         'Content-Disposition',
-        `attachment; filename="${name}.csv"`
+        `attachment; filename="${name.replaceAll('/', '-')}.csv"`
       );
       res.send(csv);
     } else if (format === 'json') {
@@ -330,12 +345,14 @@ function registerAggregator(name, aggregator, htmlOptions = {}) {
     res.send({ success: true });
   });
 
-  app.get(`/${name}/:identifier{.json}`, (req, res) => {
+  app.get(`/${name}/:identifier{.json}`, (req, res, next) => {
     const entry = aggregator.get(req.params.identifier);
-    if (!entry) {
-      res.status(404).send('Not Found');
-    } else {
+    if (entry) {
       res.send(entry.toJSON());
+    } else {
+      // Maybe the page of another aggregator (graphql/v1 under graphql,
+      // registered later): entries are md5 ids, never a name
+      next();
     }
   });
 }
