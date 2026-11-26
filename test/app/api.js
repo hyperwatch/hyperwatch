@@ -933,3 +933,149 @@ describe('API aggregator limit', () => {
     assert.deepStrictEqual(limits, [100, 100, 100, 100, 100, 100]);
   });
 });
+
+describe('API aggregator names with /', () => {
+  const { Aggregator } = require('../../src/lib/aggregator');
+  const persistence = require('../../src/lib/persistence');
+  const { createMemoryStorage } = require('../helpers/memory-storage');
+  const { md5 } = require('../../src/lib/util');
+
+  let server;
+  let baseUrl;
+  let nested;
+
+  before(async () => {
+    // The parent registers first: its /nest/:identifier route comes first
+    const parent = new Aggregator();
+    parent.setIdentifier((entry) => entry.get('key'));
+    parent.processLog(fromJS({ key: 'entry' }));
+    api.registerAggregator('nest', parent, {
+      nav: { group: 'nest', label: 'all' },
+    });
+    nested = new Aggregator();
+    nested.setIdentifier((entry) => entry.get('key'));
+    nested.processLog(fromJS({ key: 'one' }));
+    api.registerAggregator('nest/v1', nested, {
+      nav: { group: 'nest', label: 'v1' },
+    });
+    server = http.createServer(api);
+    const port = await listen(server);
+    baseUrl = `http://127.0.0.1:${port}`;
+  });
+
+  after(async () => {
+    await close(server);
+  });
+
+  it('serves the aggregator at its path, in every format', async () => {
+    const page = await fetch(`${baseUrl}/nest/v1`);
+    assert.strictEqual(page.status, 200);
+    const body = await page.text();
+    assert.match(body, /<a href="nest" class="active">nest<\/a>/);
+    assert.match(
+      body,
+      /<div class="subnav"><a href="nest">all<\/a><span class="grey"> · <\/span><strong>v1<\/strong><\/div>/
+    );
+    assert.match(body, /<td>1<\/td>/);
+
+    const json = await (await fetch(`${baseUrl}/nest/v1.json?raw=1`)).json();
+    assert.deepStrictEqual(
+      json.map((row) => row.identifier),
+      ['one']
+    );
+
+    const csv = await fetch(`${baseUrl}/nest/v1.csv`);
+    assert.strictEqual(csv.status, 200);
+    assert.strictEqual(
+      csv.headers.get('content-disposition'),
+      'attachment; filename="nest-v1.csv"'
+    );
+    assert.match(await csv.text(), /^identity,/);
+  });
+
+  it('keeps the entries of the parent aggregator', async () => {
+    const entry = await fetch(`${baseUrl}/nest/${md5('entry')}.json`);
+    assert.strictEqual(entry.status, 200);
+    assert.strictEqual((await entry.json()).identifier, 'entry');
+    const nestedEntry = await fetch(`${baseUrl}/nest/v1/${md5('one')}.json`);
+    assert.strictEqual((await nestedEntry.json()).identifier, 'one');
+    assert.strictEqual((await fetch(`${baseUrl}/nest/none.json`)).status, 404);
+  });
+
+  it('saves it under a safe name, and loads it back', async () => {
+    const storage = createMemoryStorage();
+    const previous = persistence.getStorage();
+    const log = console.log;
+    console.log = () => {};
+    try {
+      persistence.setStorage(storage);
+      await persistence.dump();
+      assert.ok(storage.documents.has('nest_2f_v1'));
+      assert.ok(storage.documents.has('nest'));
+
+      nested.reset();
+      assert.strictEqual(nested.get(md5('one')), undefined);
+      await persistence.load();
+      assert.strictEqual(nested.get(md5('one')).get('identifier'), 'one');
+    } finally {
+      console.log = log;
+      persistence.setStorage(previous);
+    }
+  });
+
+  it('serves a nested aggregator registered before its parent', async () => {
+    api.registerAggregator('first/v1', aggregator, { nav: true });
+    api.registerAggregator('first', aggregator, { nav: true });
+    for (const path of ['first/v1', 'first/v1.json', 'first/v1.csv']) {
+      assert.strictEqual((await fetch(`${baseUrl}/${path}`)).status, 200, path);
+    }
+    // Only the most specific section is active
+    const nav = html.nav({ path: '/first/v1', query: {} });
+    assert.match(nav, /<a href="first\/v1" class="active">first\/v1<\/a>/);
+    assert.match(nav, /<a href="first">first<\/a>/);
+  });
+
+  it('passes only its own formats to a nested aggregator', async () => {
+    assert.strictEqual((await fetch(`${baseUrl}/nest/v1.xml`)).status, 404);
+    assert.strictEqual(
+      await (await fetch(`${baseUrl}/nest/v1.xml.json`)).text(),
+      'Not Found'
+    );
+  });
+
+  it('refuses two names saved as the same document', () => {
+    api.registerAggregator('twin/a', aggregator);
+    assert.throws(
+      () => api.registerAggregator('twin_2f_a', aggregator),
+      /twin_2f_a aggregator would be saved as the twin\/a aggregator/
+    );
+    // Registered again under its own name
+    api.registerAggregator('twin/a', aggregator);
+  });
+
+  it('refuses names under built-in pages, and empty segments', () => {
+    for (const name of [
+      'logs/main',
+      'pipeline/x',
+      'status/x',
+      'nodes/x',
+      'history/main',
+      'firewall/lists',
+    ]) {
+      assert.throws(
+        () => api.registerAggregator(name, aggregator),
+        /is under a built-in page/
+      );
+    }
+    assert.throws(
+      () => html.registerSection('logs/extra'),
+      /logs\/extra section is under a built-in section/
+    );
+    for (const name of ['/a', 'a/', 'a//b', 'a b', 'a:b']) {
+      assert.throws(
+        () => api.registerAggregator(name, aggregator),
+        /Invalid aggregator name/
+      );
+    }
+  });
+});

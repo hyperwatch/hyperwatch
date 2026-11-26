@@ -21,6 +21,9 @@ const followScript = read('scripts/follow.js');
 // Others (e.g. an application's own aggregators) go before or after one of
 // them (see registerSection), by default before logs.
 const order = ['addresses', 'identities', 'logs', 'pipeline'];
+// Built-in pages and routes: a section or aggregator can't be under them
+// (logs/…), their own routes would take its pages
+const builtInRoutes = ['status', 'nodes', 'history', 'firewall', ...order];
 // Section name → the page its navigation link opens
 const sections = new Map();
 // Section or group name → its place in the navigation, for sections not in
@@ -58,7 +61,8 @@ const identityFilterSections = new Set();
  */
 
 /**
- * A link in the navigation
+ * A link in the navigation. Its name may contain '/' (graphql/v1), but not
+ * under a built-in section (logs/…): registerSection throws.
  * @param {string} name
  * @param {string} [href]
  * @param {NavOptions} [options] For a section that isn't in `order`
@@ -67,6 +71,9 @@ function registerSection(name, href = name, options = {}) {
   const { before, after, group, label = name } = options;
   const builtIn = (/** @type {string} */ section) =>
     section === 'status' || order.includes(section);
+  if (isUnderBuiltIn(name)) {
+    throw new Error(`The ${name} section is under a built-in section`);
+  }
   if (group) {
     if (builtIn(name)) {
       throw new Error(`The ${name} section can't be in a navigation group`);
@@ -143,6 +150,13 @@ function leaveGroup(name, group) {
   } else {
     placeGroup(group);
   }
+}
+
+// A name under a built-in page or route, e.g. logs/main
+/** @param {string} name */
+function isUnderBuiltIn(name) {
+  const slash = name.indexOf('/');
+  return slash !== -1 && builtInRoutes.includes(name.slice(0, slash));
 }
 
 /** @param {string} name */
@@ -280,13 +294,15 @@ function nav(req) {
       ? link('./', 'hyperwatch', home ? 'active' : null)
       : '<span>hyperwatch</span>',
   ];
+  // The most specific section only: graphql/v1, not also graphql
+  const current = currentSection(req);
   for (const name of navSections()) {
     const members = groups.get(name);
     // A group opens its first member, and is active on any member's page
     const target = members ? members.keys().next().value || name : name;
     const active = members
-      ? [...members.keys()].some((member) => isActiveSection(req, member))
-      : isActiveSection(req, name);
+      ? [...members.keys()].some((member) => member === current)
+      : name === current;
     links.push(
       link(sectionHref(req, target), escapeHtml(name), active ? 'active' : null)
     );
@@ -294,18 +310,9 @@ function nav(req) {
   return `<nav>${links.join('')}</nav>`;
 }
 
-// Active under its name, or under the page its link opens (an href that
-// doesn't start with the name, e.g. admin/reports)
-/**
- * @param {Request} req
- * @param {string} name
- */
-function isActiveSection(req, name) {
-  return activeMatch(req, name) > 0;
-}
-
-// The length of the path a section is active under on this page (the
-// longest of its name and its link's page), 0 when it isn't active
+// The length of the path a section is active under on this page: the
+// longest of its name and the page its link opens (an href that doesn't
+// start with the name, e.g. admin/reports), 0 when it isn't active
 /**
  * @param {Request} req
  * @param {string} name
@@ -316,6 +323,22 @@ function activeMatch(req, name) {
     0,
     ...paths.filter((path) => isUnder(req.path, path)).map((p) => p.length)
   );
+}
+
+// The section of this page: the one whose page is the most specific match
+// (admin/reports rather than admin), null on none
+/** @param {Request} req */
+function currentSection(req) {
+  let current = null;
+  let longest = 0;
+  for (const name of sections.keys()) {
+    const match = activeMatch(req, name);
+    if (match > longest) {
+      current = name;
+      longest = match;
+    }
+  }
+  return current;
 }
 
 // The link of a section: aggregator pages keep the period and identity filter
@@ -340,16 +363,8 @@ function sectionHref(req, name) {
 // page is the most specific match (admin/reports rather than admin)
 /** @param {Request} req */
 function groupNav(req) {
-  let current = null;
-  let longest = 0;
   // Among all sections: none on the page of a section outside groups
-  for (const name of sections.keys()) {
-    const match = activeMatch(req, name);
-    if (match > longest) {
-      current = name;
-      longest = match;
-    }
-  }
+  const current = currentSection(req);
   if (!current || !sectionGroups.has(current)) {
     return '';
   }
@@ -902,6 +917,7 @@ module.exports = {
   groupNav,
   hasSection,
   head,
+  isUnderBuiltIn,
   logsLink,
   nav,
   nodesNav,
