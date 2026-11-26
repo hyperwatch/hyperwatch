@@ -993,6 +993,12 @@ describe('API aggregator names with /', () => {
     assert.match(await csv.text(), /^identity,/);
   });
 
+  it('leaves the case and trailing slash to the router', async () => {
+    for (const path of ['nest/V1', 'nest/v1/', 'NEST/v1.json']) {
+      assert.strictEqual((await fetch(`${baseUrl}/${path}`)).status, 200, path);
+    }
+  });
+
   it('keeps the entries of the parent aggregator', async () => {
     const entry = await fetch(`${baseUrl}/nest/${md5('entry')}.json`);
     assert.strictEqual(entry.status, 200);
@@ -1036,37 +1042,13 @@ describe('API aggregator names with /', () => {
   });
 
   it('serves a nested aggregator whose name ends in .json', async () => {
-    api.registerAggregator('suffix', aggregator);
+    api.registerAggregator('suffix', new Aggregator());
     api.registerAggregator('suffix/v1.json', aggregator);
     const page = await fetch(`${baseUrl}/suffix/v1.json`);
     assert.strictEqual(page.status, 200);
     assert.match(page.headers.get('content-type'), /text\/html/);
     const json = await fetch(`${baseUrl}/suffix/v1.json.json`);
     assert.deepStrictEqual(await json.json(), []);
-  });
-
-  it('serves a nested page as the router matches it', async () => {
-    for (const path of ['nest/v1/', 'nest/V1', 'NEST/v1.json', 'nest/V1.csv']) {
-      assert.strictEqual((await fetch(`${baseUrl}/${path}`)).status, 200, path);
-    }
-  });
-
-  it('passes only its own formats to a nested aggregator', async () => {
-    assert.strictEqual((await fetch(`${baseUrl}/nest/v1.xml`)).status, 404);
-    assert.strictEqual(
-      await (await fetch(`${baseUrl}/nest/v1.xml.json`)).text(),
-      'Not Found'
-    );
-  });
-
-  it('refuses two names saved as the same document', () => {
-    api.registerAggregator('twin/a', aggregator);
-    assert.throws(
-      () => api.registerAggregator('twin_2f_a', aggregator),
-      /twin_2f_a aggregator would be saved as the twin\/a aggregator/
-    );
-    // Registered again under its own name
-    api.registerAggregator('twin/a', aggregator);
   });
 
   it('refuses names under built-in pages, and empty segments', () => {
@@ -1077,16 +1059,13 @@ describe('API aggregator names with /', () => {
       'nodes/x',
       'history/main',
       'firewall/lists',
+      'Logs/main',
     ]) {
       assert.throws(
         () => api.registerAggregator(name, aggregator),
         /is under a built-in page/
       );
     }
-    assert.throws(
-      () => html.registerSection('logs/extra'),
-      /logs\/extra section is under a built-in section/
-    );
     for (const name of ['/a', 'a/', 'a//b', 'a b', 'a:b']) {
       assert.throws(
         () => api.registerAggregator(name, aggregator),

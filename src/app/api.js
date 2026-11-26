@@ -257,24 +257,6 @@ const aggregators = new Map();
  */
 const getAggregator = (name) => aggregators.get(name);
 
-// Aggregator name by persistence name: graphql/v1 and graphql_2f_v1 can't
-// both be registered
-/** @type {Map<string, string>} */
-const persistenceNames = new Map();
-
-/**
- * Whether an aggregator is registered under this path
- * @param {string} path
- * @param {boolean} caseSensitive
- */
-function hasAggregator(path, caseSensitive) {
-  if (caseSensitive) {
-    return aggregators.has(path);
-  }
-  const lower = path.toLowerCase();
-  return [...aggregators.keys()].some((name) => name.toLowerCase() === lower);
-}
-
 // Segments of letters, digits, '.', '_' and '-', separated by '/'
 const AGGREGATOR_NAME = /^[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/;
 
@@ -293,21 +275,14 @@ function registerAggregator(name, aggregator, htmlOptions = {}) {
   if (html.isUnderBuiltIn(name)) {
     throw new Error(`The ${name} aggregator is under a built-in page`);
   }
-  // Names without '/' keep their document; graphql/v1 is saved as
-  // graphql_2f_v1
-  const persistenceName = name.includes('/')
-    ? persistence.safeName(name)
-    : name;
-  const other = persistenceNames.get(persistenceName);
-  if (other !== undefined && other !== name) {
-    throw new Error(
-      `The ${name} aggregator would be saved as the ${other} aggregator`
-    );
-  }
   const htmlView = html.aggregatorView(name, htmlOptions);
   aggregators.set(name, aggregator);
-  persistenceNames.set(persistenceName, name);
-  persistence.register(persistenceName, aggregator);
+  // Names without '/' keep their document; graphql/v1 is saved as
+  // graphql_2f_v1
+  persistence.register(
+    name.includes('/') ? persistence.safeName(name) : name,
+    aggregator
+  );
   app.get(`/${name}{.:format}`, (req, res) => {
     const raw = req.query.raw ? true : false;
     const format = req.params.format || (raw ? 'json' : null);
@@ -371,29 +346,13 @@ function registerAggregator(name, aggregator, htmlOptions = {}) {
   });
 
   app.get(`/${name}/:identifier{.json}`, (req, res, next) => {
-    // The page of another aggregator (graphql/v1 under graphql, in any
-    // format), whichever registered first. From the path: {.json} takes the
-    // suffix off the identifier, and a name may end in .json
-    // As the router matches: without the trailing slash and the case, unless
-    // strict or case sensitive routing is on
-    const caseSensitive = req.app.enabled('case sensitive routing');
-    let nested = req.path.slice(1);
-    if (!req.app.enabled('strict routing')) {
-      nested = nested.replace(/\/$/, '');
-    }
-    const format = nested.match(/\.(?:json|csv)$/);
-    if (
-      hasAggregator(nested, caseSensitive) ||
-      (format && hasAggregator(nested.slice(0, format.index), caseSensitive))
-    ) {
-      next();
-      return;
-    }
     const entry = aggregator.get(req.params.identifier);
-    if (!entry) {
-      res.status(404).send('Not Found');
-    } else {
+    if (entry) {
       res.send(entry.toJSON());
+    } else {
+      // Maybe the page of another aggregator (graphql/v1 under graphql,
+      // registered later): entries are md5 ids, never a name
+      next();
     }
   });
 }

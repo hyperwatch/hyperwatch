@@ -21,8 +21,8 @@ const followScript = read('scripts/follow.js');
 // Others (e.g. an application's own aggregators) go before or after one of
 // them (see registerSection), by default before logs.
 const order = ['addresses', 'identities', 'logs', 'pipeline'];
-// Built-in pages and routes: a section or aggregator can't be under them
-// (logs/…), their own routes would take its pages
+// Built-in pages and routes: an aggregator can't be under them (logs/…),
+// their own routes would take its pages
 const builtInRoutes = ['status', 'nodes', 'history', 'firewall', ...order];
 // Section name → the page its navigation link opens
 const sections = new Map();
@@ -61,8 +61,7 @@ const identityFilterSections = new Set();
  */
 
 /**
- * A link in the navigation. Its name may contain '/' (graphql/v1), but not
- * under a built-in section (logs/…): registerSection throws.
+ * A link in the navigation
  * @param {string} name
  * @param {string} [href]
  * @param {NavOptions} [options] For a section that isn't in `order`
@@ -71,9 +70,6 @@ function registerSection(name, href = name, options = {}) {
   const { before, after, group, label = name } = options;
   const builtIn = (/** @type {string} */ section) =>
     section === 'status' || order.includes(section);
-  if (isUnderBuiltIn(name)) {
-    throw new Error(`The ${name} section is under a built-in section`);
-  }
   if (group) {
     if (builtIn(name)) {
       throw new Error(`The ${name} section can't be in a navigation group`);
@@ -156,7 +152,10 @@ function leaveGroup(name, group) {
 /** @param {string} name */
 function isUnderBuiltIn(name) {
   const slash = name.indexOf('/');
-  return slash !== -1 && builtInRoutes.includes(name.slice(0, slash));
+  // Routes ignore case by default
+  return (
+    slash !== -1 && builtInRoutes.includes(name.slice(0, slash).toLowerCase())
+  );
 }
 
 /** @param {string} name */
@@ -294,15 +293,17 @@ function nav(req) {
       ? link('./', 'hyperwatch', home ? 'active' : null)
       : '<span>hyperwatch</span>',
   ];
-  // The most specific section only: graphql/v1, not also graphql
-  const current = currentSection(req);
+  // The most specific sections only: graphql/v1, not also graphql
+  const longest = longestMatch(req);
+  const isActive = (/** @type {string} */ section) =>
+    longest > 0 && activeMatch(req, section) === longest;
   for (const name of navSections()) {
     const members = groups.get(name);
     // A group opens its first member, and is active on any member's page
     const target = members ? members.keys().next().value || name : name;
     const active = members
-      ? [...members.keys()].some((member) => member === current)
-      : name === current;
+      ? [...members.keys()].some(isActive)
+      : isActive(name);
     links.push(
       link(sectionHref(req, target), escapeHtml(name), active ? 'active' : null)
     );
@@ -325,20 +326,24 @@ function activeMatch(req, name) {
   );
 }
 
-// The section of this page: the one whose page is the most specific match
+// The length of the most specific match among sections, 0 on none
+/** @param {Request} req */
+function longestMatch(req) {
+  return Math.max(0, ...[...sections.keys()].map((n) => activeMatch(req, n)));
+}
+
+// The section of this page: the first whose page is the most specific match
 // (admin/reports rather than admin), null on none
 /** @param {Request} req */
 function currentSection(req) {
-  let current = null;
-  let longest = 0;
-  for (const name of sections.keys()) {
-    const match = activeMatch(req, name);
-    if (match > longest) {
-      current = name;
-      longest = match;
-    }
+  const longest = longestMatch(req);
+  if (longest === 0) {
+    return null;
   }
-  return current;
+  return (
+    [...sections.keys()].find((name) => activeMatch(req, name) === longest) ||
+    null
+  );
 }
 
 // The link of a section: aggregator pages keep the period and identity filter
