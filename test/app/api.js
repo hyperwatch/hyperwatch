@@ -1045,6 +1045,12 @@ describe('API aggregator names with /', () => {
     assert.deepStrictEqual(await json.json(), []);
   });
 
+  it('serves a nested page as the router matches it', async () => {
+    for (const path of ['nest/v1/', 'nest/V1', 'NEST/v1.json', 'nest/V1.csv']) {
+      assert.strictEqual((await fetch(`${baseUrl}/${path}`)).status, 200, path);
+    }
+  });
+
   it('passes only its own formats to a nested aggregator', async () => {
     assert.strictEqual((await fetch(`${baseUrl}/nest/v1.xml`)).status, 404);
     assert.strictEqual(

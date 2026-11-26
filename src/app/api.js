@@ -262,6 +262,19 @@ const getAggregator = (name) => aggregators.get(name);
 /** @type {Map<string, string>} */
 const persistenceNames = new Map();
 
+/**
+ * Whether an aggregator is registered under this path
+ * @param {string} path
+ * @param {boolean} caseSensitive
+ */
+function hasAggregator(path, caseSensitive) {
+  if (caseSensitive) {
+    return aggregators.has(path);
+  }
+  const lower = path.toLowerCase();
+  return [...aggregators.keys()].some((name) => name.toLowerCase() === lower);
+}
+
 // Segments of letters, digits, '.', '_' and '-', separated by '/'
 const AGGREGATOR_NAME = /^[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/;
 
@@ -361,11 +374,17 @@ function registerAggregator(name, aggregator, htmlOptions = {}) {
     // The page of another aggregator (graphql/v1 under graphql, in any
     // format), whichever registered first. From the path: {.json} takes the
     // suffix off the identifier, and a name may end in .json
-    const nested = req.path.slice(1);
+    // As the router matches: without the trailing slash and the case, unless
+    // strict or case sensitive routing is on
+    const caseSensitive = req.app.enabled('case sensitive routing');
+    let nested = req.path.slice(1);
+    if (!req.app.enabled('strict routing')) {
+      nested = nested.replace(/\/$/, '');
+    }
     const format = nested.match(/\.(?:json|csv)$/);
     if (
-      aggregators.has(nested) ||
-      (format && aggregators.has(nested.slice(0, format.index)))
+      hasAggregator(nested, caseSensitive) ||
+      (format && hasAggregator(nested.slice(0, format.index), caseSensitive))
     ) {
       next();
       return;
