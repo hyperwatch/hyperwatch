@@ -4,17 +4,16 @@ Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases)
 
 ## 5.10.0 (2026-11-26)
 
-### To sort: Breaking changes, Features, Fixes, Identities
+### Features
 
-- Accept "/" in aggregator names: /graphql/v1 rather than /graphql-v1 ([#786](https://github.com/hyperwatch/hyperwatch/pull/786))
-- Speed: windows in one flat array of numbers instead of Immutable Maps ([#784](https://github.com/hyperwatch/hyperwatch/pull/784))
-- Share agent, language, geoip, asn, cloudflare and signature values between logs and entries ([#783](https://github.com/hyperwatch/hyperwatch/pull/783))
-- /memory.json: process, heap, and the entries and size of each aggregator and history buffer ([#782](https://github.com/hyperwatch/hyperwatch/pull/782))
-- identity: PoliasBot (Polias) by its published list ([#781](https://github.com/hyperwatch/hyperwatch/pull/781))
+- Aggregator names can have `/`: `registerAggregator('graphql/v1', …)` makes `/graphql`, `/graphql/v1` and `/graphql/v2` possible, which fits the navigation groups from 5.9.0. A name is now segments of letters, digits, `.`, `_` and `-` separated by `/`, and any other name (`a b`, `/a`, `a//b`) throws `Invalid aggregator name`. Names under a built-in page (`logs/x`, `history/main`…) are refused. A name with `/` is persisted as `persistence.safeName(name)` (`graphql_2f_v1`). Names without `/` keep their document. ([#786](https://github.com/hyperwatch/hyperwatch/pull/786))
+- `GET /memory.json` shows what holds memory: `process.memoryUsage()`, the V8 heap and its spaces, and for each persisted aggregator and history buffer its entries, its limits (`gcSize`, ceiling, capacity) and its size at the latest load and dump. `?measure=1` also gives each document's current JSON size (this blocks the event loop like a dump). Documented under Persistence in `docs/configuration.md`. ([#782](https://github.com/hyperwatch/hyperwatch/pull/782))
+- Less memory. Logs and aggregator entries share the values that repeat across them (agent, language, geoip, asn, cloudflare, signature) instead of each holding a copy: 14% less live heap on a production site. Each aggregator entry's speeds keep their windows in a compact array and create the 2xx/4xx speeds at their first hit: persisted aggregators take 18% less once loaded. Persistence documents and the JSON of entries don't change, and documents from earlier versions load. `Speed` no longer has `counters` and `sums` properties (`toJSON()` still gives them). ([#783](https://github.com/hyperwatch/hyperwatch/pull/783), [#784](https://github.com/hyperwatch/hyperwatch/pull/784))
 
 ### Identities
 
-- Refresh the published IP ranges ([#787](https://github.com/hyperwatch/hyperwatch/pull/787))
+- **Polias** (`PoliasBot`, a German search engine), by its published list of addresses. ([#781](https://github.com/hyperwatch/hyperwatch/pull/781))
+- Published ranges refreshed: ChatGPT-User (130 ranges added) and HaloBot (10 addresses removed). ([#787](https://github.com/hyperwatch/hyperwatch/pull/787))
 
 ### Dependencies & tooling
 
