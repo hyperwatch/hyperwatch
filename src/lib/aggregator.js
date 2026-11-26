@@ -76,6 +76,7 @@ const defaultEnricher = (entry, log) => {
     'geoip',
     'hostname',
     'agent',
+    'asn',
     'language',
     'signature',
   ]) {
