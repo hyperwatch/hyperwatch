@@ -2,6 +2,24 @@
 
 Releases are also on [GitHub](https://github.com/hyperwatch/hyperwatch/releases). Versions before 5.0.0 have no entry: see the git history.
 
+## 5.10.0 (2026-11-26)
+
+### To sort: Breaking changes, Features, Fixes, Identities
+
+- Accept "/" in aggregator names: /graphql/v1 rather than /graphql-v1 ([#786](https://github.com/hyperwatch/hyperwatch/pull/786))
+- Speed: windows in one flat array of numbers instead of Immutable Maps ([#784](https://github.com/hyperwatch/hyperwatch/pull/784))
+- Share agent, language, geoip, asn, cloudflare and signature values between logs and entries ([#783](https://github.com/hyperwatch/hyperwatch/pull/783))
+- /memory.json: process, heap, and the entries and size of each aggregator and history buffer ([#782](https://github.com/hyperwatch/hyperwatch/pull/782))
+- identity: PoliasBot (Polias) by its published list ([#781](https://github.com/hyperwatch/hyperwatch/pull/781))
+
+### Identities
+
+- Refresh the published IP ranges ([#787](https://github.com/hyperwatch/hyperwatch/pull/787))
+
+### Dependencies & tooling
+
+- Dependabot bumps of `lint-staged` (17.6.2), `@aws-sdk/client-s3` (3.1175.0). ([#779](https://github.com/hyperwatch/hyperwatch/pull/779), [#785](https://github.com/hyperwatch/hyperwatch/pull/785))
+
 ## 5.9.0 (2026-11-24)
 
 ### Features
