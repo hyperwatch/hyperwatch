@@ -3,12 +3,12 @@ const os = require('os');
 const path = require('path');
 
 const { default: flag } = require('country-code-emoji');
-const { fromJS } = require('immutable');
 
 const constants = require('../constants');
 const aggregator = require('../lib/aggregator');
 const logger = require('../lib/logger');
 const pipeline = require('../lib/pipeline');
+const { sharedFromJS } = require('../lib/shared');
 
 // What a log keeps of the lookup by default: it's copied into logs, history
 // and aggregator entries. The country only: it needs geoip-lite's country
@@ -172,7 +172,8 @@ function augment(log) {
   const entry = lookup(/** @type {string} */ (ip));
 
   if (entry) {
-    log = log.set('geoip', fromJS(pick(entry)));
+    // One value per country (or per lookup with more fields), shared
+    log = log.set('geoip', sharedFromJS('geoip', pick(entry)));
   }
 
   return log;

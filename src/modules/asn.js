@@ -8,7 +8,6 @@
 // bisection over typed arrays, behind an LRU of addresses, and one value per
 // range shared by all its addresses.
 
-const { fromJS } = require('immutable');
 const { LRUCache } = require('lru-cache');
 
 const api = require('../app/api');
@@ -17,6 +16,7 @@ const { Aggregator, defaultFormatter, lastSeen } = require('../lib/aggregator');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
 const { touch, prune, countRecent } = require('../lib/recent-map');
+const { sharedFromJS } = require('../lib/shared');
 const {
   aggregateCount,
   aggregateSum,
@@ -99,8 +99,9 @@ function lookup(address) {
 function valueOf(index) {
   let value = values.get(index);
   if (!value) {
+    // The same value as restored entries get (see shared.sharedFields)
     value = /** @type {AsnValue} */ (
-      fromJS(/** @type {AsnTable} */ (table).range(index))
+      sharedFromJS('asn', /** @type {AsnTable} */ (table).range(index))
     );
     values.set(index, value);
   }

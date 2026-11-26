@@ -5,6 +5,7 @@ const { Aggregator, lastSeen, statusCount } = require('../lib/aggregator');
 const { Formatter } = require('../lib/formatter');
 const pipeline = require('../lib/pipeline');
 const { touch, prune, countRecent } = require('../lib/recent-map');
+const { sharedFromJS } = require('../lib/shared');
 const {
   aggregateCount,
   aggregateSum,
@@ -105,10 +106,12 @@ function signatureHeaders(log) {
 // the signatures aggregator keeps them once per signature
 /** @param {Log} log */
 function augment(log) {
-  return log.setIn(
-    ['signature', 'id'],
-    computeSignature(signatureHeaders(log))
-  );
+  const id = computeSignature(signatureHeaders(log));
+  // One value per signature, shared, unless the log has other signature
+  // fields
+  return log.has('signature')
+    ? log.setIn(['signature', 'id'], id)
+    : log.set('signature', sharedFromJS('signature', { id }));
 }
 
 function init() {

@@ -4,6 +4,8 @@
  */
 const { fromJS } = require('immutable');
 
+const { sharedFields } = require('./shared');
+
 class LogBuffer {
   /** @param {number} [capacity] */
   constructor(capacity = 1000) {
@@ -46,7 +48,10 @@ class LogBuffer {
   load(data) {
     data
       .slice(-this.capacity)
-      .forEach((item) => this.push(/** @type {Log} */ (fromJS(item))));
+      // Shared values (agent, language…) as live logs have them
+      .forEach((item) =>
+        this.push(/** @type {Log} */ (fromJS(sharedFields(item))))
+      );
   }
 }
 

@@ -1,8 +1,8 @@
 const acceptLanguageParser = require('accept-language-parser');
-const { fromJS } = require('immutable');
 
 const aggregator = require('../lib/aggregator');
 const pipeline = require('../lib/pipeline');
+const { sharedFromJS } = require('../lib/shared');
 
 /** @param {Log} log */
 function augment(log) {
@@ -13,7 +13,8 @@ function augment(log) {
       )
     );
     if (language) {
-      log = log.set('language', fromJS(language));
+      // One value per language list, shared by the logs and entries
+      log = log.set('language', sharedFromJS('language', language));
     }
   }
 
